@@ -1,3 +1,46 @@
+menu "StackChan Aliyun Realtime"
+
+config STACKCHAN_ALIYUN_ENABLE
+    bool "Use Aliyun Qwen-Omni-Realtime instead of the xiaozhi backend"
+    default n
+    help
+        When enabled, the device talks only to Alibaba Cloud Bailian and never
+        contacts the xiaozhi OTA endpoint. Requires an API key below.
+
+config STACKCHAN_ALIYUN_API_KEY
+    string "Bailian API key"
+    default ""
+    depends on STACKCHAN_ALIYUN_ENABLE
+    help
+        DashScope API key (starts with "sk-"). It is seeded into NVS on first
+        boot and can later be changed at runtime without reflashing.
+
+        SECURITY: building the key into the firmware means anyone holding the
+        device can extract it. Fine for development; for a device you hand to
+        someone else, provision it over BLE instead and leave this empty.
+
+config STACKCHAN_ALIYUN_WORKSPACE_ID
+    string "Bailian workspace ID"
+    default ""
+    depends on STACKCHAN_ALIYUN_ENABLE
+    help
+        Business workspace ID. When set, the workspace-scoped domain
+        {WorkspaceId}.cn-beijing.maas.aliyuncs.com is used, which the
+        qwen3.x-omni-*-realtime family requires. Leave empty to use the public
+        dashscope.aliyuncs.com endpoint.
+
+config STACKCHAN_ALIYUN_MODEL
+    string "Realtime model"
+    default "qwen3.8-omni-flash-realtime"
+    depends on STACKCHAN_ALIYUN_ENABLE
+
+config STACKCHAN_ALIYUN_VOICE
+    string "Output voice"
+    default "Tina"
+    depends on STACKCHAN_ALIYUN_ENABLE
+
+endmenu
+
 menu "StackChan Server"
 
 config STACKCHAN_SERVER_URL

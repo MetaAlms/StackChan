@@ -36,6 +36,18 @@
  * The tag vocabulary is defined in tools/aliyun_omni/protocol.py and asserted
  * against the firmware in that tool's self-test.
  */
+/**
+ * @brief Seed the "aliyun" NVS namespace from build-time configuration.
+ *
+ * Must run before Application::InitializeProtocol() decides which protocol to
+ * instantiate, so it is called from app_main right after HAL init. Values are
+ * only written when the corresponding key is still empty, so a credential
+ * provisioned at runtime (over BLE, or by a previous build) is never clobbered.
+ *
+ * @return true when an API key is available from NVS or the build config.
+ */
+bool AliyunOmniSeedSettingsFromKconfig();
+
 class AliyunOmniProtocol : public Protocol {
 public:
     AliyunOmniProtocol();
@@ -73,6 +85,9 @@ public:
     static std::string GetConfiguredWorkspaceId();
     static std::string GetConfiguredModel();
     static std::string GetConfiguredVoice();
+    /** Raw NVS/build values, before defaults are applied. */
+    static std::string GetConfiguredModelRaw();
+    static std::string GetConfiguredVoiceRaw();
     static bool IsConfigured();
 
 protected:

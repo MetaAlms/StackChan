@@ -18,6 +18,7 @@
 #include <cstring>
 #include <mooncake_log.h>
 #include <wifi_manager.h>
+#include <sdkconfig.h>
 
 #define TAG "AliyunOmni"
 
@@ -261,6 +262,31 @@ std::string get_setting(const char* key, const char* fallback)
     return settings.GetString(key, fallback);
 }
 
+/* Build-time defaults. Empty unless the corresponding Kconfig option is set. */
+#ifdef CONFIG_STACKCHAN_ALIYUN_API_KEY
+constexpr const char* kBuildApiKey = CONFIG_STACKCHAN_ALIYUN_API_KEY;
+#else
+constexpr const char* kBuildApiKey = "";
+#endif
+
+#ifdef CONFIG_STACKCHAN_ALIYUN_WORKSPACE_ID
+constexpr const char* kBuildWorkspaceId = CONFIG_STACKCHAN_ALIYUN_WORKSPACE_ID;
+#else
+constexpr const char* kBuildWorkspaceId = "";
+#endif
+
+#ifdef CONFIG_STACKCHAN_ALIYUN_MODEL
+constexpr const char* kBuildModel = CONFIG_STACKCHAN_ALIYUN_MODEL;
+#else
+constexpr const char* kBuildModel = "";
+#endif
+
+#ifdef CONFIG_STACKCHAN_ALIYUN_VOICE
+constexpr const char* kBuildVoice = CONFIG_STACKCHAN_ALIYUN_VOICE;
+#else
+constexpr const char* kBuildVoice = "";
+#endif
+
 }  // namespace
 
 /* ------------------------------------------------------------- Impl */
@@ -331,27 +357,78 @@ AliyunOmniProtocol::~AliyunOmniProtocol()
 
 std::string AliyunOmniProtocol::GetConfiguredApiKey()
 {
-    return get_setting("api_key", "");
+    return get_setting("api_key", kBuildApiKey);
 }
 
 std::string AliyunOmniProtocol::GetConfiguredWorkspaceId()
 {
-    return get_setting("workspace_id", "");
+    return get_setting("workspace_id", kBuildWorkspaceId);
 }
 
 std::string AliyunOmniProtocol::GetConfiguredModel()
 {
-    return get_setting("model", kDefaultModel);
+    const std::string configured = GetConfiguredModelRaw();
+    return configured.empty() ? kDefaultModel : configured;
+}
+
+std::string AliyunOmniProtocol::GetConfiguredModelRaw()
+{
+    return get_setting("model", kBuildModel);
 }
 
 std::string AliyunOmniProtocol::GetConfiguredVoice()
 {
-    return get_setting("voice", kDefaultVoice);
+    const std::string configured = GetConfiguredVoiceRaw();
+    return configured.empty() ? kDefaultVoice : configured;
+}
+
+std::string AliyunOmniProtocol::GetConfiguredVoiceRaw()
+{
+    return get_setting("voice", kBuildVoice);
 }
 
 bool AliyunOmniProtocol::IsConfigured()
 {
+    // Checked by Application before the protocol is even constructed, so this
+    // must work from the build config alone when NVS has not been seeded yet.
     return !GetConfiguredApiKey().empty();
+}
+
+bool AliyunOmniSeedSettingsFromKconfig()
+{
+    // A free function cannot call a static member unqualified.
+    if (AliyunOmniProtocol::GetConfiguredApiKey().empty()) {
+        ESP_LOGW(TAG, "no Aliyun API key in NVS or build config");
+        return false;
+    }
+
+    Settings settings(kSettingsNamespace, true);
+
+    struct Seed {
+        const char* key;
+        const char* value;
+    };
+    const Seed seeds[] = {
+        {"api_key", kBuildApiKey},
+        {"workspace_id", kBuildWorkspaceId},
+        {"model", kBuildModel},
+        {"voice", kBuildVoice},
+    };
+
+    for (const auto& seed : seeds) {
+        if (seed.value == nullptr || seed.value[0] == '\0') {
+            continue;
+        }
+        // Never overwrite an existing value: a credential provisioned at
+        // runtime must win over whatever the last build happened to embed.
+        if (!settings.GetString(seed.key, "").empty()) {
+            continue;
+        }
+        settings.SetString(seed.key, seed.value);
+        ESP_LOGI(TAG, "seeded '%s' from build config", seed.key);
+    }
+
+    return true;
 }
 
 /* ------------------------------------------------------------- lifecycle */
