@@ -59,6 +59,11 @@ __all__ = [
 #
 # tools/aliyun_keychain.sh reads these by parsing this file, so this is the only
 # place they are defined. Change them here, nowhere else.
+#
+# A machine-wide equivalent exists as the blue-keychain-save skill
+# (~/.agents/skills/blue-keychain-save/), which stores any project's secret with
+# the same <project>-<vendor>-* naming. Use whichever is more convenient; the
+# entry names below are what this project's scripts look for.
 KEYCHAIN_SERVICE = "stackchan-bailian-api-key"
 KEYCHAIN_ACCOUNT = "stackchan"
 
