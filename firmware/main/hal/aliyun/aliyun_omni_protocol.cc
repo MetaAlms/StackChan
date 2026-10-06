@@ -277,6 +277,26 @@ bool is_handshake_critical(const std::string& payload)
            payload.find("\"error\"") != std::string::npos;
 }
 
+/**
+ * @brief Events that must be dispatched before any audio delta that follows them.
+ *
+ * Application only feeds the decoder while the device state is "speaking", and
+ * that state is set from the tts/start event. Dispatching response.created
+ * through the main-task queue put it *behind* the audio deltas that had already
+ * been queued, so every burst of audio was processed while the state was still
+ * listening and was dropped wholesale. That is what made playback stutter:
+ * arrival gaps of up to 1.85 s, and the packets that did arrive got discarded
+ * instead of buffering.
+ *
+ * Handling it inline on the network task means the state change is scheduled
+ * first, ahead of the audio.
+ */
+bool must_precede_audio(const std::string& payload)
+{
+    return payload.find("\"response.created\"") != std::string::npos ||
+           payload.find("\"response.done\"") != std::string::npos;
+}
+
 std::string get_setting(const char* key, const char* fallback)
 {
     Settings settings(kSettingsNamespace, false);
@@ -603,7 +623,7 @@ bool AliyunOmniProtocol::OpenAudioChannel()
         // for it, so a deferred dispatch would be waiting on the very task that
         // is waiting for it. That deadlock cost a 40 second timeout on every
         // connection, with the frame itself arriving in 10 ms.
-        if (is_handshake_critical(payload)) {
+        if (is_handshake_critical(payload) || must_precede_audio(payload)) {
             HandleServerEvent(payload);
             return;
         }

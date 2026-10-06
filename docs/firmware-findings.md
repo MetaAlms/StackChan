@@ -235,6 +235,56 @@ E no session.created within 40000 ms (tls+upgrade took ld ms, waited ld ms)
 
 `int64_t` 要用 `(int)` 强转后配 `%d`。占用了一轮排查。
 
+### B8. 音频包被整批丢弃 → 播放一顿一顿
+
+**现象**：让 AI 讲长故事时，播放明显卡顿、断断续续。
+
+**证据**：
+
+```
+服务端 audio.delta 到达间隔：最小 70ms / 中位 300ms / 最大 1850ms
+每个 delta 约携带 900ms 音频，间隔却有 1.8 秒 —— 缓冲垫不住就断音
+```
+
+**根因**（调度顺序，我引入的）：
+
+```cpp
+// application.cc:553 —— 只在"正在说话"状态下才喂解码器
+protocol_->OnIncomingAudio([this](std::unique_ptr<AudioStreamPacket> packet) {
+    if (GetDeviceState() == kDeviceStateSpeaking) {
+        audio_service_.PushPacketToDecodeQueue(std::move(packet));
+    }
+});
+```
+
+而事件调度顺序让音频包**全部落在状态切换之前**：
+
+```
+网络任务 → Schedule(response.created)      队列: [created]
+网络任务 → Schedule(delta#1..#N)           队列: [created, d1..dN]
+主任务执行 created → 发 tts:start
+                   → Application 又 Schedule(setState)
+                                           队列: [d1..dN, setState]   ← 状态切换排到最后
+主任务执行 d1..dN  → 状态仍是 listening → 全部丢弃 ❌
+主任务执行 setState → 此时音频已丢完
+```
+
+`response.created` 走主任务队列时排在音频包**前面被处理**，但它引发的状态切换又通过
+一次嵌套 `Schedule` 排到了**最后**。
+
+**修复**：把 `response.created` / `response.done` 与握手事件一样**当场处理**
+（`must_precede_audio()`），使状态切换先于音频包入队。
+
+**验证**：
+
+```
+修复前：丢包告警持续出现，最大间隔 1850ms
+修复后：丢包告警 0 条，最大间隔 1110ms
+```
+
+**教训**：多层 `Schedule` 嵌套时，事件的实际处理顺序与直觉相反。凡"生产者按状态门控
+消费者"的设计，都要确认状态变更事件排在被消费的数据之前。
+
 ### B7. CMake `GLOB_RECURSE` 不重新扫描新增文件
 
 新增 `ogg_opus_muxer.cc` 后链接报 `undefined reference`，因为 `file(GLOB_RECURSE ...)`
