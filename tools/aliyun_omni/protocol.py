@@ -35,6 +35,8 @@ __all__ = [
     "DEFAULT_MODEL",
     "DEFAULT_VOICE",
     "DEFAULT_URL",
+    "KEYCHAIN_ACCOUNT",
+    "KEYCHAIN_SERVICE",
     "SUPPORTED_EMOTIONS",
     "EMOTION_ALIASES",
     "EMOTION_SYSTEM_PROMPT",
@@ -50,6 +52,15 @@ __all__ = [
 ]
 
 # --------------------------------------------------------------------- config
+
+# Keychain coordinates for the Mac-side credential. Deliberately project- and
+# vendor-specific: a bare "dashscope" or "bailian" entry would collide with keys
+# stored for other projects on the same machine.
+#
+# tools/aliyun_keychain.sh reads these by parsing this file, so this is the only
+# place they are defined. Change them here, nowhere else.
+KEYCHAIN_SERVICE = "stackchan-bailian-api-key"
+KEYCHAIN_ACCOUNT = "stackchan"
 
 DEFAULT_MODEL = "qwen3.8-omni-flash-realtime"
 DEFAULT_VOICE = "Tina"

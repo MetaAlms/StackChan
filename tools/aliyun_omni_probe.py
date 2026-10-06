@@ -112,7 +112,8 @@ def load_wav_as_pcm16(path: Path, target_rate: int):
     return struct.pack(f"<{len(samples)}h", *samples), rate, duration
 
 
-def keychain_lookup(service: str = "bailian-dashscope-api-key") -> str:
+def keychain_lookup(service: str = protocol.KEYCHAIN_SERVICE,
+                    account: str = protocol.KEYCHAIN_ACCOUNT) -> str:
     """Return the Bailian API key from the macOS Keychain, or "".
 
     Preferred over --api-key and over an exported variable: a secret on the
@@ -123,8 +124,7 @@ def keychain_lookup(service: str = "bailian-dashscope-api-key") -> str:
         return ""
     try:
         result = subprocess.run(
-            ["security", "find-generic-password", "-s", service, "-a",
-             os.environ.get("USER", ""), "-w"],
+            ["security", "find-generic-password", "-s", service, "-a", account, "-w"],
             capture_output=True, text=True, timeout=10,
         )
     except (OSError, subprocess.SubprocessError):
@@ -597,8 +597,10 @@ def main() -> int:
     parser.add_argument("--out", default="reply.wav", help="where to write reply audio")
     parser.add_argument("--api-key", default=None,
                         help="overrides the environment and the Keychain")
-    parser.add_argument("--keychain-service", default="bailian-dashscope-api-key",
+    parser.add_argument("--keychain-service", default=protocol.KEYCHAIN_SERVICE,
                         help="macOS Keychain service name holding the API key")
+    parser.add_argument("--keychain-account", default=protocol.KEYCHAIN_ACCOUNT,
+                        help="macOS Keychain account name holding the API key")
     parser.add_argument("--workspace-id", default=os.environ.get("DASHSCOPE_WORKSPACE_ID", ""),
                         help="Bailian workspace ID; sent as X-DashScope-WorkSpace when set")
     parser.add_argument("--url", default=protocol.DEFAULT_URL)
@@ -638,7 +640,7 @@ def main() -> int:
         args.api_key = os.environ["DASHSCOPE_API_KEY"]
         args.api_key_source = "$DASHSCOPE_API_KEY"
     else:
-        args.api_key = keychain_lookup(args.keychain_service)
+        args.api_key = keychain_lookup(args.keychain_service, args.keychain_account)
         args.api_key_source = f"Keychain ({args.keychain_service})"
 
     if not args.api_key:

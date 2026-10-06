@@ -25,19 +25,38 @@ python3 tools/aliyun_omni_probe.py --self-test
 覆盖表情标记解析、流式累积器（含"delta 从标记中间切断"的回归用例）、
 session 载荷结构、重采样。
 
-### 2. 实时链路验证
+### 2. 存凭据（推荐 Keychain）
 
 ```bash
-export DASHSCOPE_API_KEY=sk-xxx
-# 没有 Key 时也会验到握手层，用哨兵 Key 会得到 401，这已经能证明
-# 端点可达 + TLS 正常 + URL 构造正确
+tools/aliyun_keychain.sh set     # 静默输入，密钥不上屏、不进历史、不进 ps
+tools/aliyun_keychain.sh show    # 只看掩码确认
+tools/aliyun_keychain.sh names   # 查看使用的 service/account
+```
 
-afconvert -f WAVE -d LEI16@16000 question.m4a question.wav   # 录一句问话
-python3 tools/aliyun_omni_probe.py --wav question.wav
+比 `export DASHSCOPE_API_KEY=...` 安全：命令行参数和导出的变量会进 shell
+历史、进进程列表、进 dotfile。
+
+> 这只保护 Mac 端。ESP32 没有 Keychain，固件必然持有凭据——见
+> [凭据文档](../docs/aliyun-credentials.md) 里关于临时 STS Token 的说明。
+
+### 3. 实时链路验证
+
+```bash
+# 录一句问话
+say -o /tmp/q.aiff "你好，请介绍一下你自己"
+afconvert -f WAVE -d LEI16@16000 /tmp/q.aiff /tmp/q.wav
+
+python3 tools/aliyun_omni_probe.py --wav /tmp/q.wav
 afplay reply.wav
 ```
 
-### 3. 可选参数
+取 key 的优先级：`--api-key` > `$DASHSCOPE_API_KEY` > Keychain。
+都没有时会给出明确提示，不会闷不做声地失败。
+
+没有真音频也能验到握手层：哨兵 key 会得到 `401`，这已经证明端点可达、
+TLS 正常、URL 构造正确。
+
+### 4. 可选参数
 
 | 参数 | 用途 |
 |---|---|
@@ -47,6 +66,7 @@ afplay reply.wav
 | `--voice` | 音色，默认 `Tina` |
 | `--workspace-id` | 业务空间 ID，会作为 `X-DashScope-WorkSpace` 头发送 |
 | `--instructions` | 覆盖系统提示词（默认是表情标记提示词） |
+| `--keychain-service` / `--keychain-account` | 覆盖 Keychain 条目名 |
 | `--silence-ms` | VAD 判停静音时长，默认 800 |
 | `--vad-threshold` | VAD 阈值，默认 0.5 |
 
@@ -90,6 +110,19 @@ advance_emotion_events(state, delta) -> (new_emotion_events, new_visible_text)
 3. **延迟判定不能有状态泄漏** —— 无状态的 `clean_text()` 绝不能延迟任何东西，
    否则 `"[oops hi"` 这种永远不可能是标记的文本会被永久吞掉。
    延迟只存在于有状态的流式累积器里
+
+## Keychain 条目命名
+
+名字**刻意带项目和厂商前缀**，避免和本机其他项目的密钥撞名：
+
+| 项 | 值 |
+|---|---|
+| service | `stackchan-bailian-api-key` |
+| account | `stackchan` |
+
+单一真源是 `aliyun_omni/protocol.py` 里的 `KEYCHAIN_SERVICE` /
+`KEYCHAIN_ACCOUNT`。`aliyun_keychain.sh` 用 AST 解析该文件读取它们，
+所以 shell 与 Python 不会漂移。**要改名只改 protocol.py 一处。**
 
 ## 相关文档
 
