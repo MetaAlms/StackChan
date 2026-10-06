@@ -35,6 +35,7 @@ import base64
 import json
 import os
 import struct
+import subprocess
 import sys
 import time
 import wave
@@ -109,6 +110,28 @@ def load_wav_as_pcm16(path: Path, target_rate: int):
     samples = resample_linear(samples, rate, target_rate)
 
     return struct.pack(f"<{len(samples)}h", *samples), rate, duration
+
+
+def keychain_lookup(service: str = "bailian-dashscope-api-key") -> str:
+    """Return the Bailian API key from the macOS Keychain, or "".
+
+    Preferred over --api-key and over an exported variable: a secret on the
+    command line lands in shell history and in the process list, and one in a
+    dotfile is plaintext on disk.
+    """
+    if sys.platform != "darwin":
+        return ""
+    try:
+        result = subprocess.run(
+            ["security", "find-generic-password", "-s", service, "-a",
+             os.environ.get("USER", ""), "-w"],
+            capture_output=True, text=True, timeout=10,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    if result.returncode != 0:
+        return ""
+    return result.stdout.strip()
 
 
 def write_pcm16_wav(path: Path, pcm: bytes, rate: int) -> None:
@@ -311,6 +334,8 @@ class Probe:
         pcm, src_rate, duration = load_wav_as_pcm16(Path(self.args.wav), 16000)
         log(f"input    : {self.args.wav} ({src_rate} Hz -> 16000 Hz, {duration:.2f}s, "
             f"{len(pcm)} bytes PCM)")
+        log(f"api key  : from {self.args.api_key_source} "
+            f"({self.args.api_key[:6]}...{self.args.api_key[-4:]})")
         log(f"model    : {self.args.model}")
         log(f"url      : {self.build_url()}")
         log(f"mode     : {'manual' if self.args.manual else 'server VAD'}, "
@@ -570,8 +595,10 @@ def main() -> int:
     )
     parser.add_argument("--wav", help="16-bit PCM WAV holding one spoken question")
     parser.add_argument("--out", default="reply.wav", help="where to write reply audio")
-    parser.add_argument("--api-key", default=os.environ.get("DASHSCOPE_API_KEY", ""),
-                        help="defaults to $DASHSCOPE_API_KEY")
+    parser.add_argument("--api-key", default=None,
+                        help="overrides the environment and the Keychain")
+    parser.add_argument("--keychain-service", default="bailian-dashscope-api-key",
+                        help="macOS Keychain service name holding the API key")
     parser.add_argument("--workspace-id", default=os.environ.get("DASHSCOPE_WORKSPACE_ID", ""),
                         help="Bailian workspace ID; sent as X-DashScope-WorkSpace when set")
     parser.add_argument("--url", default=protocol.DEFAULT_URL)
@@ -603,8 +630,24 @@ def main() -> int:
         parser.error("--wav is required unless --self-test is used")
     if not Path(args.wav).exists():
         die(f"no such file: {args.wav}")
+    # Resolution order, most explicit first. The Keychain is last because it is
+    # the safest place to keep a long-lived secret.
+    if args.api_key:
+        args.api_key_source = "--api-key"
+    elif os.environ.get("DASHSCOPE_API_KEY"):
+        args.api_key = os.environ["DASHSCOPE_API_KEY"]
+        args.api_key_source = "$DASHSCOPE_API_KEY"
+    else:
+        args.api_key = keychain_lookup(args.keychain_service)
+        args.api_key_source = f"Keychain ({args.keychain_service})"
+
     if not args.api_key:
-        die("no API key: pass --api-key or set DASHSCOPE_API_KEY")
+        die(
+            "no API key found.\n"
+            "  store one in the Keychain:  tools/aliyun_keychain.sh set\n"
+            "  or export it:               export DASHSCOPE_API_KEY=sk-...\n"
+            "  or pass it:                 --api-key sk-...  (leaks into history)"
+        )
 
     return Probe(args).run()
 
