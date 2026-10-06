@@ -20,6 +20,14 @@
 | 现有后端 | 走 OTA 换 WebSocket 地址 | application.cc:331,334、ota.cc:167 |
 | 阿里端点 | 可达，Bearer 鉴权 | 握手实测 `HTTP 401 InvalidApiKey` |
 
+### 相关文档
+
+| 文档 | 内容 |
+|---|---|
+| [stackchan-hardware.md](stackchan-hardware.md) | 硬件清单、引脚、采样率链路、硬件陷阱 |
+| [firmware-findings.md](firmware-findings.md) | 开发中发现的原厂缺陷与我方踩坑记录 |
+| [aliyun-credentials.md](aliyun-credentials.md) | 凭据配置与刷机 |
+
 ### 阿里协议选型结论
 
 官方 Realtime API 概述的协议矩阵中：
@@ -206,6 +214,18 @@ origin  git@github.com:MetaAlms/StackChan.git   ← 你的 fork，可推送
 
 > 教训：本计划文件首次创建时未提交，已被一次重 clone 清掉。现已纳入 git。
 > **本方案的任何产出都必须及时 commit。**
+
+### 记录规范
+
+开发过程中发现的**原厂缺陷、硬件陷阱、以及自己踩过的坑**，必须随手记进
+[firmware-findings.md](firmware-findings.md)，不要只留在对话里。理由：
+
+- 这类结论往往花了很多轮排查才得到（例如"增益改了没用"背后是量程钳位）
+- 不记下来，下次会重新踩
+- 部分属于上游缺陷，记录完整才好提 issue/PR
+
+硬件相关的稳定事实（型号、引脚、采样率链路）记进
+[stackchan-hardware.md](stackchan-hardware.md)。
 
 ---
 
