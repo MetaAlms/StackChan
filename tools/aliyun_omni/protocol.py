@@ -53,19 +53,20 @@ __all__ = [
 
 # --------------------------------------------------------------------- config
 
-# Keychain coordinates for the Mac-side credential. Deliberately project- and
-# vendor-specific: a bare "dashscope" or "bailian" entry would collide with keys
-# stored for other projects on the same machine.
+# Keychain coordinates for the Mac-side credential.
+#
+# The "blue-" prefix groups every project secret on this machine into one
+# family, so `blue-keychain-list` can show them all and nothing else. The rest
+# of the name is deliberately project- and vendor-specific: a bare "dashscope"
+# or "bailian" entry would collide with other projects
 #
 # tools/aliyun_keychain.sh reads these by parsing this file, so this is the only
 # place they are defined. Change them here, nowhere else.
 #
-# A machine-wide equivalent exists as the blue-keychain-save skill
-# (~/.agents/skills/blue-keychain-save/), which stores any project's secret with
-# the same <project>-<vendor>-* naming. Use whichever is more convenient; the
-# entry names below are what this project's scripts look for.
-KEYCHAIN_SERVICE = "stackchan-bailian-api-key"
-KEYCHAIN_ACCOUNT = "stackchan"
+# The machine-wide tools are the blue-keychain-save / -list / -get skills
+# (~/.agents/skills/), which store any project's secret under the same prefix.
+KEYCHAIN_SERVICE = "blue-stackchan-bailian-key"
+KEYCHAIN_ACCOUNT = "metaalms"
 
 DEFAULT_MODEL = "qwen3.8-omni-flash-realtime"
 DEFAULT_VOICE = "Tina"

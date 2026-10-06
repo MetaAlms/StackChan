@@ -27,11 +27,18 @@ session 载荷结构、重采样。
 
 ### 2. 存凭据（推荐 Keychain）
 
+**密钥先复制到剪贴板**，然后（脚本从剪贴板读，不走终端粘贴）：
+
 ```bash
-tools/aliyun_keychain.sh set     # 静默输入，密钥不上屏、不进历史、不进 ps
-tools/aliyun_keychain.sh show    # 只看掩码确认
-tools/aliyun_keychain.sh names   # 查看使用的 service/account
+~/.agents/skills/blue-keychain-save/keychain.sh set \
+  --service blue-stackchan-bailian-key --account metaalms \
+  --vendor "Aliyun Bailian key for StackChan"
+
+~/.agents/skills/blue-keychain-save/keychain.sh show \
+  --service blue-stackchan-bailian-key     # 只看掩码
 ```
+
+入口是 `~/.agents/skills/` 下的 blue-keychain-save / -list / -get 三个 skill。
 
 比 `export DASHSCOPE_API_KEY=...` 安全：命令行参数和导出的变量会进 shell
 历史、进进程列表、进 dotfile。
@@ -117,12 +124,12 @@ advance_emotion_events(state, delta) -> (new_emotion_events, new_visible_text)
 
 | 项 | 值 |
 |---|---|
-| service | `stackchan-bailian-api-key` |
-| account | `stackchan` |
+| service | `blue-stackchan-bailian-key` |
+| account | `metaalms` |
 
 单一真源是 `aliyun_omni/protocol.py` 里的 `KEYCHAIN_SERVICE` /
-`KEYCHAIN_ACCOUNT`。`aliyun_keychain.sh` 用 AST 解析该文件读取它们，
-所以 shell 与 Python 不会漂移。**要改名只改 protocol.py 一处。**
+`KEYCHAIN_ACCOUNT`。它是全机唯一真源，skill 侧与本项目脚本都从这里取。
+**要改名只改 protocol.py 一处。**
 
 ## 相关文档
 

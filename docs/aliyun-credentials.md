@@ -17,14 +17,22 @@
 
 链路验证要先在 Mac 上跑通，用 Keychain 存 key 而不是环境变量：
 
+**先把密钥复制到剪贴板**，然后：
+
 ```bash
-tools/aliyun_keychain.sh set     # 静默输入
-tools/aliyun_keychain.sh show    # 掩码确认
+~/.agents/skills/blue-keychain-save/keychain.sh set \
+  --service blue-stackchan-bailian-key \
+  --account metaalms \
+  --vendor "Aliyun Bailian key for StackChan"
+
+# 掩码确认（不回显明文）
+~/.agents/skills/blue-keychain-save/keychain.sh show \
+  --service blue-stackchan-bailian-key
 ```
 
-条目名：`service=stackchan-bailian-api-key`、`account=stackchan`。
-名字带项目和厂商前缀，不会和本机其他项目的密钥混淆；定义在
-`tools/aliyun_omni/protocol.py`，改名只需改那一处。
+条目名带 `blue-` 前缀，和本机其他项目的密钥同属一族，可用
+`blue-keychain-list` 一次看全。名字定义在 `tools/aliyun_omni/protocol.py`
+的 `KEYCHAIN_SERVICE` / `KEYCHAIN_ACCOUNT`，改名只需改那一处。
 
 然后验证链路：
 
