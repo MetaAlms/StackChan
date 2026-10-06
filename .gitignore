@@ -3,3 +3,6 @@
 # Python bytecode (tools/)
 __pycache__/
 *.py[cod]
+
+# 验证脚本产物（模型回复音频）
+reply.wav

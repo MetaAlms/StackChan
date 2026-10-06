@@ -332,6 +332,15 @@ class Probe:
 
     def run(self) -> int:
         pcm, src_rate, duration = load_wav_as_pcm16(Path(self.args.wav), 16000)
+
+        if self.args.pad_silence_ms > 0:
+            # Without this the server VAD never observes end-of-speech and the
+            # turn is never committed, which looks exactly like "no reply".
+            pad_bytes = int(16000 * 2 * self.args.pad_silence_ms / 1000)
+            pad_bytes -= pad_bytes % 2
+            pcm = pcm + b"\x00" * pad_bytes
+            log(f"padded   : +{self.args.pad_silence_ms} ms trailing silence "
+                f"({pad_bytes} bytes) so VAD sees end-of-speech")
         log(f"input    : {self.args.wav} ({src_rate} Hz -> 16000 Hz, {duration:.2f}s, "
             f"{len(pcm)} bytes PCM)")
         log(f"api key  : from {self.args.api_key_source} "
@@ -527,7 +536,7 @@ class Probe:
             delta = event.get("delta", "")
             self.transcript_raw += delta
             events, new_text = protocol.advance_emotion_events(self.stream_state, delta)
-            self.transcript_clean = self.stream_state.cleaned
+            self.transcript_clean = self.stream_state.cleaned_text()
             for ev in events:
                 log(f"  EMOTION -> {ev.emotion}")
             if new_text:
@@ -616,7 +625,12 @@ def main() -> int:
                         choices=["pcm", "mp3", "opus", "raw-opus", "raw-opus2",
                                  "raw-opu", "raw-opu2"])
     parser.add_argument("--vad-threshold", type=float, default=0.5)
-    parser.add_argument("--silence-ms", type=int, default=800)
+    parser.add_argument("--silence-ms", type=int, default=800,
+                        help="server VAD silence_duration_ms (how long a pause ends a turn)")
+    parser.add_argument("--pad-silence-ms", type=int, default=1200,
+                        help="trailing silence appended to the input audio. A file that "
+                             "stops abruptly never lets server VAD see end-of-speech, "
+                             "so no response is ever requested.")
     parser.add_argument("--timeout", type=float, default=20.0,
                         help="seconds to wait for a single protocol milestone")
     parser.add_argument("--response-timeout", type=float, default=60.0,
