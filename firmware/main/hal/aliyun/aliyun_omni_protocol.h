@@ -59,9 +59,19 @@ public:
     bool IsAudioChannelOpened() const override;
     bool SendAudio(std::unique_ptr<AudioStreamPacket> packet) override;
 
-    // Aliyun drives turn taking with server-side semantic VAD, so the client
-    // cannot start or stop a turn. These are accepted and ignored rather than
-    // left pure-virtual, so the rest of Application keeps compiling unchanged.
+    /**
+     * @brief Tell the server the local VAD saw the end of a spoken turn.
+     *
+     * The session runs with turn_detection disabled: server-side VAD does not
+     * fire on Ogg-framed Opus input (verified - the same audio transcribes
+     * correctly in manual mode but produces no speech_started/stopped events
+     * with semantic_vad enabled). The device's own AFE VAD is reliable, so it
+     * decides when to commit the buffer and ask for a response.
+     */
+    void NotifyLocalSpeechEnded();
+
+    // Accepted and ignored: turn taking is manual here, and xiaozhi's listen
+    // events are not part of the Realtime protocol.
     void SendStartListening(ListeningMode mode) override;
     void SendStopListening() override;
     void SendWakeWordDetected(const std::string& wake_word) override;
@@ -103,6 +113,9 @@ private:
 
     /** Send one client event, returning false when the socket is not usable. */
     bool SendClientEvent(const std::string& json);
+
+    /** Base64 one buffer and send it as input_audio_buffer.append. */
+    bool SendAudioBuffer(const uint8_t* data, size_t len);
 
     /** Build and send session.update. */
     bool SendSessionUpdate();

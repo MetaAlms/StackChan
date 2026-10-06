@@ -9,7 +9,6 @@
 #include <mooncake.h>
 #include <apps/apps.h>
 #include <hal/hal.h>
-#include <hal/aliyun/aliyun_omni_protocol.h>
 
 using namespace mooncake;
 using namespace smooth_ui_toolkit;
@@ -22,14 +21,6 @@ extern "C" void app_main(void)
 
     // HAL init
     GetHAL().init();
-
-    // Seed the Aliyun credential namespace before anything asks whether Aliyun
-    // is configured. Application::InitializeProtocol() makes that decision, and
-    // it only runs later inside startXiaozhi(), so this is the last safe point.
-    // No-op when the build has no Aliyun key.
-    if (!AliyunOmniSeedSettingsFromKconfig()) {
-        mclog::info("Aliyun: not configured, will use the stock xiaozhi backend");
-    }
 
     // Setup ui hal
     ui_hal::on_delay([](uint32_t ms) { GetHAL().delay(ms); });

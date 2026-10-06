@@ -18,6 +18,8 @@
 #include <cstring>
 #include <mooncake_log.h>
 #include <wifi_manager.h>
+#include <audio/demuxer/ogg_demuxer.h>
+#include "ogg_opus_muxer.h"
 #include <sdkconfig.h>
 
 #define TAG "AliyunOmni"
@@ -48,6 +50,11 @@ constexpr int kOpusFrameMs = 60;
 constexpr int64_t kMaxSessionUs = 115LL * 60 * 1000 * 1000;
 
 constexpr EventBits_t kBitSessionReady = BIT0;
+
+// How long to wait for the server's first frame after the upgrade succeeds.
+// This covers TLS application-data records rather than the handshake itself,
+// which is already done by then.
+constexpr int kSessionReadyTimeoutMs = 40000;
 
 /* ------------------------------------------------------------- emotion tags */
 
@@ -256,6 +263,20 @@ bool base64_decode(const std::string& in, std::vector<uint8_t>& out)
     return true;
 }
 
+/**
+ * @brief Events that must be processed on the network task, not the main task.
+ *
+ * OpenAudioChannel() runs on the main task and blocks until session.created
+ * arrives, so dispatching that event through the main-task queue deadlocks:
+ * the queue is only drained by the task that is blocked. Errors are included
+ * because OpenAudioChannel also needs to observe a failed handshake promptly.
+ */
+bool is_handshake_critical(const std::string& payload)
+{
+    return payload.find("\"session.created\"") != std::string::npos ||
+           payload.find("\"error\"") != std::string::npos;
+}
+
 std::string get_setting(const char* key, const char* fallback)
 {
     Settings settings(kSettingsNamespace, false);
@@ -273,6 +294,12 @@ constexpr const char* kBuildApiKey = "";
 constexpr const char* kBuildWorkspaceId = CONFIG_STACKCHAN_ALIYUN_WORKSPACE_ID;
 #else
 constexpr const char* kBuildWorkspaceId = "";
+#endif
+
+#ifdef CONFIG_STACKCHAN_ALIYUN_USE_WORKSPACE_DOMAIN
+constexpr bool kUseWorkspaceDomain = CONFIG_STACKCHAN_ALIYUN_USE_WORKSPACE_DOMAIN;
+#else
+constexpr bool kUseWorkspaceDomain = false;
 #endif
 
 #ifdef CONFIG_STACKCHAN_ALIYUN_MODEL
@@ -300,6 +327,7 @@ public:
     std::string api_key;
     std::string model;
     std::string voice;
+    std::string workspace_id;
 
     bool configured = false;
     bool error = false;
@@ -308,6 +336,15 @@ public:
     std::string pending_client_event_id;
 
     TranscriptScanner scanner;
+
+    // Downlink audio arrives as Ogg-framed Opus spread over many
+    // response.audio.delta events, so the demuxer has to persist across them.
+    std::unique_ptr<OggDemuxer> demuxer;
+
+    // Uplink is Ogg-framed too, so the muxer owns stream state (page sequence,
+    // granule position) that spans the whole session.
+    OggOpusMuxer muxer;
+    bool ogg_headers_sent = false;
 
     // The session this protocol last saw, so a reconnect can tell the server to
     // drop the previous context instead of accumulating it.
@@ -328,12 +365,14 @@ AliyunOmniProtocol::AliyunOmniProtocol() : _impl(std::make_unique<Impl>())
     const std::string url_override = get_setting("url", "");
     if (!url_override.empty()) {
         _impl->url = url_override;
-    } else if (!workspace.empty()) {
-        // Workspace-scoped domain, needed by the qwen3.x-omni-*-realtime family.
+    } else if (kUseWorkspaceDomain && !workspace.empty()) {
+        // Workspace-scoped endpoint. Kept behind a flag because the device's
+        // TLS stack stalled on this host while the public one worked.
         _impl->url = "wss://" + workspace + ".cn-beijing.maas.aliyuncs.com/api-ws/v1/realtime";
     } else {
         _impl->url = kDefaultUrl;
     }
+    _impl->workspace_id = workspace;
 
     _impl->configured = !_impl->api_key.empty();
 
@@ -521,9 +560,11 @@ bool AliyunOmniProtocol::OpenAudioChannel()
     // the main loop retries once the network is up.
     auto& wifi = WifiManager::GetInstance();
     if (!wifi.IsConnected() && !wifi.IsConfigMode()) {
-        ESP_LOGI(TAG, "network not connected yet, will retry");
+        ESP_LOGW(TAG, "network not ready: connected=%d config_mode=%d rssi=%d",
+                 (int)wifi.IsConnected(), (int)wifi.IsConfigMode(), wifi.GetRssi());
         return false;
     }
+    ESP_LOGI(TAG, "opening audio channel (rssi=%d)", wifi.GetRssi());
 
     auto network = Board::GetInstance().GetNetwork();
     _impl->websocket = network->CreateWebSocket(1);
@@ -538,6 +579,11 @@ bool AliyunOmniProtocol::OpenAudioChannel()
     const std::string auth = "Bearer " + _impl->api_key;
     _impl->websocket->SetHeader("Authorization", auth.c_str());
     _impl->websocket->SetHeader("User-Agent", "stackchan-aliyun/1.0");
+    // The public endpoint needs the workspace identified out of band. Harmless
+    // on the workspace-scoped host, so it is always sent.
+    if (!_impl->workspace_id.empty()) {
+        _impl->websocket->SetHeader("X-DashScope-WorkSpace", _impl->workspace_id.c_str());
+    }
 
     _impl->websocket->OnData([this](const char* data, size_t len, bool binary) {
         if (binary) {
@@ -547,10 +593,23 @@ bool AliyunOmniProtocol::OpenAudioChannel()
         }
         last_incoming_time_ = std::chrono::steady_clock::now();
 
-        // Marshal onto the main task so all parsing and callbacks run serially
-        // and no extra locking is needed around the scanner or cJSON.
         std::string payload(data, len);
-        Application::GetInstance().Schedule([this, payload = std::move(payload)]() { HandleServerEvent(payload); });
+
+        // Handshake-critical events must be handled HERE, on the network task.
+        //
+        // Everything else is marshalled onto the main task so parsing and the
+        // xiaozhi callbacks stay serialised. But session.created cannot go
+        // through that queue: OpenAudioChannel() blocks the main task waiting
+        // for it, so a deferred dispatch would be waiting on the very task that
+        // is waiting for it. That deadlock cost a 40 second timeout on every
+        // connection, with the frame itself arriving in 10 ms.
+        if (is_handshake_critical(payload)) {
+            HandleServerEvent(payload);
+            return;
+        }
+
+        Application::GetInstance().Schedule(
+            [this, payload = std::move(payload)]() { HandleServerEvent(payload); });
     });
 
     _impl->websocket->OnDisconnected([this]() {
@@ -564,22 +623,39 @@ bool AliyunOmniProtocol::OpenAudioChannel()
     const std::string connect_url = _impl->url + "?model=" + _impl->model;
     ESP_LOGI(TAG, "connecting to %s", connect_url.c_str());
 
+    // Full radio performance for the duration of the handshake. The board drops
+    // to LOW_POWER once activation completes, and a sleeping radio can defer
+    // the TLS records and the first server frame by whole beacon intervals.
+    Board::GetInstance().SetPowerSaveLevel(PowerSaveLevel::PERFORMANCE);
+
+    const int64_t t_connect_start = esp_timer_get_time();
     if (!_impl->websocket->Connect(connect_url.c_str())) {
         ESP_LOGE(TAG, "connect failed, code=%d", _impl->websocket->GetLastError());
+        Board::GetInstance().SetPowerSaveLevel(PowerSaveLevel::LOW_POWER);
         _impl->websocket.reset();
         SetError("Aliyun connect failed");
         return false;
     }
+    const int64_t handshake_ms = (esp_timer_get_time() - t_connect_start) / 1000;
 
     // The server announces itself with session.created. Nothing may be sent
-    // before that.
-    if ((xEventGroupWaitBits(_impl->events, kBitSessionReady, pdFALSE, pdFALSE, pdMS_TO_TICKS(15000)) &
+    // before that. The budget is generous because this spans the first TLS
+    // application-data records, which are noticeably slower on the device than
+    // from a desktop.
+    const int64_t t_wait_start = esp_timer_get_time();
+    if ((xEventGroupWaitBits(_impl->events, kBitSessionReady, pdFALSE, pdFALSE, pdMS_TO_TICKS(kSessionReadyTimeoutMs)) &
          kBitSessionReady) == 0) {
-        ESP_LOGE(TAG, "no session.created within 15s");
+        const int64_t waited = (esp_timer_get_time() - t_wait_start) / 1000;
+        ESP_LOGE(TAG, "no session.created within %d ms (tls+upgrade took %d ms, waited %d ms)",
+                 kSessionReadyTimeoutMs, (int)handshake_ms, (int)waited);
+        Board::GetInstance().SetPowerSaveLevel(PowerSaveLevel::LOW_POWER);
         _impl->websocket.reset();
         SetError("Aliyun session timeout");
         return false;
     }
+    const int64_t waited_ms = (esp_timer_get_time() - t_wait_start) / 1000;
+    ESP_LOGI(TAG, "handshake %d ms, session.created after %d ms",
+             (int)handshake_ms, (int)waited_ms);
 
     if (_impl->error) {
         _impl->websocket.reset();
@@ -593,6 +669,24 @@ bool AliyunOmniProtocol::OpenAudioChannel()
 
     _impl->channel_opened = true;
     _impl->connected_at_us = esp_timer_get_time();
+
+    _impl->demuxer = std::make_unique<OggDemuxer>();
+    _impl->demuxer->OnDemuxerFinished([this](const uint8_t* data, int /*sample_rate*/, size_t size) {
+        // The demuxer reports 48 kHz for Opus, which is the codec's internal
+        // rate. The session asked for 24 kHz output, which is what the speaker
+        // path and the decoder are configured for.
+        auto packet = std::make_unique<AudioStreamPacket>();
+        packet->sample_rate = kOutputSampleRate;
+        packet->frame_duration = kOpusFrameMs;
+        packet->timestamp = 0;
+        packet->payload.assign(data, data + size);
+        if (on_incoming_audio_ != nullptr) {
+            on_incoming_audio_(std::move(packet));
+        }
+    });
+    _impl->demuxer->Reset();
+    _impl->muxer.reset();
+    _impl->ogg_headers_sent = false;
 
     if (on_audio_channel_opened_ != nullptr) {
         on_audio_channel_opened_();
@@ -615,11 +709,13 @@ bool AliyunOmniProtocol::SendSessionUpdate()
 
     cJSON* input = cJSON_CreateObject();
     cJSON* in_format = cJSON_CreateObject();
-    // "raw-opus" is Ogg-free Opus, which is exactly what the on-device encoder
-    // (esp_opus_enc, 16 kHz mono, 60 ms) already produces. Sending it verbatim
-    // avoids an Opus-to-PCM decode on every frame and cuts uplink traffic by
-    // roughly an order of magnitude versus base64 PCM.
-    cJSON_AddStringToObject(in_format, "type", "raw-opus");
+    // Measured against the live endpoint: raw-opus and raw-opus2 are NOT
+    // usable on the uplink - the server drops the connection as soon as a bare
+    // Opus frame arrives. Only pcm and opus (Ogg-framed) work. Ogg keeps the
+    // on-device Opus encoding, so the uplink stays near 4 kB/s instead of the
+    // ~32 kB/s that 16 kHz PCM would cost, at the price of wrapping each packet
+    // in an Ogg page (see ogg_opus_muxer.h).
+    cJSON_AddStringToObject(in_format, "type", "opus");
     cJSON_AddNumberToObject(in_format, "sample_rate", kInputSampleRate);
     cJSON_AddNumberToObject(in_format, "channels", 1);
     cJSON_AddNumberToObject(in_format, "frame_size", kOpusFrameMs);
@@ -629,9 +725,12 @@ bool AliyunOmniProtocol::SendSessionUpdate()
     cJSON* output = cJSON_CreateObject();
     cJSON_AddStringToObject(output, "voice", _impl->voice.c_str());
     cJSON* out_format = cJSON_CreateObject();
-    // raw-opus2 = Ogg-free Opus with no per-packet header, which is the shape
-    // AudioService's decoder loop feeds straight into esp_opus_dec.
-    cJSON_AddStringToObject(out_format, "type", "raw-opus2");
+    // Measured against the live endpoint: only pcm, opus and mp3 are accepted
+    // for output; raw-opus, raw-opus2 and raw-opu are all rejected with
+    // CLIENT_ERROR "Unsupported encode format". Of the accepted three, "opus"
+    // is Ogg-framed Opus, which the on-device decoder can consume once the Ogg
+    // container is stripped by the demuxer that xiaozhi already ships.
+    cJSON_AddStringToObject(out_format, "type", "opus");
     cJSON_AddNumberToObject(out_format, "sample_rate", kOutputSampleRate);
     cJSON_AddNumberToObject(out_format, "frame_size", kOpusFrameMs);
     cJSON_AddItemToObject(output, "format", out_format);
@@ -639,13 +738,13 @@ bool AliyunOmniProtocol::SendSessionUpdate()
 
     cJSON_AddItemToObject(session, "audio", audio);
 
-    // semantic_vad filters filler words and background noise, which a desktop
-    // robot in an occupied room hears constantly.
-    cJSON* vad = cJSON_CreateObject();
-    cJSON_AddStringToObject(vad, "type", "semantic_vad");
-    cJSON_AddNumberToObject(vad, "threshold", 0.5);
-    cJSON_AddNumberToObject(vad, "silence_duration_ms", 800);
-    cJSON_AddItemToObject(session, "turn_detection", vad);
+    // Turn detection is disabled on purpose. Server-side semantic_vad does not
+    // react to Ogg-framed Opus input: the identical audio that transcribes
+    // correctly in manual mode produced no speech_started/speech_stopped at all
+    // with VAD enabled, so a turn would never end and the device would hang in
+    // listening forever. The local AFE VAD drives turns instead - see
+    // NotifyLocalSpeechEnded().
+    cJSON_AddItemToObject(session, "turn_detection", cJSON_CreateNull());
 
     // Drives the on-device emotion bridge; see the class comment.
     cJSON_AddStringToObject(session, "instructions",
@@ -672,6 +771,22 @@ bool AliyunOmniProtocol::SendSessionUpdate()
         SetError("session.update send failed");
     }
     return ok;
+}
+
+bool AliyunOmniProtocol::SendAudioBuffer(const uint8_t* data, size_t len)
+{
+    const std::string b64 = base64_encode(data, len);
+    if (b64.empty()) {
+        return false;
+    }
+    std::string json = "{\"type\":\"input_audio_buffer.append\",\"audio\":\"";
+    json += b64;
+    json += "\"}";
+    if (!SendClientEvent(json)) {
+        ESP_LOGW(TAG, "failed to send audio buffer");
+        return false;
+    }
+    return true;
 }
 
 bool AliyunOmniProtocol::SendText(const std::string& text)
@@ -709,24 +824,71 @@ bool AliyunOmniProtocol::SendAudio(std::unique_ptr<AudioStreamPacket> packet)
         }
     }
 
-    // AudioStreamPacket already holds Opus from the AFE/encoder, and the session
-    // is configured for "raw-opus", so the payload is forwarded verbatim: no
-    // decode, no resample, and roughly an order of magnitude less traffic than
-    // base64-encoded PCM would cost.
-    const std::string b64 = base64_encode(packet->payload.data(), packet->payload.size());
-    if (b64.empty()) {
-        return false;
+    // Half duplex: while the model is speaking, drop uplink audio entirely.
+    //
+    // There is no working echo cancellation on this hardware. The stock Kconfig
+    // never enabled device-side AEC for this board, and enabling it makes things
+    // worse: the ES7210's second channel is a second microphone rather than a
+    // speaker loopback, so AEC cancels the user's voice along with the echo
+    // (AFE output peak fell from ~4036 to ~120). Aliyun's WebSocket Realtime API
+    // does not cancel echo server-side either.
+    //
+    // So the device simply stops listening while it talks. The cost is that
+    // barge-in - interrupting the model mid-sentence - does not work; the gain
+    // is that the device no longer interrupts itself with its own speaker, which
+    // is the behaviour that actually matters here.
+    if (Application::GetInstance().GetDeviceState() == kDeviceStateSpeaking) {
+        return true;  // dropped on purpose, not an error
     }
 
-    std::string json = "{\"type\":\"input_audio_buffer.append\",\"audio\":\"";
-    json += b64;
-    json += "\"}";
+    // The session is configured for "opus", i.e. Ogg-framed Opus, so each frame
+    // the AFE produced is wrapped in an Ogg page. No decode and no resample are
+    // involved, which keeps this cheap on the device.
+    if (!_impl->ogg_headers_sent) {
+        // OpusHead and OpusTags must precede the first audio page; the server
+        // rejects a stream that starts mid-page. Sent lazily so a session that
+        // never carries audio does not emit an empty buffer.
+        const std::vector<uint8_t> headers = _impl->muxer.begin(kInputSampleRate, 1);
+        if (!SendAudioBuffer(headers.data(), headers.size())) {
+            return false;
+        }
+        _impl->ogg_headers_sent = true;
+    }
 
-    if (!SendClientEvent(json)) {
-        ESP_LOGW(TAG, "failed to send audio frame");
+    {
+        static int sent_frames = 0;
+        ++sent_frames;
+        if (sent_frames % 50 == 1) {
+            ESP_LOGW(TAG, "[up] sending frame #%d (%d opus bytes)", sent_frames,
+                     (int)packet->payload.size());
+        }
+        // Dump a contiguous run of raw Opus payloads so the uplink can be
+        // decoded off-device with ffmpeg. Guessing at the audio chain from peak
+        // levels has not worked; this makes the encoder output directly
+        // inspectable. Frames 200..259 are 60 ms each, i.e. 3.6 s of audio.
+        if (sent_frames >= 200 && sent_frames < 260) {
+            const std::string dump = base64_encode(packet->payload.data(), packet->payload.size());
+            ESP_LOGW(TAG, "OPUSDUMP %d %s", (int)sent_frames, dump.c_str());
+        }
+    }
+
+    const std::vector<uint8_t> page = _impl->muxer.write_packet(packet->payload.data(), packet->payload.size());
+    if (page.empty()) {
         return false;
     }
-    return true;
+    return SendAudioBuffer(page.data(), page.size());
+}
+
+void AliyunOmniProtocol::NotifyLocalSpeechEnded()
+{
+    if (!IsAudioChannelOpened()) {
+        return;
+    }
+    // Manual mode: the buffer has to be committed explicitly, then a response
+    // requested. Both are cheap client events.
+    SendClientEvent("{\"type\":\"input_audio_buffer.commit\"}");
+    SendClientEvent("{\"type\":\"response.create\"}");
+    ESP_LOGI(TAG, "local VAD ended the turn: committed and requested a response");
 }
 
 void AliyunOmniProtocol::SendAbortSpeaking(AbortReason reason)
@@ -793,6 +955,12 @@ void AliyunOmniProtocol::HandleServerEvent(const std::string& raw)
         EmitStt(text);
 
     } else if (type == "response.created") {
+        // Each response is its own Ogg logical stream.
+        if (_impl->demuxer) {
+            _impl->demuxer->Reset();
+    _impl->muxer.reset();
+    _impl->ogg_headers_sent = false;
+        }
         EmitTtsState("start");
 
     } else if (type == "response.audio_transcript.delta" || type == "response.text.delta") {
@@ -804,16 +972,10 @@ void AliyunOmniProtocol::HandleServerEvent(const std::string& raw)
     } else if (type == "response.audio.delta") {
         const cJSON* delta = cJSON_GetObjectItem(root, "delta");
         if (cJSON_IsString(delta)) {
-            std::vector<uint8_t> pcm;
-            if (base64_decode(delta->valuestring, pcm) && !pcm.empty()) {
-                auto packet = std::make_unique<AudioStreamPacket>();
-                packet->sample_rate = kOutputSampleRate;
-                packet->frame_duration = server_frame_duration_;
-                packet->timestamp = 0;
-                packet->payload = std::move(pcm);
-                if (on_incoming_audio_ != nullptr) {
-                    on_incoming_audio_(std::move(packet));
-                }
+            std::vector<uint8_t> ogg;
+            if (base64_decode(delta->valuestring, ogg) && !ogg.empty() && _impl->demuxer) {
+                // Yields zero or more Opus packets via the demuxer callback.
+                _impl->demuxer->Process(ogg.data(), ogg.size());
             }
         }
 

@@ -11,10 +11,20 @@ CoreS3AudioCodec::CoreS3AudioCodec(void* i2c_master_handle, int input_sample_rat
     uint8_t aw88298_addr, uint8_t es7210_addr, bool input_reference) {
     duplex_ = true; // 是否双工
     input_reference_ = input_reference; // 是否使用参考输入，实现回声消除
-    input_channels_ = input_reference_ ? 2 : 1; // 输入通道数
+    // Read both microphones. This used to be driven by input_reference_, which
+    // tied "2 channels" to "one of them is an echo reference" - but the hardware
+    // has two microphones and no reference, so that pairing silently discarded
+    // the second microphone. Both channels are inputs; the AFE decides how to
+    // combine them ("MM" for beamforming).
+    input_channels_ = 2;
     input_sample_rate_ = input_sample_rate;
     output_sample_rate_ = output_sample_rate;
-    input_gain_ = 60;
+    // The unit here is dB, not 0.5 dB steps, and the ES7210 tops out at 37.5 dB
+    // (see get_db() in the es7210 driver: anything at or above 37 maps to
+    // GAIN_37_5DB). The vendor value of 60 was therefore silently clamped to the
+    // same maximum as any larger number, which made the number misleading and
+    // made gain experiments look like they had no effect. State the real ceiling.
+    input_gain_ = 37.5f;
 
     CreateDuplexChannels(mclk, bclk, ws, dout, din);
 
@@ -192,18 +202,37 @@ void CoreS3AudioCodec::EnableInput(bool enable) {
         return;
     }
     if (enable) {
+        // The channel mask must follow the number of channels actually read.
+        //
+        // It used to be "channel 0, plus channel 1 only when input_reference_ is
+        // set". That coupled the mask to the echo-reference flag, so declaring
+        // no reference silently disabled the second microphone while the codec
+        // still advertised two channels. The AFE was then handed "MM" (two
+        // microphones) with a dead second channel, and its beamforming produced
+        // a quiet, noisy result - the decoded uplink measured peak -29 dB /
+        // RMS -41 dB, which the server transcribed as mechanical clicking.
         esp_codec_dev_sample_info_t fs = {
             .bits_per_sample = 16,
             .channel = 2,
-            .channel_mask = ESP_CODEC_DEV_MAKE_CHANNEL_MASK(0),
+            .channel_mask = 0,
             .sample_rate = (uint32_t)output_sample_rate_,
             .mclk_multiple = 0,
         };
-        if (input_reference_) {
-            fs.channel_mask |= ESP_CODEC_DEV_MAKE_CHANNEL_MASK(1);
+        for (int ch = 0; ch < input_channels_; ++ch) {
+            fs.channel_mask |= ESP_CODEC_DEV_MAKE_CHANNEL_MASK(ch);
         }
         ESP_ERROR_CHECK(esp_codec_dev_open(input_dev_, &fs));
-        ESP_ERROR_CHECK(esp_codec_dev_set_in_channel_gain(input_dev_, ESP_CODEC_DEV_MAKE_CHANNEL_MASK(0), input_gain_));
+        // Apply the gain to BOTH microphone channels. Only channel 0 used to be
+        // set, which was harmless while the AFE consumed a single microphone
+        // ("MR" format, reference channel ignored). Now that both channels are
+        // real microphones ("MM", dual-mic beamforming), a channel left at the
+        // default 0 dB drags the combined level down by ~20 dB - measured on the
+        // decoded uplink: peak -29 dB, RMS -41 dB, far too quiet for the server
+        // to transcribe anything but noise.
+        for (int ch = 0; ch < input_channels_; ++ch) {
+            ESP_ERROR_CHECK(esp_codec_dev_set_in_channel_gain(
+                input_dev_, ESP_CODEC_DEV_MAKE_CHANNEL_MASK(ch), input_gain_));
+        }
     } else {
         ESP_ERROR_CHECK(esp_codec_dev_close(input_dev_));
     }

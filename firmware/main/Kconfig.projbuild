@@ -29,6 +29,22 @@ config STACKCHAN_ALIYUN_WORKSPACE_ID
         qwen3.x-omni-*-realtime family requires. Leave empty to use the public
         dashscope.aliyuncs.com endpoint.
 
+config STACKCHAN_ALIYUN_USE_WORKSPACE_DOMAIN
+    bool "Use the workspace-scoped endpoint instead of the public one"
+    default n
+    depends on STACKCHAN_ALIYUN_ENABLE
+    help
+        Two endpoints serve the same model:
+
+          public     wss://dashscope.aliyuncs.com/api-ws/v1/realtime
+                     plus an X-DashScope-WorkSpace header
+          workspace  wss://{WorkspaceId}.cn-beijing.maas.aliyuncs.com/api-ws/v1/realtime
+
+        Both respond immediately from a desktop, but the ESP32's mbedtls
+        behaved very differently on the workspace-scoped host: the server's
+        first frame only surfaced after the wait timed out. Default to the
+        public endpoint, which is the path validated end to end on the Mac.
+
 config STACKCHAN_ALIYUN_MODEL
     string "Realtime model"
     default "qwen3.8-omni-flash-realtime"
@@ -805,6 +821,13 @@ config USE_AUDIO_PROCESSOR
     help
         Requires ESP32 S3 and PSRAM
 
+# NOTE: BOARD_TYPE_M5STACK_STACK_CHAN was missing from the inherited board list,
+# which made this option invisible for StackChan and left the device with no echo
+# cancellation at all (USE_SERVER_AEC is off by default and Aliyun's WebSocket
+# Realtime API does not perform AEC server-side). The audible symptom is the
+# device interrupting itself with its own speaker output. StackChan has the
+# hardware for device-side AEC: the ES7210 array captures a speaker reference
+# channel (AUDIO_INPUT_REFERENCE is true).
 config USE_DEVICE_AEC
     bool "Enable Device-Side AEC"
     default n
@@ -814,7 +837,8 @@ config USE_DEVICE_AEC
         || BOARD_TYPE_WAVESHARE_ESP32_P4_WIFI6_TOUCH_LCD_3_4C || BOARD_TYPE_WAVESHARE_ESP32_P4_WIFI6_TOUCH_LCD_4C || BOARD_TYPE_ESP_S3_LCD_EV_Board_2 || BOARD_TYPE_YUNLIAO_S3 \
         || BOARD_TYPE_WAVESHARE_ESP32_P4_WIFI6_TOUCH_LCD_7 || BOARD_TYPE_WAVESHARE_ESP32_P4_WIFI6_TOUCH_LCD_8 || BOARD_TYPE_WAVESHARE_ESP32_P4_WIFI6_TOUCH_LCD_10_1 \
         || BOARD_TYPE_ECHOEAR || BOARD_TYPE_WAVESHARE_ESP32_S3_TOUCH_LCD_3_49 || BOARD_TYPE_WAVESHARE_ESP32_S3_RLCD_4_2 || BOARD_TYPE_ZHENGCHEN_CAM || BOARD_TYPE_ZHENGCHEN_CAM_ML307 \
-        || BOARD_TYPE_WAVESHARE_ESP32_S3_TOUCH_LCD_4_3C)
+        || BOARD_TYPE_WAVESHARE_ESP32_S3_TOUCH_LCD_4_3C \
+        || BOARD_TYPE_M5STACK_STACK_CHAN)
     help
         To work properly, device-side AEC requires a clean output reference path from the speaker signal and physical acoustic isolation between the microphone and speaker.
 
