@@ -646,9 +646,11 @@ def main() -> int:
     if not args.api_key:
         die(
             "no API key found.\n"
-            "  store one in the Keychain:  tools/aliyun_keychain.sh set\n"
-            "  or export it:               export DASHSCOPE_API_KEY=sk-...\n"
-            "  or pass it:                 --api-key sk-...  (leaks into history)"
+            "  copy the key to the clipboard, then run:\n"
+            "    ~/.agents/skills/blue-keychain-save/keychain.sh set \\\n"
+            f"      --service {protocol.KEYCHAIN_SERVICE} --account {protocol.KEYCHAIN_ACCOUNT}\n"
+            "  or export it:  export DASHSCOPE_API_KEY=sk-...\n"
+            "  or pass it:    --api-key sk-...   (leaks into shell history and ps)"
         )
 
     return Probe(args).run()
