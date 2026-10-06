@@ -64,49 +64,79 @@ _MAX_TAG_LEN = 22
 
 # ------------------------------------------------------------------- emotions
 
-# Mirrors stackchan::avatar::Emotion in the firmware:
-# firmware/main/stackchan/avatar/avatar/elements/emotion.h
+# These are EXACTLY the strings StackChanAvatarDisplay::SetEmotion() accepts.
+#   firmware/main/hal/board/stackchan_display.cc:321
+# The firmware therefore needs no translation table: whatever this module
+# emits can be handed straight to the `llm` event's `emotion` field, which
+# Application routes to display->SetEmotion() and on to the avatar:
+#
+#   happy / laughing -> avatar::Emotion::Happy
+#   angry            -> Angry
+#   sad / crying     -> Sad
+#   sleepy           -> Sleepy  (also plays "Zzz..." and stops idle motion)
+#   doubtful         -> Doubt
+#   neutral          -> Neutral
 SUPPORTED_EMOTIONS = (
     "neutral",
     "happy",
+    "laughing",
     "angry",
     "sad",
-    "doubt",
+    "crying",
     "sleepy",
+    "doubtful",
 )
 
 # The model will not reliably emit our exact identifiers, so accept common
 # synonyms and map them onto the six firmware emotions. A tag that matches
 # nothing is left alone rather than guessed at.
 EMOTION_ALIASES = {
+    # neutral
     "neutral": "neutral",
     "calm": "neutral",
     "normal": "neutral",
+    # happy family
     "happy": "happy",
     "joy": "happy",
     "joyful": "happy",
     "smile": "happy",
     "smiling": "happy",
-    "excited": "happy",
-    "cheerful": "happy",
-    "love": "happy",
     "glad": "happy",
+    "cheerful": "happy",
+    "excited": "happy",
+    "love": "happy",
+    # laughing family (distinct on the device: bigger eye curve)
+    "laughing": "laughing",
+    "laugh": "laughing",
+    "lol": "laughing",
+    "giggle": "laughing",
+    "amused": "laughing",
+    # angry
     "angry": "angry",
     "anger": "angry",
     "mad": "angry",
     "annoyed": "angry",
     "furious": "angry",
+    # sad family
     "sad": "sad",
     "sadness": "sad",
     "unhappy": "sad",
-    "cry": "sad",
-    "crying": "sad",
     "down": "sad",
-    "doubt": "doubt",
-    "confused": "doubt",
-    "puzzled": "doubt",
-    "thinking": "doubt",
-    "curious": "doubt",
+    "disappointed": "sad",
+    # crying family (distinct on the device: tears decorator)
+    "crying": "crying",
+    "cry": "crying",
+    "tears": "crying",
+    "sobbing": "crying",
+    # doubtful is the string the display matches; "doubt" alone would fall
+    # through to its unknown-emotion branch and reset to neutral.
+    "doubtful": "doubtful",
+    "doubt": "doubtful",
+    "confused": "doubtful",
+    "puzzled": "doubtful",
+    "thinking": "doubtful",
+    "curious": "doubtful",
+    # sleepy
     "sleepy": "sleepy",
     "tired": "sleepy",
     "sleep": "sleepy",
@@ -116,9 +146,9 @@ EMOTION_ALIASES = {
 
 EMOTION_SYSTEM_PROMPT = (
     "你是一个桌面机器人 StackChan，用简短口语化的中文回应。"
-    "在说话时，请在句首插入一个情绪标记，用来驱动你的表情，"
-    "标记格式为方括号包住的英文单词，只能从以下六选一："
-    "[neutral] [happy] [angry] [sad] [doubt] [sleepy]。"
+    "说话时请在句首插入一个情绪标记来驱动你的表情，"
+    "格式为方括号包住的英文单词，只能从以下八选一："
+    "[neutral] [happy] [laughing] [angry] [sad] [crying] [sleepy] [doubtful]。"
     "例如：\"[happy] 好呀，我很乐意！\"。"
     "每句话最多一个标记，不要在标记里加其他文字。"
 )

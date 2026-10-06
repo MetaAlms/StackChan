@@ -229,6 +229,20 @@ def run_self_test() -> int:
     check("mid tag then text", text, " b ")
     check("mid tag fires", [e.emotion for e in events], ["sad"])
 
+    # --- vocabulary must match the firmware's display mapping ------------
+    # Ground truth: StackChanAvatarDisplay::SetEmotion() in
+    # firmware/main/hal/board/stackchan_display.cc. If a string here is not
+    # accepted there, the device logs "Unknown emotion" and resets to neutral.
+    firmware_vocabulary = {
+        "neutral", "happy", "laughing", "angry",
+        "sad", "crying", "sleepy", "doubtful",
+    }
+    check("vocabulary matches firmware",
+          set(protocol.SUPPORTED_EMOTIONS), firmware_vocabulary)
+    bad = {alias: target for alias, target in protocol.EMOTION_ALIASES.items()
+           if target not in firmware_vocabulary}
+    check("no alias points outside firmware vocabulary", bad, {})
+
     # --- session payload shape ------------------------------------------
     payload = protocol.build_session_update(instructions="test")
     check("payload type", payload["type"], "session.update")
