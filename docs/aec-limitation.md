@@ -180,6 +180,24 @@ ListeningMode Application::GetDefaultListeningMode() const {
 
 ---
 
+## 4.5 补充：WebRTC 路径的 AEC 是**待验证假设**
+
+上文结论针对 **WebSocket 协议**（官方规格明确"无，需客户端自行处理"）。
+
+换用 WebRTC 后，官方选型表把回声消除/降噪标为"内置"，但
+**这不能推出裸 esp_peer/RTP 会自动获得服务端回声控制**：
+
+- [RFC 7874 §5](https://www.rfc-editor.org/rfc/rfc7874.html#section-5) 建议**端点设备**实现 AEC
+- [W3C echoCancellation](https://www.w3.org/TR/mediacapture-streams/#dom-mediatrackconstraintset-echocancellation)
+  是**采集侧**约束
+- 阿里 WebRTC 示例使用浏览器 `getUserMedia`（自带采集侧 3A）；
+  AOQ 自定义采集把 3A 配置放在**客户端 SDK**
+
+这些证据也**不能反证**服务端没有远端回声处理。
+**故 WebRTC 路径的迁移收益按待验证假设处理**，
+验收写成可观测行为，由 M1.5 判定（见
+[webrtc-media-spec.md](webrtc-media-spec.md) §1.3 / §6.2）。
+
 ## 5. 可选路径
 
 | 方案 | 效果 | 代价 | 风险 |
