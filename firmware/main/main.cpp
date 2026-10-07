@@ -12,6 +12,7 @@
 
 #if CONFIG_STACKCHAN_WEBRTC_M0
 #include <hal/webrtc/webrtc_m0.h>
+#include <board.h>
 #include <wifi_manager.h>
 #include <esp_log.h>
 #endif
@@ -32,6 +33,12 @@ extern "C" void app_main(void)
     // M0: WebRTC interoperability probe. Runs instead of the normal firmware so
     // the working WebSocket path is left untouched. Never returns.
     {
+        // Nothing else in this path brings the network up: normally
+        // startXiaozhi() -> Application::Initialize() calls StartNetwork(), and
+        // M0 skips all of that. Without this the wait below never ends.
+        ESP_LOGW("M0", "starting the network...");
+        Board::GetInstance().StartNetwork();
+
         // WifiManager is the interface the Aliyun protocol already uses to ask
         // whether the link is up.
         auto& wifi = WifiManager::GetInstance();

@@ -1,5 +1,6 @@
 #include "webrtc_m0.h"
 
+#include <algorithm>
 #include <cstring>
 #include <string>
 
@@ -50,6 +51,7 @@ struct M0 {
     std::string answer_sdp;
     bool channel_requested = false;
     bool update_sent = false;
+    bool running = true;
     bool saw_session_created = false;
     bool saw_session_updated = false;
     int peer_state = -1;
@@ -78,6 +80,23 @@ const char* state_name(esp_peer_state_t s)
     }
 }
 
+/**
+ * @brief Collect the response body during perform().
+ *
+ * esp_http_client_perform() runs the whole request internally and delivers the
+ * body only through this callback. Reading with esp_http_client_read() after it
+ * returns yields nothing, which is exactly how the first version of this file
+ * reported "answer body empty" against a perfectly good HTTP 200.
+ */
+esp_err_t http_event_handler(esp_http_client_event_t* evt)
+{
+    if (evt->event_id == HTTP_EVENT_ON_DATA && evt->user_data != nullptr) {
+        static_cast<std::string*>(evt->user_data)->append(
+            static_cast<const char*>(evt->data), evt->data_len);
+    }
+    return ESP_OK;
+}
+
 bool post_sdp(const std::string& offer, std::string& answer)
 {
     char host[160];
@@ -89,6 +108,7 @@ bool post_sdp(const std::string& offer, std::string& answer)
     ESP_LOGI(TAG, "POST %s", url);
     ESP_LOGI(TAG, "offer is %d bytes", (int)offer.size());
 
+    answer.clear();
     esp_http_client_config_t cfg = {};
     cfg.url = url;
     cfg.method = HTTP_METHOD_POST;
@@ -96,6 +116,8 @@ bool post_sdp(const std::string& offer, std::string& answer)
     cfg.crt_bundle_attach = esp_crt_bundle_attach;
     cfg.buffer_size = 4096;
     cfg.buffer_size_tx = 4096;
+    cfg.event_handler = http_event_handler;
+    cfg.user_data = &answer;
 
     esp_http_client_handle_t client = esp_http_client_init(&cfg);
     if (client == nullptr) {
@@ -113,30 +135,16 @@ bool post_sdp(const std::string& offer, std::string& answer)
     const int status = esp_http_client_get_status_code(client);
     ESP_LOGI(TAG, "SDP exchange: err=%s http=%d", esp_err_to_name(err), status);
 
-    bool ok = false;
-    if (err == ESP_OK && status == 200) {
-        answer.clear();
-        char buf[1025];
-        int read = 0;
-        // Read until the body ends; the answer SDP is a few KB.
-        while ((read = esp_http_client_read(client, buf, sizeof(buf) - 1)) > 0) {
-            buf[read] = '\0';
-            answer += buf;
-        }
-        ok = !answer.empty();
-        ESP_LOGI(TAG, "answer is %d bytes", (int)answer.size());
-        if (!ok) {
-            ESP_LOGE(TAG, "answer body empty");
-        }
-    } else {
-        // Surface the server's reason - a rejected SDP is the most likely
-        // outcome of this whole experiment.
-        char buf[513];
-        const int read = esp_http_client_read(client, buf, sizeof(buf) - 1);
-        if (read > 0) {
-            buf[read] = '\0';
-            ESP_LOGE(TAG, "server said: %s", buf);
-        }
+    const bool ok = (err == ESP_OK && status == 200 && !answer.empty());
+    ESP_LOGI(TAG, "response body is %d bytes", (int)answer.size());
+    if (ok) {
+        // The answer SDP decides everything from here, so show it.
+        ESP_LOGI(TAG, "----- answer SDP -----");
+        ESP_LOGI(TAG, "%s", answer.c_str());
+        ESP_LOGI(TAG, "----------------------");
+    } else if (!answer.empty()) {
+        // Surface the server's reason for a rejection.
+        ESP_LOGE(TAG, "server said: %s", answer.c_str());
     }
 
     esp_http_client_cleanup(client);
@@ -184,7 +192,17 @@ int on_msg(esp_peer_msg_t* info, void* /*ctx*/)
     }
     if (info->type == ESP_PEER_MSG_TYPE_SDP) {
         g.local_sdp.assign((const char*)info->data, info->size);
+        const int cands = (int)std::count(g.local_sdp.begin(), g.local_sdp.end(), '\n');
         ESP_LOGI(TAG, "[msg] local SDP, %d bytes", info->size);
+        // Whether the offer carries candidates decides everything: a candidate
+        // less offer gives the peer nothing to connect to, and the server's own
+        // candidate can then never be reached.
+        const bool has_candidate = g.local_sdp.find("a=candidate:") != std::string::npos;
+        ESP_LOGW(TAG, "[msg] offer carries a=candidate: %s (%d lines)",
+                 has_candidate ? "YES" : "NO", cands);
+        ESP_LOGI(TAG, "----- OFFER SDP -----");
+        ESP_LOGI(TAG, "%s", g.local_sdp.c_str());
+        ESP_LOGI(TAG, "---------------------");
         if (g.sdp_ready) {
             xSemaphoreGive(g.sdp_ready);
         }
@@ -234,8 +252,16 @@ int on_audio(esp_peer_audio_frame_t* frame, void* /*ctx*/)
 
 void peer_loop_task(void* /*arg*/)
 {
+    // esp_peer_main_loop() performs a single poll iteration and returns; it is
+    // not a blocking loop. The official peer_demo wraps it exactly like this
+    // (examples/peer_demo/main/peer_demo.c). Calling it once performs one
+    // iteration, so ICE candidates are never gathered and no local SDP is ever
+    // produced - which is precisely how the first version of this file failed.
     ESP_LOGI(TAG, "peer main loop started");
-    esp_peer_main_loop(g.peer);
+    while (g.running) {
+        esp_peer_main_loop(g.peer);
+        vTaskDelay(pdMS_TO_TICKS(20));
+    }
     ESP_LOGW(TAG, "peer main loop exited");
     vTaskDelete(nullptr);
 }
@@ -305,7 +331,25 @@ void WebRtcM0Run()
     const int cert_ret = esp_peer_pre_generate_cert();
     ESP_LOGI(TAG, "cert -> %d", cert_ret);
 
+    // Give the ICE agent a STUN server.
+    //
+    // Without one it only knows its private host candidate. It then discovers
+    // the NAT-mapped address from the peer's check responses and rejects it -
+    // "XOR-MAPPED 124.126.137.141:12909 is not local candidate, skip nominate" -
+    // which repeats until ICE times out. RFC 8445 calls that a peer-reflexive
+    // local candidate and expects it to be used; a standard stack (verified with
+    // node-datachannel) connects in ~40 ms where esp_peer never nominates.
+    //
+    // Gathering our own server-reflexive candidate first sidesteps the gap: the
+    // XOR-MAPPED address then matches a candidate the agent already holds.
+    // The public address this reports was confirmed to be the same one esp_peer
+    // sees, so the two will agree.
+    static esp_peer_ice_server_cfg_t ice_server = {};
+    ice_server.stun_url = const_cast<char*>("stun:stun.miwifi.com:3478");
+
     esp_peer_cfg_t cfg = {};
+    cfg.server_lists = &ice_server;
+    cfg.server_num = 1;
     cfg.role = ESP_PEER_ROLE_CONTROLLING;
     cfg.ice_trans_policy = ESP_PEER_ICE_TRANS_POLICY_ALL;
     cfg.audio_info.codec = ESP_PEER_AUDIO_CODEC_OPUS;
