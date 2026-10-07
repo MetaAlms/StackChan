@@ -131,3 +131,23 @@ Codex 负责设计与每阶段代码/证据复核及后续派单。
   同一原生 `stackchan` composer；发送与执行状态仍待 UI 后续核对，
   不把 paste 成功或旧排队项的“发送中”当交付证据。
 - 保持 48k PCM 与 esp_peer1.5.5；M1.5/产品接入HOLD，不merge/发布/上游改动。
+
+## 聚焦执行 host 标准栈媒体对照
+
+- 原生第70轮已出现且 composer 清空，随后有实际源文件修改；
+  新交付 `3ab11e9823866fa0979298caa71184c15bb6c478` 和
+  [RQ](https://github.com/MetaAlms/StackChan/pull/1#issuecomment-6046130821) 均已核对。
+  仍是部分交付，R3-4 两实验明确未执行。
+- 源码核查发现 RQ 对发送计数修复描述过强：probe.cc 没变，三个新增计数
+  仅存在 header，不能据恒零数值报告完整覆盖。其他未完项保持未解决。
+- 为先取得判别性证据，本次收拢为**一个 host 实验**；
+  [Review 5447928154](https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5447928154)
+  已提交并 read-back 核对 exact 3ab11e9 full SHA，详见
+  `webrtc-media-m1-standard-control-review.md`。
+  本次只修 R4-1，真实执行三条同源 fixture 的标准栈媒体对照并交付结果；
+  保持当前固件/设备，其他 M1 findings 留待后续派修，不视作通过。
+- 最小 Review/SHA/唯一范围/验证+push+exact-head RQ+STOP 指令正在原生同会话
+  填写与发送核对中；等待一次真实投递，禁止因 UI 延迟重复发送。
+- 后续原生第71轮（1127步）已出现，composer清空；实际新增
+  `tools/webrtc_probe/encode_fixture.py` 与 `standard_media_control.js`。
+  确认已开始该 host 实验，源码预检与实际输出尚待完成；不以脚本存在当通过。

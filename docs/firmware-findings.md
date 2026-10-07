@@ -676,3 +676,24 @@ SHA256 为 `faf4c0d76030b58f22df8258ec1b9c436b7445a7d875de3b26a8c888f4d9657a`。
 **状态**：API 行为已从头文件、现有调用与二进制独立核验；未声称 SDK 本身有缺陷。
 M1 任务要求每次 `in.len == in_size`，逐包发送 `encoded_bytes`，并检查缓冲容量和
 RTP payload 上限；实际实现及真机证据待复核。见 [M1 任务](webrtc-media-m1-task.md)。
+
+### B20. 硬件第三路参考的限制不等同于 SDK 禁止软件播放参考
+
+**证据**（2026-10-08，只读条件预研，HEAD `3ab11e9823866fa0979298caa71184c15bb6c478`）：
+本机 ESP-SR 2.3.1 `esp_afe_sr_iface.h:89–100` 接受16k/int16交错内存PCM；
+`esp_afe_config.h:152–167` 定义 R 为 playback reference；
+`esp_aec.h:62–73` 的 refdata 明确定义为送扬声器的采样数组。
+[Espressif FAQ](https://docs.espressif.com/projects/esp-faq/en/latest/application-solution/audio-development-framework.html#what-is-the-difference-between-software-aec-acoustic-echo-cancellation-and-hardware-aec-in-the-esp-adf-audio-application-development-framework)
+区分 ADC 回采与主控制器复制的软件参考。
+
+当前 `config.h:22` 设置 reference=true；codec 固定两路物理麦采样，
+AFE 因此组成 MR，但设备 AEC 关闭，第二路仍是麦克风，未混入播放PCM。
+旧 AudioService `audio_service.cc:309` 有最终提交播放的24kPCM，
+现有应用没有把它与采集对齐并转换/组成软件参考。
+播放队列、I2S DMA、增益/失真和重采样时序的效果证据均缺失。
+
+**状态**：仅证实 SDK 的输入接口支持软件参考；当前工程未实现/未验证。
+历史“未取得第三路有效硬件参考”及当前半双工能力限制保留；
+不能直接打开 AEC，把第二只麦当参考，也不能据接口可用宣称打断可用。
+不改变已冻结 SPEC 或 M1.5 HOLD，后续需要具体设计复核与真实同步/双讲实验。
+完整路径与边界见 [条件预研](webrtc-software-reference-feasibility.md)。

@@ -1,0 +1,45 @@
+{
+  "config": {
+    "nodeDatachannel": "0.33.4",
+    "libopus": "libopus 1.5.2",
+    "model": "qwen3.8-omni-flash-realtime",
+    "ssrc": 4021769311,
+    "pt": 111,
+    "clock": 48000
+  },
+  "cfgOk": true,
+  "echo": {
+    "type": "server_vad",
+    "threshold": 0.5,
+    "silence": 800,
+    "asr": "qwen3-asr-flash-realtime"
+  },
+  "clips": [
+    {
+      "id": "zh_1",
+      "packets": 195,
+      "mediaMs": 3900,
+      "vadStart": 1,
+      "vadStop": 0,
+      "completed": 0,
+      "hits": [],
+      "itemId": null,
+      "transcript": null,
+      "waitMs": 21612
+    }
+  ],
+  "stats": {
+    "packets": 1335,
+    "bytes": 160584,
+    "pktMin": 3,
+    "pktMax": 388,
+    "firstSeq": 28993,
+    "firstTs": 2543287780,
+    "sendErrors": 0
+  },
+  "vadEvents": 1,
+  "asrEvents": 0,
+  "failedEvents": [],
+  "errorEvents": [],
+  "verdict": "FAIL"
+}
