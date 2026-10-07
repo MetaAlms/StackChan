@@ -10,6 +10,12 @@
 #include <apps/apps.h>
 #include <hal/hal.h>
 
+#if CONFIG_STACKCHAN_WEBRTC_M0
+#include <hal/webrtc/webrtc_m0.h>
+#include <wifi_manager.h>
+#include <esp_log.h>
+#endif
+
 using namespace mooncake;
 using namespace smooth_ui_toolkit;
 
@@ -21,6 +27,27 @@ extern "C" void app_main(void)
 
     // HAL init
     GetHAL().init();
+
+#if CONFIG_STACKCHAN_WEBRTC_M0
+    // M0: WebRTC interoperability probe. Runs instead of the normal firmware so
+    // the working WebSocket path is left untouched. Never returns.
+    {
+        // WifiManager is the interface the Aliyun protocol already uses to ask
+        // whether the link is up.
+        auto& wifi = WifiManager::GetInstance();
+        ESP_LOGW("M0", "waiting for the network before probing WebRTC...");
+        while (!wifi.IsConnected()) {
+            GetHAL().feedTheDog();
+            GetHAL().delay(500);
+        }
+        ESP_LOGW("M0", "network is up");
+        WebRtcM0Run();
+        while (1) {
+            GetHAL().feedTheDog();
+            GetHAL().delay(1000);
+        }
+    }
+#endif
 
     // Setup ui hal
     ui_hal::on_delay([](uint32_t ms) { GetHAL().delay(ms); });

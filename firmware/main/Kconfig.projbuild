@@ -1,5 +1,18 @@
 menu "StackChan Aliyun Realtime"
 
+config STACKCHAN_WEBRTC_M0
+    bool "Boot into the WebRTC interop test (M0) instead of normal firmware"
+    default n
+    help
+        Brings up esp_peer against Aliyun's WebRTC endpoint and stops after the
+        DataChannel reports session.created / session.updated. No media is sent.
+
+        This exists to answer one question before committing to a full WebRTC
+        port: does esp_peer interoperate with Aliyun at all? If it does not, the
+        WebSocket implementation remains the answer.
+
+        Requires CONFIG_MBEDTLS_SSL_PROTO_DTLS and CONFIG_MBEDTLS_SSL_DTLS_SRTP.
+
 config STACKCHAN_ALIYUN_ENABLE
     bool "Use Aliyun Qwen-Omni-Realtime instead of the xiaozhi backend"
     default n
