@@ -1,7 +1,14 @@
 # 拟提交至 esp-webrtc-solution#208 的评论草稿
 
 目标：<https://github.com/espressif/esp-webrtc-solution/issues/208>
-状态：**草稿，未发布**。发布前需确认。
+状态：**已发布**（2026-10-07）
+
+- 评论地址：<https://github.com/espressif/esp-webrtc-solution/issues/208#issuecomment-6041819735>
+- 发布账号：MetaAlms（`gh` CLI，本机已认证）
+- 发布前已校验：不含 API Key 与 workspace id；两条证据链接返回 200
+
+发布后该 issue 评论数由 3 增至 4。后续若维护者回应或提供修复库，
+按草稿结尾的承诺在 ESP32-S3 上对阿里端点实测并回报。
 
 ---
 
