@@ -172,10 +172,21 @@ abort() was called
 - 本次 host 为 `192.168.1.7:59813`，映射为 `124.126.137.141:13174`，
   上述条件必然拒绝；未执行 RFC 8445 §7.2.5.3.1/2 要求的映射 valid-pair 处理。
 
-**状态**：二进制中的具体缺陷已确认，尚未获得修复库或验证修复后连接；
-尚未证明 v1.5.6 首次引入回归，也不扩大为“所有 NAT 必然失败”。
-本轮未刷设备、未修改固件、未提交上游 issue。
-全零 related 字段及 Mac 对照实验的证据边界，也已在复核结果中纠正。
+**A/B 实测（2026-10-07，同设备、同 M0 代码，唯一变量为组件版本）**：
+
+| 版本 | 结果 |
+|---|---|
+| 1.5.6 | `skip nominate` 刷屏 → `CONNECT_FAILED` |
+| **1.5.5** | `Select pair` → `Connection OK` → PAIRED → CONNECTED → DATA_CHANNEL_OPENED → **`session.created` + `session.updated` 均收到** |
+
+**是 v1.5.6 引入的回归。** 1.5.5 全程不出现该警告，且端到端跑通。
+
+附带实证：服务端事件的通道是 `txt`、stream 为 **1**，
+不是客户端创建的 `oai-events` / stream 0。
+
+**状态**：已在 `firmware/main/idf_component.yml` 精确锁定 1.5.5
+（非 `^` 范围），并注明解除条件。上游 issue 待提交。
+未获得的证据：媒体链路（AEC / 双向语音 / 打断）在 M0 中未验证。
 
 ---
 

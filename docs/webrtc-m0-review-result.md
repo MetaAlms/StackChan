@@ -184,7 +184,7 @@ v1.5.6 changelog 明确自动处理远端 SDP 的 ice-lite，不能把未手动�
 
 | 方案 | 能验证什么 / 限制 | 状态 |
 |---|---|---|
-| 同设备、同 M0 的 v1.5.5/v1.5.6 A/B | 最直接验证版本回归；旧版仍可能有其他 ICE 问题，不应承诺必成功 | 未执行 |
+| 同设备、同 M0 的 v1.5.5/v1.5.6 A/B | 最直接验证版本回归；旧版仍可能有其他 ICE 问题，不应承诺必成功 | **已执行，见第 10 节** |
 | 向 Espressif 提交二进制分支、SHA 与日志，获取修复库 | 保持现有媒体/DTLS/SCTP 集成；这是优先修复路径 | 尚未提交 issue |
 | 公网 IPv4 或已证实可达的直连 IPv6 | 验证 mapped 与 host 相同是否消除拒绝；当前 Answer 只有 IPv4，不能直接强制 IPv6 | 未执行 |
 | 完整 ICE 对端下试 controlled 角色 | helper 对 controlled 放行，但还依赖服务端角色、提名和冲突处理；远端若 ice-lite，full 客户端必须 controlling | 未执行，不作为标准修复 |
@@ -237,3 +237,72 @@ cd "$review_out"
 agent_process_stun_response；用 DWARF 核验成员偏移、枚举值和源行。
 本轮完整临时输出位于 `/tmp/stackchan-esp-peer-review/`，长期证据以本文中的
 库 SHA、等价逻辑、关键汇编和可重复命令为准。
+
+---
+
+## 10. A/B 实测结果（2026-10-07，复核之后补做）
+
+复核指出"尚未证明 v1.5.6 首次引入回归，需要同设备 A/B"。该 A/B 已完成。
+
+变量控制：同一台设备、同一份 M0 代码、同一网络、同一端点，
+**唯一差异是 `espressif/esp_peer` 的版本**。
+
+| 版本 | 组件 commit | 库 SHA-256（前 16） | 结果 |
+|---|---|---|---|
+| 1.5.6 | `38a697f3b8142d23` | `6b2f3856b9a1639b` | `skip nominate` 刷屏 → `CONNECT_FAILED` |
+| **1.5.5** | `c8650846b512e6e1` | `25a338fc6b05f702` | **`Connection OK` → 全链路成功** |
+
+### 1.5.5 的完整日志（节选）
+
+```
+I AGENT: 0 0 Send binding request (cand:0) local0:192.168.1.7:49914 remote0:39.105.73.166:3478
+I AGENT: 0 0 LocalBinding resp 5851f42d40b18ccf4bb5f646 local1
+I AGENT: 0 Select pair 39.105.73.166:3478        ← 无任何 skip nominate
+I AGENT: 0 Candidate responded
+I AGENT: 0 Connection OK 39.105.73.166:3478
+I WebRTC-M0: [state] PAIRED (5)
+I WebRTC-M0: [state] CONNECTING (6)
+I WebRTC-M0: [state] CONNECTED (7)
+I WebRTC-M0: [state] DATA_CHANNEL_CONNECTED (9)
+I WebRTC-M0: create data channel 'oai-events' -> 0
+I WebRTC-M0: [channel open] label='txt' stream_id=1      ← 服务端通道，stream 1
+I WebRTC-M0: [state] DATA_CHANNEL_OPENED (10)
+I WebRTC-M0: [data stream=1] {"type":"session.created",...}
+W WebRTC-M0: >>> session.created received
+I WebRTC-M0: sent session.update on stream 1 -> 0
+I WebRTC-M0: [data stream=1] {"type":"session.updated",...}
+W WebRTC-M0: >>> session.updated received
+
+==================== M0 VERDICT ====================
+  last peer state   : DATA_CHANNEL_OPENED (10)
+  session.created   : YES
+  session.updated   : YES
+  server channel    : 'txt'
+  => INTEROP OK: esp_peer talks to Aliyun.
+===================================================
+```
+
+从启动到 `session.updated` 约 3 秒。
+
+### 由此确立的结论
+
+1. **是 v1.5.6 引入的回归。** 1.5.5 在同条件下成功，
+   且全程不出现 `XOR-MAPPED ... is not local candidate, skip nominate`。
+   第 3、4 节从二进制恢复的两处分支，与"v1.5.6 收紧提名条件"一致。
+2. **ESP32-S3 与阿里 WebRTC 端点完全互通**：SDP 交换、ICE、DTLS、
+   SCTP DataChannel、`session.created` / `session.updated` 全部打通。
+3. **服务端事件的通道是 `txt`、stream 为 1**，而非客户端创建的
+   `oai-events`、stream 0。第 6 节指出的 M0 缺陷 2 由此得到实证。
+4. 第 6 节指出的 M0 缺陷 1（判据把 `CONNECT_FAILED` 误报为 PARTIAL）
+   修复后，判据输出与真实状态一致。
+
+### 当前处置
+
+`firmware/main/idf_component.yml` 已从 `^1.5.6` 改为**精确锁定 `1.5.5`**，
+并在文件内注明原因与解除条件（待上游修复）。
+
+### 仍未验证的部分（复核第 7 节结尾的提醒仍然有效）
+
+M0 不发送任何媒体。因此即使互通成功，**尚未证明**：
+服务端 AEC 实际生效、双向语音可用、语音打断可用。
+这些需要完整移植媒体链路（48kHz Opus、重采样、RTP 收发）之后才能验证。
