@@ -1,5 +1,5 @@
 diff --git a/main/application.cc b/main/application.cc
-index d69d43d..b846395 100644
+index 3b6f07e..5042405 100644
 --- a/main/application.cc
 +++ b/main/application.cc
 @@ -5,6 +5,8 @@
@@ -11,7 +11,62 @@ index d69d43d..b846395 100644
  #include "assets/lang_config.h"
  #include "mcp_server.h"
  #include "assets.h"
-@@ -396,6 +398,15 @@ void Application::CheckAssetsVersion() {
+@@ -80,8 +82,33 @@ void Application::Initialize() {
+     callbacks.on_wake_word_detected = [this](const std::string& wake_word) {
+         xEventGroupSetBits(event_group_, MAIN_EVENT_WAKE_WORD_DETECTED);
+     };
++    // Tracks how long the current utterance lasted, so a cough or a door slam
++    // does not commit a turn.
++    static int64_t speech_started_us = 0;
++
+     callbacks.on_vad_change = [this](bool speaking) {
+         xEventGroupSetBits(event_group_, MAIN_EVENT_VAD_CHANGE);
++
++        if (!AliyunOmniProtocol::IsConfigured()) {
++            return;
++        }
++        // The server cannot run VAD on Ogg-framed Opus, so the device ends the
++        // turn itself. Hop to the main task: this callback runs on the audio
++        // task and the commit is a socket write.
++        if (speaking) {
++            speech_started_us = esp_timer_get_time();
++            return;
++        }
++        const int64_t spoken_ms = speech_started_us ? (esp_timer_get_time() - speech_started_us) / 1000 : 0;
++        speech_started_us = 0;
++        if (spoken_ms < 300) {
++            return;
++        }
++        Schedule([this]() {
++            if (auto* aliyun = dynamic_cast<AliyunOmniProtocol*>(protocol_.get())) {
++                aliyun->NotifyLocalSpeechEnded();
++            }
++        });
+     };
+     audio_service_.SetCallbacks(callbacks);
+ 
+@@ -318,6 +345,20 @@ void Application::HandleActivationDoneEvent() {
+         // Play the success sound to indicate the device is ready
+         audio_service_.PlaySound(Lang::Sounds::OGG_SUCCESS);
+     });
++
++    // Opening the audio channel normally needs a screen tap (the avatar panel's
++    // onClick calls ToggleChatState). That is fine for the stock backend, where
++    // the channel is opened lazily per conversation, but it makes the Aliyun
++    // path awkward to verify: reaching the AI.AGENT app leaves the device idle
++    // until someone taps. Start the conversation automatically instead, after a
++    // short pause so the ready sound and UI settle first.
++    if (AliyunOmniProtocol::IsConfigured()) {
++        ESP_LOGI(TAG, "Aliyun mode: starting the conversation automatically");
++        for (int i = 0; i < 3; ++i) {
++            vTaskDelay(pdMS_TO_TICKS(1000));
++        }
++        Schedule([this]() { ToggleChatState(); });
++    }
+ }
+ 
+ void Application::ActivationTask() {
+@@ -396,6 +437,15 @@ void Application::CheckAssetsVersion() {
  }
  
  void Application::CheckNewVersion() {
@@ -27,7 +82,7 @@ index d69d43d..b846395 100644
      const int MAX_RETRY = 10;
      int retry_count = 0;
      int retry_delay = 10; // Initial retry delay in seconds
-@@ -477,7 +488,12 @@ void Application::InitializeProtocol() {
+@@ -477,7 +527,12 @@ void Application::InitializeProtocol() {
  
      display->SetStatus(Lang::Strings::LOADING_PROTOCOL);
  
@@ -41,70 +96,27 @@ index d69d43d..b846395 100644
          protocol_ = std::make_unique<MqttProtocol>();
      } else if (ota_->HasWebsocketConfig()) {
          protocol_ = std::make_unique<WebsocketProtocol>();
-@@ -610,33 +626,36 @@ void Application::InitializeProtocol() {
- }
- 
- void Application::ShowActivationCode(const std::string& code, const std::string& message) {
--    struct digit_sound {
--        char digit;
--        const std::string_view& sound;
--    };
--    static const std::array<digit_sound, 10> digit_sounds{{
--        digit_sound{'0', Lang::Sounds::OGG_0},
--        digit_sound{'1', Lang::Sounds::OGG_1}, 
--        digit_sound{'2', Lang::Sounds::OGG_2},
--        digit_sound{'3', Lang::Sounds::OGG_3},
--        digit_sound{'4', Lang::Sounds::OGG_4},
--        digit_sound{'5', Lang::Sounds::OGG_5},
--        digit_sound{'6', Lang::Sounds::OGG_6},
--        digit_sound{'7', Lang::Sounds::OGG_7},
--        digit_sound{'8', Lang::Sounds::OGG_8},
--        digit_sound{'9', Lang::Sounds::OGG_9}
--    }};
--
--    // This sentence uses 9KB of SRAM, so we need to wait for it to finish
--    Alert(Lang::Strings::ACTIVATION, message.c_str(), "link", Lang::Sounds::OGG_ACTIVATION);
--
--    for (const auto& digit : code) {
--        auto it = std::find_if(digit_sounds.begin(), digit_sounds.end(),
--            [digit](const digit_sound& ds) { return ds.digit == digit; });
--        if (it != digit_sounds.end()) {
--            audio_service_.PlaySound(it->sound);
--        }
--    }
-+    // struct digit_sound {
-+    //     char digit;
-+    //     const std::string_view& sound;
-+    // };
-+    // static const std::array<digit_sound, 10> digit_sounds{{
-+    //     digit_sound{'0', Lang::Sounds::OGG_0},
-+    //     digit_sound{'1', Lang::Sounds::OGG_1}, 
-+    //     digit_sound{'2', Lang::Sounds::OGG_2},
-+    //     digit_sound{'3', Lang::Sounds::OGG_3},
-+    //     digit_sound{'4', Lang::Sounds::OGG_4},
-+    //     digit_sound{'5', Lang::Sounds::OGG_5},
-+    //     digit_sound{'6', Lang::Sounds::OGG_6},
-+    //     digit_sound{'7', Lang::Sounds::OGG_7},
-+    //     digit_sound{'8', Lang::Sounds::OGG_8},
-+    //     digit_sound{'9', Lang::Sounds::OGG_9}
-+    // }};
-+
-+    // // This sentence uses 9KB of SRAM, so we need to wait for it to finish
-+    // Alert(Lang::Strings::ACTIVATION, message.c_str(), "link", Lang::Sounds::OGG_ACTIVATION);
-+
-+    // for (const auto& digit : code) {
-+    //     auto it = std::find_if(digit_sounds.begin(), digit_sounds.end(),
-+    //         [digit](const digit_sound& ds) { return ds.digit == digit; });
-+    //     if (it != digit_sounds.end()) {
-+    //         audio_service_.PlaySound(it->sound);
-+    //     }
-+    // }
-+
-+    auto display = Board::GetInstance().GetDisplay();
-+    display->SetChatMessage("system", "Please bind and set up in the mobile app.");
- }
- 
- void Application::Alert(const char* status, const char* message, const char* emotion, const std::string_view& sound) {
+@@ -497,7 +552,19 @@ void Application::InitializeProtocol() {
+     
+     protocol_->OnIncomingAudio([this](std::unique_ptr<AudioStreamPacket> packet) {
+         if (GetDeviceState() == kDeviceStateSpeaking) {
+-            audio_service_.PushPacketToDecodeQueue(std::move(packet));
++            // wait=true: this runs on the network task (see is_audio_payload in
++            // the Aliyun protocol), so blocking here is what throttles the
++            // server to playback speed instead of dropping audio.
++            audio_service_.PushPacketToDecodeQueue(std::move(packet), true);
++        } else {
++            // Dropping audio here is what caused audible stuttering: the state
++            // only becomes "speaking" once the tts/start event is processed, and
++            // a burst of deltas queued ahead of it was discarded wholesale.
++            static int dropped = 0;
++            if (++dropped % 20 == 1) {
++                ESP_LOGW(TAG, "dropped audio packet while state=%d (total %d)",
++                         (int)GetDeviceState(), dropped);
++            }
+         }
+     });
+     
 diff --git a/main/ota.cc b/main/ota.cc
 index bcc0dc5..f5e82b0 100644
 --- a/main/ota.cc
