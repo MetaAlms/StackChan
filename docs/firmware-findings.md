@@ -271,6 +271,19 @@ mapped port 非零、mapped 地址与原 pair.local 不同，会被新增分支�
 
 ---
 
+### A9. esp_peer 1.5.5 的 Opus RTP 发送路径未见 payload 长度校验
+
+**证据**（2026-10-08 媒体设计复核）：ESP32-S3 官方库 SHA-256
+`25a338fc6b05f702947c2af0e924f2dd3006503908e889dcdc512782d0ea3a58`。
+DWARF 的 `rtp_encoder_t.buf` 长度 1428；Opus 使用
+`rtp_encoder_encode_generic`（原源 `rtp.c:315`），函数偏移 0x77–0x85
+直接 memcpy 完整 size 到 `buf + 12 + ext_reserve`，此前未见大小检查或分片。
+`peer_send_audio` 将应用的 frame.data/size 直接交给 RTP encoder。
+
+**状态**：静态复核并交叉确认；未发送越界包、未实机验证此风险、未发布上游 issue。
+媒体桥接必须限制单个 raw Opus packet 的长度与边界，不能传大块 PCM、Ogg 或多包拼接。
+是否其他版本修复尚未核验。详见 [媒体评审结果](webrtc-media-review-result.md) Q6。
+
 ## B. 我方踩的坑
 
 ### B1. `session.created` 走主任务队列 → 自锁死 40 秒
@@ -587,3 +600,58 @@ esp_mmap_assets 1.4.0 → 2.0.1。M0 改动也发生在同一对照中。
 差异并保留固件/库 hash 和 SDP。删除整个锁文件不适合作为严格 A/B 的步骤。
 历史对照的混淆不否定当前 1.5.5 成功或 A8 中确定的二进制错误分支。
 详见 [webrtc-m0-review-result-2.md](webrtc-m0-review-result-2.md)。
+
+### B16. 把 Opus 的 48k RTP 时钟误当成 PCM 必须 48k
+
+**证据**（2026-10-08）：RFC 7587 §4.1/7 要求 Opus 的 RTP clock/SDP 为 48k，
+不要求编码输入 PCM 为 48k。具体 `esp_opus_enc.h:70` 允许 8/12/16/24/48k；
+实际 decoder 也可独立输出 24k，已从 API 与二进制验证。
+M0 `webrtc_m0.cc:406` 原注释本就区分 capture rate 与 Opus clock。
+
+实际 esp_peer 1.5.5 二进制：`peer_send_audio` 直接传 frame.pts，
+`calc_timestamp` 的 Opus 分支执行 `pts * 48`，因此 **pts 单位为毫秒**。
+20ms 包：16k PCM 320 样本，pts 增加 20，RTP timestamp 增加 960；
+60ms 包相应为 960/60/2880。下行 pts 是 raw 32 位 RTP timestamp 换算，
+不归零、不扩展回绕，不能直接当本地播放时钟。
+
+**状态**：媒体 SPEC/PLAN 中“16k→48k 上采样不可避免”已判不成立，设计待修改。
+推荐复用 AFE16k/Opus16k 编码，下行直接解码为板级 24k；esp_peer 的
+audio_info.sample_rate 仍为 48000。协议/API 可行，阿里媒体效果尚未实测。
+详见 [媒体评审结果](webrtc-media-review-result.md) Q2/Q3。
+
+### B17. WebRTC 的“内置 AEC”不能直接推出裸 RTP 的服务端 AEC
+
+**证据**（2026-10-08）：[RFC 7874 §5](https://www.rfc-editor.org/rfc/rfc7874.html#section-5)
+建议端点设备实现 AEC；[W3C echoCancellation](https://www.w3.org/TR/mediacapture-streams/#dom-mediatrackconstraintset-echocancellation)
+是采集侧配置。阿里浏览器示例使用 getUserMedia，AOQ 的 3A 配置也在客户端 SDK。
+这些资料没有证明裸 esp_peer 会自动获得服务端回声处理，也不能证明服务端必然没有。
+
+原 M1.5 任意本地 TTS 未必有服务端参考；“空转写”也可能来自播放时上行关闭、
+转录配置/失败或 VAD。`speech_started` 是 VAD 事件，不是 AEC 指示器；
+没有 AEC 后 PCM，不能从转写反推 ERLE/dB 抑制量。
+
+**状态**：迁移收益须作为待验证假设；原方案 a 的二元退出条件不通过。
+改用同一会话真实下行播放、连续上行计数与信号检查、近端正对照和双讲，
+结果分目标通过/目标失败/实验无效。未执行媒体实验。
+详见 [媒体评审结果](webrtc-media-review-result.md) Q1。
+
+### B18. 服务端取消不能代替停止本地播放，媒体桥接需隔离旧任务
+
+**证据**（2026-10-08 静态复核）：
+
+- `application.cc:1007–1012` 的 AbortSpeaking 仅写 aborted_ 并发送 cancel，
+  aborted_ 没有读取方，未清本地播放队列。
+- `audio_service.cc:702–713` 的 ResetDecoder 清队列，但解码任务在 359 解锁处理后
+  于 395–397 重新入队，播放任务在 313–324 出队后写设备；清队列不撤销处理中任务。
+- `EnableVoiceProcessing:613` 每次 enable 重置 decoder/输入重采样并 warmup；
+  speaking 关闭上行的现有状态机也不能直接复用为全双工。
+- esp_peer 默认 on_audio 回调借用 RTP/jitter payload，frame 为栈对象；异步消费
+  必须先复制。阻塞 PushPacketToDecodeQueue(wait=true) 会堵住 peer 主循环，
+  不会提供 WebSocket/TCP 那种服务端背压。
+- PlaySound（audio_service.cc:667）使用 OggDemuxer；M4 删除它会影响本地提示音。
+  其余 Ogg/背压/门控也仍是 WebSocket 回退所需。
+
+**状态**：仅记录，未修改固件。媒体计划需加入本地输出停止/有界尾音、
+会话/响应代际与晚到 RTP 边界、有界非阻塞队列、全程采集和完整回退。
+N4 的 8KiB free 总和不足以证明资源预算，需结合能力 heap、largest block、栈与
+完整媒体/AFE/UI/重连实测。详见 [媒体评审结果](webrtc-media-review-result.md) Q5/Q6。

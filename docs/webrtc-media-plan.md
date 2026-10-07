@@ -3,7 +3,7 @@
 对应 [webrtc-media-spec.md](webrtc-media-spec.md)。本文件只定义"怎么做、分几步、
 每步的退出条件"，不含日期承诺。
 
-状态：**待评审**。
+状态：**待修改**（2026-10-08 评审未通过，见 [评审结果](webrtc-media-review-result.md)）。
 
 ---
 

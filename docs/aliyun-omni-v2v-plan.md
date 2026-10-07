@@ -5,6 +5,13 @@
 
 **分支**：feat/aliyun-omni-v2v（基于 MetaAlms/StackChan fork）
 
+**2026-10-08 状态更新**：本页保留初版 WebSocket 方案。
+下文“回采参考已开/AEC 无需自研/WebRTC 不可用”已被后续复核修正，以
+[问题台账](firmware-findings.md)、[AEC 边界](aec-limitation.md)为准。
+M0 已证 WebRTC 握手/事件互通；媒体 SPEC/PLAN 本轮评审需修改，服务端 AEC
+尚未证实，Opus 48k RTP clock 不要求 PCM 48k。
+下一步先修设计，再做最小媒体/全双工探针，详见 [媒体评审结果](webrtc-media-review-result.md)。
+
 ---
 
 ## 0. 现状事实（已核实）

@@ -7,7 +7,7 @@
 - 能力边界：[aec-limitation.md](aec-limitation.md)
 - 实现计划：[webrtc-media-plan.md](webrtc-media-plan.md)
 
-状态：**待评审**。本文件只定义"做什么"与"验收标准"，不含排期。
+状态：**待修改**（2026-10-08 评审未通过，见 [评审结果](webrtc-media-review-result.md)）。本文件只定义"做什么"与"验收标准"，不含排期。
 
 ---
 
