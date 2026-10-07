@@ -153,6 +153,30 @@ abort() was called
 
 **状态**：已改为构造时就填好（本仓库）。属于上游代码。
 
+### A8. esp_peer v1.5.6 拒绝 host 候选对的正常 NAT 映射
+
+**现象**：WebRTC M0 向阿里端点成功交换 SDP 后，重复报
+`XOR-MAPPED ... is not local candidate, skip nominate`，最终 CONNECT_FAILED。
+即使 Offer 已携带与 XOR-MAPPED 相同的 srflx，也无法完成该路径。
+
+**证据**（2026-10-07 独立复核，详见 [webrtc-m0-review-result.md](webrtc-m0-review-result.md)）：
+
+- 实际 ESP32-S3 `libpeer_default.a` 与官方提交
+  `38a697f3b8142d23823eda5209edb89ca76119dc` 中库文件 SHA-256 相同：
+  `6b2f3856b9a1639b0480c011688c070c132b6399e9863a74d20d20a271dc7da3`。
+- 反汇编及 DWARF 证实 `agent_pair_candidate`（原源 `agent.c:642`）
+  跳过类型不同的候选，local srflx 不与 remote host 成对。
+- `agent_bind_mapped_matches_local`（原源 `agent.c:1417`）在 controlling、
+  非 relay、mapped port 非零时，只比较 XOR-MAPPED 与当前 pair.local 地址，
+  不查找已有 srflx。`agent_process_stun_response:1621–1629` 失败时直接返回。
+- 本次 host 为 `192.168.1.7:59813`，映射为 `124.126.137.141:13174`，
+  上述条件必然拒绝；未执行 RFC 8445 §7.2.5.3.1/2 要求的映射 valid-pair 处理。
+
+**状态**：二进制中的具体缺陷已确认，尚未获得修复库或验证修复后连接；
+尚未证明 v1.5.6 首次引入回归，也不扩大为“所有 NAT 必然失败”。
+本轮未刷设备、未修改固件、未提交上游 issue。
+全零 related 字段及 Mac 对照实验的证据边界，也已在复核结果中纠正。
+
 ---
 
 ## B. 我方踩的坑
@@ -439,3 +463,18 @@ ES7210 侧已经支持（TDM 槽位掩码为 `SLOT0|1|2|3`）。
 
 新增 `ogg_opus_muxer.cc` 后链接报 `undefined reference`，因为 `file(GLOB_RECURSE ...)`
 在**配置期**展开。需要 `idf.py reconfigure`（或删 `build/`）。
+
+### B14. WebRTC M0 的状态与 DataChannel 判据可能误报
+
+**证据**（2026-10-07 静态复核）：
+
+- `firmware/main/hal/webrtc/webrtc_m0.cc:308` 用 `peer_state >= CONNECTED` 判定
+  传输建立；组件 API 的 CONNECTED=7、CONNECT_FAILED=8，故失败会误报 PARTIAL。
+- 同文件 `174–182` 在首个 DATA_CHANNEL_OPENED 时固定向 stream 0 发送 update，
+  发送前即设 update_sent=true；未使用 on_channel_open 给出的 label/stream_id，
+  未按发送返回值判断成功。服务端 txt 先打开时，可能导致 session.updated 假阴性。
+- `/tmp/wrtc-test/test.js` 实际在 txt 上回复 session.created，且对照实验远端 IP
+  与设备不同，不能将其判词“成功即设备库有错”作为独立证明。
+
+**状态**：已记录，未改代码。这些问题不解释 A8 的 ICE 拒绝，但会影响后续成功判定。
+详见 [webrtc-m0-review-result.md](webrtc-m0-review-result.md)。

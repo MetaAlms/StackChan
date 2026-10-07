@@ -51,6 +51,14 @@ struct M0 {
     std::string answer_sdp;
     bool channel_requested = false;
     bool update_sent = false;
+
+    // Which channel the server is actually talking on. The docs say the server
+    // opens its own channel (`txt`) rather than using the client-created
+    // `oai-events`, and the node-datachannel control run confirmed that: the
+    // client channel never opened and session.created arrived on `txt`.
+    std::string server_channel_label;
+    uint16_t server_channel_stream_id = 0;
+    bool saw_server_channel = false;
     bool running = true;
     bool saw_session_created = false;
     bool saw_session_updated = false;
@@ -171,17 +179,6 @@ int on_state(esp_peer_state_t state, void* /*ctx*/)
         ESP_LOGI(TAG, "create data channel '%s' -> %d", kDataChannelLabel, ret);
     }
 
-    if (state == ESP_PEER_STATE_DATA_CHANNEL_OPENED && !g.update_sent) {
-        g.update_sent = true;
-        esp_peer_data_frame_t frame = {};
-        frame.type = ESP_PEER_DATA_CHANNEL_STRING;
-        frame.stream_id = 0;
-        frame.data = (uint8_t*)kSessionUpdate;
-        frame.size = (int)strlen(kSessionUpdate);
-        const int ret = esp_peer_send_data(g.peer, &frame);
-        ESP_LOGI(TAG, "sent session.update -> %d", ret);
-    }
-
     return 0;
 }
 
@@ -214,18 +211,56 @@ int on_msg(esp_peer_msg_t* info, void* /*ctx*/)
     return 0;
 }
 
+/** Send session.update on `stream_id`, retrying until it is accepted. */
+void send_session_update(uint16_t stream_id)
+{
+    if (g.update_sent) {
+        return;
+    }
+    esp_peer_data_frame_t frame = {};
+    frame.type = ESP_PEER_DATA_CHANNEL_STRING;
+    frame.stream_id = stream_id;
+    frame.data = (uint8_t*)kSessionUpdate;
+    frame.size = (int)strlen(kSessionUpdate);
+    const int ret = esp_peer_send_data(g.peer, &frame);
+    ESP_LOGI(TAG, "sent session.update on stream %u -> %d", (unsigned)stream_id, ret);
+    // Only mark it done on success: marking first (as this code originally did)
+    // loses the update permanently if the send fails.
+    if (ret == 0) {
+        g.update_sent = true;
+    }
+}
+
+int on_channel_open(esp_peer_data_channel_info_t* ch, void* /*ctx*/)
+{
+    const char* label = (ch && ch->label) ? ch->label : "?";
+    const uint16_t stream_id = ch ? ch->stream_id : 0;
+    ESP_LOGI(TAG, "[channel open] label='%s' stream_id=%u", label, (unsigned)stream_id);
+    g.server_channel_label = label;
+    g.server_channel_stream_id = stream_id;
+    g.saw_server_channel = true;
+    // If session.created already arrived, this is the channel to answer on.
+    if (g.saw_session_created && !g.update_sent) {
+        send_session_update(stream_id);
+    }
+    return 0;
+}
+
 int on_data(esp_peer_data_frame_t* frame, void* /*ctx*/)
 {
     if (frame == nullptr || frame->data == nullptr) {
         return 0;
     }
     const std::string text((const char*)frame->data, frame->size);
-    ESP_LOGI(TAG, "[data] %s", text.c_str());
+    ESP_LOGI(TAG, "[data stream=%u] %s", (unsigned)frame->stream_id, text.c_str());
 
     // The two events that decide the experiment.
     if (text.find("session.created") != std::string::npos) {
         g.saw_session_created = true;
         ESP_LOGW(TAG, ">>> session.created received");
+        // Reply on the same stream it arrived on - not on stream 0, and not
+        // assuming it is the client-created channel.
+        send_session_update(frame->stream_id);
     }
     if (text.find("session.updated") != std::string::npos) {
         g.saw_session_updated = true;
@@ -302,13 +337,22 @@ void signaling_task(void* /*arg*/)
              g.peer_state);
     ESP_LOGW(TAG, "  session.created   : %s", g.saw_session_created ? "YES" : "no");
     ESP_LOGW(TAG, "  session.updated   : %s", g.saw_session_updated ? "YES" : "no");
+    ESP_LOGW(TAG, "  server channel    : %s%s%s",
+             g.saw_server_channel ? "'" : "(none seen)",
+             g.saw_server_channel ? g.server_channel_label.c_str() : "",
+             g.saw_server_channel ? "'" : "");
+    // Order matters: CONNECT_FAILED is 8 and CONNECTED is 7, so a naive
+    // ">= CONNECTED" test reports an ICE failure as if the transport had come up.
     if (g.saw_session_created && g.saw_session_updated) {
         ESP_LOGW(TAG, "  => INTEROP OK: esp_peer talks to Aliyun.");
         ESP_LOGW(TAG, "     The WebRTC port is worth building.");
-    } else if (g.peer_state >= ESP_PEER_STATE_CONNECTED) {
+    } else if (g.peer_state == ESP_PEER_STATE_CONNECT_FAILED) {
+        ESP_LOGW(TAG, "  => ICE FAILED: candidate pairing never completed.");
+    } else if (g.peer_state >= ESP_PEER_STATE_CONNECTED &&
+               g.peer_state <= ESP_PEER_STATE_DATA_CHANNEL_CLOSED) {
         ESP_LOGW(TAG, "  => PARTIAL: transport came up but the model never answered.");
     } else {
-        ESP_LOGW(TAG, "  => INTEROP FAILED: stop here, keep the WebSocket path.");
+        ESP_LOGW(TAG, "  => FAILED before/without a transport.");
     }
     ESP_LOGW(TAG, "===================================================");
     vTaskDelete(nullptr);
@@ -364,6 +408,7 @@ void WebRtcM0Run()
     cfg.on_state = on_state;
     cfg.on_msg = on_msg;
     cfg.on_data = on_data;
+    cfg.on_channel_open = on_channel_open;
     cfg.on_audio_data = on_audio;
 
     // Trim the buffers: the defaults are sized for video and would be wasteful

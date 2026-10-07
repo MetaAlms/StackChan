@@ -68,7 +68,7 @@ dependencies:
 
   # WebRTC（M0 互通性验证）。ICE + DTLS + SRTP + SCTP + DataChannel + OPUS。
   espressif/esp_peer:
-    version: 1.5.5
+    version: ^1.5.6
     rules:
     - if: target in [esp32s3]
 
