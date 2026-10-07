@@ -88,11 +88,35 @@ exactly at 1.5.5 → 1.5.6. It would help to know whether that 1.5.2 was the
 `third_party` vendored copy rather than the published component, since a tested
 1.5.5 is the closest release below 1.5.6.
 
-### Suggested fix direction
+### Fix direction (we cannot submit a patch — see note)
 
-Construct or locate the valid pair from the mapped address, while keeping the
-required STUN response validation — i.e. do not simply accept any
-transaction-matched response.
+The function is inside the prebuilt `libs/*/libpeer_default.a`; `agent.c`/`ice.c`
+are not part of the published component sources (only `dtls_srtp.c`,
+`esp_peer.c`, `peer_utils.c` and `transport/*` are), and the closest open
+ancestor, `sepfy/libpeer`, does not contain this code (its `agent.c` has no
+`skip nominate` path at all). So a PR is not something we can open — this needs
+a rebuild on your side.
+
+What the recovered logic suggests, per RFC 8445 §7.2.5.3.1/2 — a successful
+response with an unknown mapped address should create a **local peer-reflexive
+candidate** and derive a **valid pair** from it, and a known mapped address
+should reuse the existing candidate. Either of these would do:
+
+1. **Look up instead of compare.** Before rejecting, search the local candidate
+   list for a candidate equal to `stun_msg->mapped_addr` (in our case the
+   advertised srflx `124.126.137.141:13174` matches exactly) and, if found,
+   nominate the pair built from it.
+2. **Create a prflx.** If no candidate matches, add a local prflx candidate for
+   `mapped_addr` and nominate that pair.
+
+Either way the existing STUN response validation must stay — the point is not to
+accept any transaction-matched response, but to stop treating a legitimate NAT
+mapping as a failure. Note that the current guard is skipped for `RELAY` pairs
+and for the controlled role, which is presumably why TURN-based and
+controlled-role setups in this thread behave differently.
+
+We are happy to run a patched library on ESP32-S3 against the Aliyun endpoint and
+report back, if you can provide a build.
 
 ### Evidence
 
