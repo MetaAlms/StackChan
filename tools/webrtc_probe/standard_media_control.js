@@ -101,18 +101,38 @@ async function main() {
   let currentSdp = null;
   const candidates = [];
 
-  const events = { created: false, updated: false, vad: [], asr: [], failed: [], errors: [] };
+  // H3: all state is initialised before any branch can reach finish(). Declaring
+  // consts further down meant a configuration failure hit the temporal dead zone
+  // and lost the very evidence the failure needed.
+  const events = { created: false, updated: false, vad: [], asr: [], failed: [], errors: [],
+                   unknown: [], echo: null };
   let updateSent = false;
-  let eventChannel = null;
+  let updateOk = false;
+  let eventChannel = null;        // the actual channel object, not a label
+  let eventChannelLabel = null;
+  let cfgOk = false;
+  let allOk = false;
+  const PT = 111;
+  let seq = 0, ts = 0;
+  const stats = { accepted: 0, refused: 0, exceptions: 0, bytes: 0, pktMin: 1e9, pktMax: 0,
+                  firstSeq: 0, firstTs: 0, lateFrames: 0 };
+  const clipResults = [];
+  let mediaWallMs = 0;
+  let mediaFirstTs = 0, mediaLastTs = 0;
+  const silFrames = [];
 
-  function onEvent(json) {
+  function onEvent(json, ch, label) {
     let m;
     try { m = JSON.parse(json); } catch (_) { return; }
     const t = m.type;
     if (t === 'session.created') {
       events.created = true;
-      if (!eventChannel) eventChannel = dcLabel;
-      rec(`[cfg] session.created on '${dcLabel}'`);
+      // H3: reply on the channel this event actually arrived on.
+      if (!eventChannel && ch) {
+        eventChannel = ch;
+        eventChannelLabel = label;
+      }
+      rec(`[cfg] session.created on '${label}' (replying there)`);
       sendUpdate();
     } else if (t === 'session.updated') {
       const s = m.session || {};
@@ -123,11 +143,14 @@ async function main() {
                       silence: td.silence_duration_ms, asr: tr.model };
       rec(`[cfg] session.updated echo: ${JSON.stringify(events.echo)}`);
     } else if (t === 'input_audio_buffer.speech_started') {
-      events.vad.push({ kind: 'started', at: Date.now() });
-      rec('[vad] speech_started');
+      // H2: keep the item the VAD actually refers to, not just a timestamp.
+      events.vad.push({ kind: 'started', at: Date.now(), item_id: m.item_id || null,
+                        audio_start_ms: m.audio_start_ms });
+      rec(`[vad] speech_started item=${m.item_id || '-'}`);
     } else if (t === 'input_audio_buffer.speech_stopped') {
-      events.vad.push({ kind: 'stopped', at: Date.now() });
-      rec('[vad] speech_stopped');
+      events.vad.push({ kind: 'stopped', at: Date.now(), item_id: m.item_id || null,
+                        audio_end_ms: m.audio_end_ms });
+      rec(`[vad] speech_stopped item=${m.item_id || '-'}`);
     } else if (t === 'conversation.item.input_audio_transcription.completed') {
       if (typeof m.transcript === 'string' && typeof m.item_id === 'string' && m.item_id) {
         events.asr.push({ transcript: m.transcript, item_id: m.item_id });
@@ -141,18 +164,23 @@ async function main() {
     } else if (t === 'error') {
       events.errors.push(m.error || {});
       rec(`[err] ${JSON.stringify(m.error || {})}`);
+    } else {
+      // H4: record unknown types by name so a real event is not silently missed.
+      events.unknown.push(t);
+      rec(`[event] ${t}`);
     }
   }
 
-  let dcLabel = null;
-  const dc = pc.createDataChannel('oai-events');
-  dcLabel = 'oai-events';
+  const dcLabel = 'oai-events';
+  const dc = pc.createDataChannel(dcLabel);
   dc.onOpen(() => rec(`[dc] client channel '${dcLabel}' open`));
-  dc.onMessage((msg) => onEvent(typeof msg === 'string' ? msg : msg.toString()));
-  // The server also opens its own channel; watch every one.
+  dc.onMessage((msg) => onEvent(typeof msg === 'string' ? msg : msg.toString(), dc, dcLabel));
+  // The server also opens its own channel; every event is attributed to the
+  // channel object it actually arrived on.
   pc.onDataChannel((ch) => {
-    rec(`[dc] server channel '${ch.getLabel()}' opened`);
-    ch.onMessage((msg) => onEvent(typeof msg === 'string' ? msg : msg.toString()));
+    const label = ch.getLabel();
+    rec(`[dc] server channel '${label}' opened`);
+    ch.onMessage((msg) => onEvent(typeof msg === 'string' ? msg : msg.toString(), ch, label));
   });
 
   function sendUpdate() {
@@ -165,8 +193,15 @@ async function main() {
         input_audio_transcription: { model: 'qwen3-asr-flash-realtime' },
       },
     });
-    try { dc.sendMessage(msg); updateSent = true; rec('[cfg] session.update sent'); }
-    catch (e) { rec(`[cfg] session.update send failed: ${e.message}`); }
+    const target = eventChannel || dc;
+    try {
+      const ok = target.sendMessage(msg);
+      updateSent = true;
+      updateOk = (ok !== false);
+      rec(`[cfg] session.update sent on '${eventChannelLabel || dcLabel}' accepted=${updateOk}`);
+    } catch (e) {
+      rec(`[cfg] session.update send threw: ${e.message}`);
+    }
   }
 
   // -------------------------------------------------------------- signaling
@@ -206,9 +241,10 @@ async function main() {
   // Wait for the config echo.
   const t0 = Date.now();
   while (!events.updated && Date.now() - t0 < 25000) await delay(200);
-  const cfgOk = events.echo && events.echo.type === 'server_vad' &&
-                events.echo.threshold === 0.5 && events.echo.silence === 800 &&
-                events.echo.asr === 'qwen3-asr-flash-realtime';
+  // cfgOk is declared up front (H3); assign here rather than redeclaring.
+  cfgOk = !!(events.echo && events.echo.type === 'server_vad' &&
+             events.echo.threshold === 0.5 && events.echo.silence === 800 &&
+             events.echo.asr === 'qwen3-asr-flash-realtime');
   rec(`[cfg] verified: ${cfgOk ? 'YES' : 'NO'}`);
   if (!cfgOk) {
     rec('VERDICT: FAIL - configuration layer (fixture not sent)');
@@ -218,115 +254,170 @@ async function main() {
 
   // ------------------------------------------------------------------ media
 
-  const PT = 111;
-  let seq = crypto.randomBytes(2).readUInt16BE(0);
-  let ts = crypto.randomBytes(4).readUInt32BE(0) >>> 0;
-  const stats = { packets: 0, bytes: 0, pktMin: 1e9, pktMax: 0, firstSeq: seq, firstTs: ts,
-                  sendErrors: 0 };
-  const clipResults = [];
+  const sil = JSON.parse(fs.readFileSync(path.join(__dirname, 'silence_packets.json'), 'utf8'));
+  for (const s of sil.silence) silFrames.push(Buffer.from(s, 'base64'));
+  rec(`[sil] ${sil.frames} frames, mode=${sil.mode}, decoded ${sil.decoded_samples} ` +
+      `samples/frame, peak |x|=${sil.peak_abs}`);
+
+  // H1: one monotonic absolute deadline for the whole media run, shared by every
+  // clip, silence stretch and ASR wait. Re-deriving it per segment hid boundary
+  // cost and drift, and a nominal timestamp increment is not pacing evidence.
+  let deadline = Date.now();
+  const pacingStart = Date.now();
+  let extraSilenceFrames = 0;
 
   function buildRtp(payload) {
     const h = Buffer.alloc(12);
     h[0] = 0x80;                    // V=2, no padding, no extension, CC=0
-    h[1] = PT & 0x7f;               // M=0: continuous audio, no silence suppression
+    h[1] = PT & 0x7f;               // M=0: continuous audio
     h.writeUInt16BE(seq & 0xffff, 2);
     h.writeUInt32BE(ts >>> 0, 4);
     h.writeUInt32BE(ssrc >>> 0, 8);
     return Buffer.concat([h, payload]);
   }
 
-  async function sendFrames(frames, { pace = true } = {}) {
-    const t0 = Date.now();
-    let deadline = t0;
-    for (const f of frames) {
-      const pkt = buildRtp(f);
-      // Keep the RTCP SR reporter's clock identical to the RTP header clock.
-      // Without this the SR reports a stale timestamp while the headers advance,
-      // and the receiver's timeline for this stream is inconsistent.
-      config.timestamp = ts >>> 0;
-      try { track.sendMessageBinary(pkt); stats.packets++; stats.bytes += pkt.length;
-            stats.pktMin = Math.min(stats.pktMin, f.length);
-            stats.pktMax = Math.max(stats.pktMax, f.length); }
-      catch (e) { stats.sendErrors++; }
-      seq = (seq + 1) & 0xffff;
-      ts = (ts + 960) >>> 0;
-      if (pace) {
-        deadline += 20;
-        const wait = deadline - Date.now();
-        if (wait > 0) await delay(wait);
-      }
-    }
-    return Date.now() - t0;
+  function sendOne(payload) {
+    const pkt = buildRtp(payload);
+    // H1: the wrapper returns the Track's real acceptance result. A false return
+    // (direction mismatch, keys not ready) does not throw, so ignoring it counted
+    // refused frames as sent.
+    let ok = false;
+    try { ok = track.sendMessageBinary(pkt) !== false; }
+    catch (e) { stats.exceptions++; }
+    if (ok) { stats.accepted++; stats.bytes += pkt.length;
+              stats.pktMin = Math.min(stats.pktMin, payload.length);
+              stats.pktMax = Math.max(stats.pktMax, payload.length); }
+    else if (stats.exceptions === 0 || ok === false) { stats.refused++; }
+    if (stats.accepted === 0 && stats.refused === 0) { stats.firstSeq = seq; stats.firstTs = ts; }
+    seq = (seq + 1) & 0xffff;
+    ts = (ts + 960) >>> 0;
   }
 
-  // Silence keeps the media timeline continuous while ASR is pending, exactly as
-  // the device does; without it the server may never observe end-of-speech.
-  const silFrames = [];
-  const enc = require('./silence_packets.json');
-  for (const s of enc.silence) silFrames.push(Buffer.from(s, 'base64'));
+  async function sendFrames(frames) {
+    for (const f of frames) {
+      sendOne(f);
+      deadline += 20;
+      const wait = deadline - Date.now();
+      if (wait > 0) await delay(wait);
+      else if (wait < -20) stats.lateFrames++;
+    }
+  }
+
+  if (typeof track.isOpen === 'function') rec(`[track] isOpen=${track.isOpen()}`);
+  stats.firstSeq = seq; stats.firstTs = ts;
+  mediaFirstTs = ts;
 
   for (const clip of manifest.clips) {
+    // H2: the runner must not score a clip without acceptance data.
+    if (!Array.isArray(clip.keywords) || clip.keywords.length === 0 ||
+        typeof clip.text !== 'string' || !clip.text) {
+      rec(`FATAL: ${clip.id} has no frozen text/keywords; refusing to score 0/0 as a pass`);
+      allOk = false;
+      finish();
+      return;
+    }
     const frames = loadFrames(path.join(framesDir, `${clip.id}.opusframes`));
-    const before = events.asr.length;
-    const r = { id: clip.id, packets: frames.length, mediaMs: clip.media_ms,
-                vadStart: 0, vadStop: 0, completed: 0, hits: [], itemId: null,
-                transcript: null, waitMs: 0 };
+    const r = { id: clip.id, text: clip.text, keywords: clip.keywords,
+                packets: frames.length, mediaMs: clip.media_ms,
+                vadStart: 0, vadStop: 0, itemIds: [], completed: 0, hits: [],
+                itemId: null, transcript: null, waitMs: 0, window: null };
 
-    rec(`[play] ${clip.id} (${frames.length} packets, ${clip.media_ms} ms)`);
+    const clipStart = Date.now();
+    const clipStartTs = ts;
+    const asrBefore = events.asr.length;
+    const vadBefore = events.vad.length;
+
+    rec(`[play] ${clip.id} "${clip.text}" (${frames.length} packets, ${clip.media_ms} ms)`);
     await sendFrames(frames);
-    await sendFrames(silFrames.slice(0, 60));   // 1200 ms trailing, as frozen
+    await sendFrames(silFrames);          // frozen 1200 ms trailing silence
+    const clipEndTs = ts;
 
+    // Keep the cadence while ASR is pending and give the server time to close
+    // the turn; the media timeline stays continuous throughout.
     const w0 = Date.now();
-    while (events.asr.length === before && Date.now() - w0 < 20000) {
-      await sendFrames(silFrames);          // keep the cadence during the wait
+    while (events.asr.length === asrBefore && Date.now() - w0 < 20000) {
+      await sendFrames(silFrames);
+      extraSilenceFrames += silFrames.length;
+      if (events.failed.length > 0) break;
     }
     r.waitMs = Date.now() - w0;
+    r.window = { startTs: clipStartTs, endTs: clipEndTs, startMs: 0, endMs: clipEndTs - clipStartTs };
 
-    const vs = events.vad.filter((v) => v.kind === 'started').length;
-    const vt = events.vad.filter((v) => v.kind === 'stopped').length;
-    r.vadStart = vs; r.vadStop = vt;
-    if (events.asr.length > before) {
-      const last = events.asr[events.asr.length - 1];
+    // H2: attribute VAD and ASR to *this* clip only, by arrival window.
+    const myVad = events.vad.slice(vadBefore);
+    r.vadStart = myVad.filter((v) => v.kind === 'started').length;
+    r.vadStop = myVad.filter((v) => v.kind === 'stopped').length;
+    r.itemIds = [...new Set(myVad.map((v) => v.item_id).filter(Boolean))];
+
+    const newAsr = events.asr.slice(asrBefore);
+    if (newAsr.length > 0) {
+      const last = newAsr[newAsr.length - 1];
       r.completed = 1; r.itemId = last.item_id; r.transcript = last.transcript;
-      for (const kw of clip.keywords || []) {
+      for (const kw of clip.keywords) {
         if (last.transcript.includes(kw)) r.hits.push(kw);
       }
+      // The completed item should be one the VAD for this clip announced.
+      if (r.itemIds.length > 0 && r.itemId && !r.itemIds.includes(r.itemId)) {
+        rec(`[asr] WARNING: ${r.id} completed item=${r.itemId} was not announced by ` +
+            `its own VAD (${r.itemIds.join(',')})`);
+      }
     }
-    rec(`[clip] ${r.id} vad=${r.vadStart}/${r.vadStop} completed=${r.completed} ` +
-        `kw=${r.hits.length} item=${r.itemId} wait=${r.waitMs}ms "${r.transcript || ''}"`);
+    rec(`[clip] ${r.id} vad=${r.vadStart}/${r.vadStop} items=${r.itemIds.join('|') || '-'} ` +
+        `completed=${r.completed} kw=${r.hits.length}/${clip.keywords.length} ` +
+        `item=${r.itemId || '-'} wait=${r.waitMs}ms "${r.transcript || ''}"`);
     clipResults.push(r);
 
-    if (!r.completed || r.hits.length < (clip.keywords || []).length) {
-      rec(`[asr] stopping the sequence after ${r.id}: a late result must not be ` +
-          `credited to a later clip`);
+    // H2: stop the sequence on a miss or an outright failure; a late result must
+    // not be credited to a later clip, and a failed turn is a real miss.
+    if (!r.completed || r.hits.length < clip.keywords.length ||
+        r.vadStart === 0 || r.vadStop === 0 || events.failed.length > 0) {
+      rec(`[asr] stopping the sequence after ${r.id}`);
       break;
     }
   }
 
-  const mediaMs = stats.packets * 20;
-  rec(`[media] packets=${stats.packets} bytes=${stats.bytes} pkt=${stats.pktMin}..${stats.pktMax} ` +
-      `seq ${stats.firstSeq}..${seq} ts ${stats.firstTs}..${ts} mediaMs=${mediaMs} ` +
-      `sendErrors=${stats.sendErrors}`);
+  mediaWallMs = Date.now() - pacingStart;
+  mediaLastTs = ts;
+  const mediaMs = stats.accepted * 20;
+  rec(`[media] accepted=${stats.accepted} refused=${stats.refused} exceptions=${stats.exceptions} ` +
+      `bytes=${stats.bytes} pkt=${stats.pktMin === 1e9 ? 0 : stats.pktMin}..${stats.pktMax} ` +
+      `seq ${stats.firstSeq}..${seq} ts ${stats.firstTs}..${ts} lateFrames=${stats.lateFrames}`);
+  rec(`[time] mediaMs(${mediaMs}, from accepted frames) vs wallMs(${mediaWallMs}) over the ` +
+      `same run; extra silence frames=${extraSilenceFrames}`);
 
-  const allOk = clipResults.length === manifest.clips.length &&
+  // H1: a refused or throwing send makes the run invalid; it is reported as such
+  // and never confused with "the remote received it".
+  const sendValid = (stats.refused === 0 && stats.exceptions === 0 && stats.accepted > 0);
+  if (!sendValid) rec('INVALID: the send path refused or threw; results cannot be attributed');
+
+  allOk = sendValid && clipResults.length === manifest.clips.length &&
     clipResults.every((r) => r.vadStart > 0 && r.vadStop > 0 && r.completed &&
-                              r.hits.length === (manifest.clips.find((c) => c.id === r.id).keywords || []).length);
-  rec(allOk ? 'VERDICT: PASS - standard stack produced VAD + complete ASR + keywords for all clips'
-            : 'VERDICT: FAIL - see per-clip results above');
+                              r.hits.length === r.keywords.length);
+  rec(allOk
+    ? 'VERDICT: PASS - standard stack produced VAD start+stop, complete ASR and keywords for all three clips'
+    : 'VERDICT: FAIL - see per-clip results above');
 
   finish();
 
   function finish() {
-    fs.writeFileSync(outJson, JSON.stringify({
+    const out = {
       config: { nodeDatachannel: require(path.join(NDC_PATH, 'package.json')).version,
                 libopus: manifest.libopus, model, ssrc, pt: PT, clock: 48000 },
-      cfgOk: !!cfgOk, echo: events.echo, clips: clipResults, stats,
+      cfgOk, updateOk, eventChannelLabel,
+      echo: events.echo, clips: clipResults, stats,
+      mediaWallMs, mediaFirstTs, mediaLastTs, extraSilenceFrames,
       vadEvents: events.vad.length, asrEvents: events.asr.length,
-      failedEvents: events.failed, errorEvents: events.errors,
+      failedEvents: events.failed, errorEvents: events.errors, unknownEvents: events.unknown,
+      sendValid: (stats.refused === 0 && stats.exceptions === 0 && stats.accepted > 0),
       verdict: allOk ? 'PASS' : 'FAIL',
-    }, null, 2) + '\n');
+    };
+    fs.writeFileSync(outJson, JSON.stringify(out, null, 2) + '\n');
+    // H3: release the session's resources and make the exit code match the verdict.
+    try { track.stop(); } catch (_) {}
+    try { pc.close(); } catch (_) {}
+    try { ndc.cleanup(); } catch (_) {}
     rec(`result -> ${outJson}`);
-    setTimeout(() => process.exit(0), 500);
+    setTimeout(() => process.exit(allOk ? 0 : 2), 300);
   }
 }
 

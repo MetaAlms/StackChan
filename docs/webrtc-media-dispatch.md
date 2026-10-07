@@ -151,3 +151,19 @@ Codex 负责设计与每阶段代码/证据复核及后续派单。
 - 后续原生第71轮（1127步）已出现，composer清空；实际新增
   `tools/webrtc_probe/encode_fixture.py` 与 `standard_media_control.js`。
   确认已开始该 host 实验，源码预检与实际输出尚待完成；不以脚本存在当通过。
+
+## Host 首轮实际交付后的复核
+
+- 第71轮已交付并推送 `3b0844e0b6b3908995ad4a4023b1bf7b84b62f89`，
+  [RQ](https://github.com/MetaAlms/StackChan/pull/1#issuecomment-6046306584)。
+  三次实际运行配置回显通过，但只有 VAD start=1、stop=0、ASR=0。
+  这不支持“已排除服务端或会话配置、只剩设备问题”的归因。
+- Codex 已提交并回读 [Review 5448053831](https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5448053831)，
+  commit_id 与上述完整 HEAD 一致。H1–H4 只涉及 host 发送接受/时间轴、
+  item/关键词归属、通道与失败落盘、必要的短诊断和证据边界；
+  详见 [复核正文](webrtc-media-host-control-review-result.md)。
+- 同一原生 `stackchan` composer 的 Review ID/full SHA/唯一范围/验证与
+  exact-head RQ/STOP 指令已完整回读，并点击发送一次；
+  真实投递与继续执行待后续 UI/源码核对，不重复发送。
+- 当前设备固件保持不变；48k PCM 约束保留，其他 M1 findings 尚未解决。
+  M1.5 和产品集成继续 HOLD。

@@ -1,0 +1,216 @@
+{
+  "config": {
+    "nodeDatachannel": "0.33.4",
+    "libopus": "libopus 1.5.2",
+    "model": "qwen3.8-omni-flash-realtime",
+    "ssrc": 393773756,
+    "pt": 111,
+    "clock": 48000
+  },
+  "cfgOk": true,
+  "updateOk": true,
+  "eventChannelLabel": "txt",
+  "echo": {
+    "type": "server_vad",
+    "threshold": 0.5,
+    "silence": 800,
+    "asr": "qwen3-asr-flash-realtime"
+  },
+  "clips": [
+    {
+      "id": "zh_1",
+      "text": "今天我们测试语音连接",
+      "keywords": [
+        "测试",
+        "语音",
+        "连接"
+      ],
+      "packets": 195,
+      "mediaMs": 3900,
+      "vadStart": 1,
+      "vadStop": 1,
+      "itemIds": [
+        "item_SSPJhK9ceXEhriMXEeHWY"
+      ],
+      "completed": 1,
+      "hits": [
+        "测试",
+        "语音",
+        "连接"
+      ],
+      "itemId": "item_SSPJhK9ceXEhriMXEeHWY",
+      "transcript": "今天我们测试语音连接。",
+      "waitMs": 0,
+      "window": {
+        "startTs": 0,
+        "endTs": 302400,
+        "startMs": 0,
+        "endMs": 302400
+      }
+    },
+    {
+      "id": "zh_2",
+      "text": "桌上有一本蓝色的书",
+      "keywords": [
+        "蓝色",
+        "书"
+      ],
+      "packets": 183,
+      "mediaMs": 3660,
+      "vadStart": 1,
+      "vadStop": 1,
+      "itemIds": [
+        "item_L8WIndeyQIKgSFFVJuPLS"
+      ],
+      "completed": 1,
+      "hits": [
+        "蓝色",
+        "书"
+      ],
+      "itemId": "item_L8WIndeyQIKgSFFVJuPLS",
+      "transcript": "桌上有一本蓝色的书。",
+      "waitMs": 0,
+      "window": {
+        "startTs": 302400,
+        "endTs": 593280,
+        "startMs": 0,
+        "endMs": 290880
+      }
+    },
+    {
+      "id": "zh_3",
+      "text": "请回答一加一等于几",
+      "keywords": [
+        "一加一",
+        "等于"
+      ],
+      "packets": 186,
+      "mediaMs": 3720,
+      "vadStart": 1,
+      "vadStop": 1,
+      "itemIds": [
+        "item_LlP2wgEvshHJIGRVTr8Td"
+      ],
+      "completed": 1,
+      "hits": [
+        "一加一",
+        "等于"
+      ],
+      "itemId": "item_LlP2wgEvshHJIGRVTr8Td",
+      "transcript": "请回答一加一等于几。",
+      "waitMs": 0,
+      "window": {
+        "startTs": 593280,
+        "endTs": 887040,
+        "startMs": 0,
+        "endMs": 293760
+      }
+    }
+  ],
+  "stats": {
+    "accepted": 924,
+    "refused": 0,
+    "exceptions": 0,
+    "bytes": 121325,
+    "pktMin": 3,
+    "pktMax": 389,
+    "firstSeq": 0,
+    "firstTs": 0,
+    "lateFrames": 0
+  },
+  "mediaWallMs": 18482,
+  "mediaFirstTs": 0,
+  "mediaLastTs": 887040,
+  "extraSilenceFrames": 0,
+  "vadEvents": 6,
+  "asrEvents": 3,
+  "failedEvents": [],
+  "errorEvents": [],
+  "unknownEvents": [
+    "conversation.item.created",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "input_audio_buffer.committed",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "response.created",
+    "response.output_item.added",
+    "conversation.item.created",
+    "response.content_part.added",
+    "response.audio_transcript.delta",
+    "response.audio_transcript.delta",
+    "response.audio_transcript.delta",
+    "response.audio_transcript.delta",
+    "response.audio_transcript.done",
+    "response.audio.done",
+    "response.content_part.done",
+    "response.done",
+    "conversation.item.created",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "input_audio_buffer.committed",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "response.created",
+    "response.output_item.added",
+    "conversation.item.created",
+    "response.content_part.added",
+    "response.audio_transcript.delta",
+    "response.audio_transcript.delta",
+    "response.audio_transcript.delta",
+    "response.audio_transcript.delta",
+    "response.done",
+    "conversation.item.created",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "input_audio_buffer.committed",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "response.created",
+    "response.output_item.added",
+    "conversation.item.created",
+    "response.content_part.added",
+    "response.audio_transcript.delta",
+    "response.audio_transcript.delta",
+    "response.audio_transcript.done",
+    "response.audio.done",
+    "response.content_part.done",
+    "response.output_item.done",
+    "response.done"
+  ],
+  "sendValid": true,
+  "verdict": "PASS"
+}

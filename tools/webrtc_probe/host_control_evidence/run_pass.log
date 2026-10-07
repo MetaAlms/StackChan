@@ -1,0 +1,115 @@
+node-datachannel 0.33.4
+library version: 0.24.5
+[sdp] offer 1074 bytes
+[sdp] answer 1269 bytes
+[sdp] answer m=audio 3478 UDP/TLS/RTP/SAVPF 111 | a=rtpmap:111 opus/48000/2 | a=sendrecv
+[pc] state connected
+[dc] server channel 'txt' opened
+[cfg] session.created on 'txt' (replying there)
+[cfg] session.update sent on 'txt' accepted=true
+[cfg] session.updated echo: {"type":"server_vad","threshold":0.5,"silence":800,"asr":"qwen3-asr-flash-realtime"}
+[cfg] verified: YES
+[sil] 120 frames, mode=undefined, decoded undefined samples/frame, peak |x|=undefined
+[track] isOpen=true
+[play] zh_1 "今天我们测试语音连接" (195 packets, 3900 ms)
+[vad] speech_started item=item_SSPJhK9ceXEhriMXEeHWY
+[event] conversation.item.created
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[vad] speech_stopped item=item_SSPJhK9ceXEhriMXEeHWY
+[event] input_audio_buffer.committed
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[asr] completed item=item_SSPJhK9ceXEhriMXEeHWY "今天我们测试语音连接。"
+[event] response.created
+[event] response.output_item.added
+[event] conversation.item.created
+[event] response.content_part.added
+[event] response.audio_transcript.delta
+[event] response.audio_transcript.delta
+[event] response.audio_transcript.delta
+[event] response.audio_transcript.delta
+[clip] zh_1 vad=1/1 items=item_SSPJhK9ceXEhriMXEeHWY completed=1 kw=3/3 item=item_SSPJhK9ceXEhriMXEeHWY wait=0ms "今天我们测试语音连接。"
+[play] zh_2 "桌上有一本蓝色的书" (183 packets, 3660 ms)
+[event] response.audio_transcript.done
+[event] response.audio.done
+[event] response.content_part.done
+[event] response.done
+[vad] speech_started item=item_L8WIndeyQIKgSFFVJuPLS
+[event] conversation.item.created
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[vad] speech_stopped item=item_L8WIndeyQIKgSFFVJuPLS
+[event] input_audio_buffer.committed
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[asr] completed item=item_L8WIndeyQIKgSFFVJuPLS "桌上有一本蓝色的书。"
+[event] response.created
+[event] response.output_item.added
+[event] conversation.item.created
+[event] response.content_part.added
+[event] response.audio_transcript.delta
+[event] response.audio_transcript.delta
+[event] response.audio_transcript.delta
+[event] response.audio_transcript.delta
+[clip] zh_2 vad=1/1 items=item_L8WIndeyQIKgSFFVJuPLS completed=1 kw=2/2 item=item_L8WIndeyQIKgSFFVJuPLS wait=0ms "桌上有一本蓝色的书。"
+[play] zh_3 "请回答一加一等于几" (186 packets, 3720 ms)
+[event] response.done
+[vad] speech_started item=item_LlP2wgEvshHJIGRVTr8Td
+[event] conversation.item.created
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[vad] speech_stopped item=item_LlP2wgEvshHJIGRVTr8Td
+[event] input_audio_buffer.committed
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[event] conversation.item.input_audio_transcription.delta
+[asr] completed item=item_LlP2wgEvshHJIGRVTr8Td "请回答一加一等于几。"
+[event] response.created
+[event] response.output_item.added
+[event] conversation.item.created
+[event] response.content_part.added
+[event] response.audio_transcript.delta
+[event] response.audio_transcript.delta
+[event] response.audio_transcript.done
+[event] response.audio.done
+[event] response.content_part.done
+[event] response.output_item.done
+[event] response.done
+[clip] zh_3 vad=1/1 items=item_LlP2wgEvshHJIGRVTr8Td completed=1 kw=2/2 item=item_LlP2wgEvshHJIGRVTr8Td wait=0ms "请回答一加一等于几。"
+[media] accepted=924 refused=0 exceptions=0 bytes=121325 pkt=3..389 seq 0..924 ts 0..887040 lateFrames=0
+[time] mediaMs(18480, from accepted frames) vs wallMs(18482) over the same run; extra silence frames=0
+VERDICT: PASS - standard stack produced VAD start+stop, complete ASR and keywords for all three clips
+result -> /tmp/host_attempts/attempt1.json

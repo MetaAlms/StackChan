@@ -35,7 +35,17 @@ FRAME_SAMPLES = 960          # 20 ms at 48 kHz, per channel
 FRAME_BYTES = FRAME_SAMPLES * 2
 BITRATE = 90000              # matches the device encoder setting
 
-CLIPS = ["zh_1", "zh_2", "zh_3"]
+# Frozen acceptance data. The runner refuses to score a clip whose keywords are
+# missing, so they must come from here rather than from a hand-edited manifest.
+CLIPS = [
+    {"id": "zh_1", "text": "今天我们测试语音连接", "keywords": ["测试", "语音", "连接"]},
+    {"id": "zh_2", "text": "桌上有一本蓝色的书", "keywords": ["蓝色", "书"]},
+    {"id": "zh_3", "text": "请回答一加一等于几", "keywords": ["一加一", "等于"]},
+]
+
+# Silence used to keep the media timeline continuous while ASR is pending.
+SILENCE_FRAMES = 60           # 1200 ms, matching the frozen trailing silence
+SILENCE_MODE = "dither"       # near-silent room tone, not digital zero
 
 
 def load_opus():
@@ -94,7 +104,8 @@ def main() -> int:
         "clips": [],
     }
 
-    for cid in CLIPS:
+    for clip_meta in CLIPS:
+        cid = clip_meta["id"]
         src = (fixture_dir / f"{cid}.pcm").read_bytes()
         err = C.c_int(0)
         # OPUS_APPLICATION_AUDIO = 2049, matching the device encoder.
@@ -147,6 +158,8 @@ def main() -> int:
         sizes = [len(p) for p in frames]
         manifest["clips"].append({
             "id": cid,
+            "text": clip_meta["text"],
+            "keywords": clip_meta["keywords"],
             "src_sha256": hashlib.sha256(src).hexdigest(),
             "src_samples": len(src) // 2,
             "pcm48_sha256": hashlib.sha256(pcm48).hexdigest(),
@@ -161,6 +174,48 @@ def main() -> int:
         })
         print(f"{cid}: {len(frames)} packets, {len(frames)*20} ms, "
               f"pkt {min(sizes)}..{max(sizes)} B, tail pad {pad_samples} samples")
+
+    # ---- timeline-continuation silence, generated here so it is reproducible
+    # ---- and carries its own decoding/energy evidence (H4).
+    import random
+    random.seed(7)
+    err2 = C.c_int(0)
+    senc = lib.opus_encoder_create(DST_RATE, CHANNELS, 2049, C.byref(err2))
+    if err2.value != 0 or not senc:
+        raise SystemExit(f"silence encoder create failed: {err2.value}")
+    sdec = lib.opus_decoder_create(DST_RATE, CHANNELS, C.byref(err2))
+    sbuf = (C.c_ubyte * 4000)()
+    sout = (C.c_int16 * 5760)()
+    sil = []
+    energies = []
+    for _ in range(SILENCE_FRAMES):
+        if SILENCE_MODE == "dither":
+            pcm = [random.randint(-24, 24) for _ in range(FRAME_SAMPLES)]
+        else:
+            pcm = [0] * FRAME_SAMPLES
+        arr = (C.c_int16 * FRAME_SAMPLES)(*pcm)
+        n = lib.opus_encode(C.c_void_p(senc), arr, FRAME_SAMPLES, sbuf, 4000)
+        if n <= 0:
+            raise SystemExit(f"silence encode failed: {n}")
+        pkt = bytes(sbuf[:n])
+        dn = lib.opus_decode(C.c_void_p(sdec), (C.c_ubyte * n).from_buffer_copy(pkt),
+                             n, sout, 5760, 0)
+        if dn != FRAME_SAMPLES:
+            raise SystemExit(f"silence decode gave {dn} samples, expected {FRAME_SAMPLES}")
+        peak = max(abs(sout[i]) for i in range(dn))
+        energies.append(peak)
+        sil.append(__import__("base64").b64encode(pkt).decode())
+    (out_dir / "silence_packets.json").write_text(
+        __import__("json").dumps(
+            {"frames": len(sil), "ms": len(sil) * 20, "mode": SILENCE_MODE,
+             "decoded_samples": FRAME_SAMPLES, "peak_abs": max(energies),
+             "generator": "tools/webrtc_probe/encode_fixture.py",
+             "silence": sil}) + "\n")
+    manifest["silence"] = {"frames": len(sil), "ms": len(sil) * 20,
+                           "mode": SILENCE_MODE, "decoded_samples": FRAME_SAMPLES,
+                           "peak_abs": max(energies)}
+    print(f"silence: {len(sil)} frames, mode={SILENCE_MODE}, "
+          f"decoded {FRAME_SAMPLES} samples/frame, peak |x|={max(energies)}")
 
     (out_dir / "manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
