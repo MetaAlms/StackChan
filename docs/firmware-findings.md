@@ -364,6 +364,74 @@ server_vad + Ogg 输入  → heard=None spoken=None
 **结论**：服务端 VAD 对本项目的 Ogg 封装 Opus 输入不工作，**必须用本地 VAD 驱动轮次**。
 两件事都要做：参数名写对（避免被服务端判为非法配置），同时不依赖服务端 VAD。
 
+### B12. 打断（barge-in）需要 AEC，而阿里不提供——这是架构限制
+
+**现象**：想让设备"讲个故事，中途打断让它数数"，设备不理，且反应很慢。
+
+**参考实现怎么做的**（`xiaozhi-esp32/main/application.cc`）：
+
+```cpp
+ListeningMode Application::GetDefaultListeningMode() const {
+    return aec_mode_ == kAecOff ? kListeningModeAutoStop : kListeningModeRealtime;
+}
+
+case kDeviceStateSpeaking:
+    if (listening_mode_ != kListeningModeRealtime) {
+        audio_service_.EnableVoiceProcessing(false);   // 说话时不上行
+    }
+    break;
+```
+
+**结论：`kListeningModeRealtime`（可打断）的前提是 AEC 可用。**
+AEC 关闭时，xiaozhi 自己也退化成半双工 `kListeningModeAutoStop`。
+
+**所以原厂固件能打断，是因为小志的服务端做 AEC**（这正是 `CONFIG_USE_SERVER_AEC`
+与握手消息里 `aec: true` 的用途）。而阿里 Realtime 的 WebSocket 协议
+**明确不做回声消除**。因此：
+
+| 组合 | AEC 来源 | 能否打断 |
+|---|---|---|
+| 原厂固件 + 小志服务端 | 服务端 | ✅ |
+| 本方案 + 阿里 Realtime | 无 | ❌ 只能半双工 |
+
+**这不是本项目的代码缺陷，是所选后端的接口能力差异。**
+
+### B13. 设备侧 AEC 的参考通道存在但读不出来
+
+**推断依据**：
+
+```c
+es7210_cfg.mic_selected = ES7210_SEL_MIC1 | ES7210_SEL_MIC2 | ES7210_SEL_MIC3;
+```
+
+官方硬件描述是"双麦克风"，但 ES7210 配了 **3 路输入**。多出来的这一路很可能是
+扬声器回采参考——这正是 2 麦 + 1 参考的经典 AEC 布局，也是启用第三路的原因。
+
+**实测**：设为 3 通道后 AFE **确实按 `MMR` 建起了处理链**：
+
+```
+AFE Pipeline: [input] -> |AEC(SR_HIGH_PERF)| -> |SE(BSS)| -> |VAD(WebRTC)| -> ...
+```
+
+**但 I2S 驱动直接拒绝**：
+
+```
+I2S_IF: channel mode 0 bits:16/16 channel:2 mask:1
+E (12088) I2S_IF: Not support channel 3
+```
+
+`esp_codec_dev` 的 I2S 接口**最多 2 通道**，于是麦克风完全没有数据
+（AFE 输出 `peak=0`），设备彻底不响应。
+
+**反证第 2 通道不是参考**：开启设备侧 AEC 且 `input_channels_=2` 时，
+AFE 输出峰值从 4036 塌到 120——说明它拿"第二只麦克风"当真值，
+把用户语音一起抵消了。**第 1 通道确实是麦克风，不是回采。**
+
+**要真正用上第三路**，需要绕开 `esp_codec_dev`，直接驱动 I2S TDM 接收路径。
+ES7210 侧已经支持（TDM 槽位掩码为 `SLOT0|1|2|3`）。
+
+**当前状态**：维持 2 通道 + 关闭设备侧 AEC，用半双工规避自打断。
+
 ### B7. CMake `GLOB_RECURSE` 不重新扫描新增文件
 
 新增 `ogg_opus_muxer.cc` 后链接报 `undefined reference`，因为 `file(GLOB_RECURSE ...)`

@@ -15,6 +15,7 @@
 #include <freertos/event_groups.h>
 #include <mbedtls/base64.h>
 #include <cJSON.h>
+#include <cmath>
 #include <cstring>
 #include <mooncake_log.h>
 #include <wifi_manager.h>
@@ -56,10 +57,16 @@ constexpr EventBits_t kBitSessionReady = BIT0;
 // which is already done by then.
 constexpr int kSessionReadyTimeoutMs = 40000;
 
-// How long playback may still be running after the last audio packet arrived.
-// The decode queue holds up to 2.4 s (40 packets of 60 ms), plus one packet
-// already in the playback queue.
-constexpr int kDrainGuardMs = 2600;
+// Keep in sync with MAX_DECODE_PACKETS_IN_QUEUE in
+// xiaozhi-esp32/main/audio/audio_service.h (8000 ms of 60 ms packets).
+constexpr int kDecodeQueueCapacityMs = 8000;
+
+// Energy VAD thresholds. The AFE output for normal speech sits well above the
+// noise floor (~120), so this is deliberately low - it is a fallback, not a
+// replacement for the AFE's VAD.
+constexpr int kEnergyVadThreshold = 300;          // RMS, out of 32768
+constexpr int kEnergyVadMinSpeechFrames = 3;      // 180 ms of sound starts speech
+constexpr int kEnergyVadSilenceFrames = 12;       // 720 ms of quiet ends it
 
 /* ------------------------------------------------------------- emotion tags */
 
@@ -424,11 +431,31 @@ public:
     // True between response.created and response.done.
     bool response_active = false;
 
-    // When the last downlink audio packet arrived. The decode queue can hold up
-    // to 2.4 s, so playback continues well after response.done; both the uplink
-    // gate and the turn-end gate have to cover that tail or the device hears its
-    // own trailing speech and interrupts itself.
-    int64_t last_audio_us = 0;
+    // How much downlink audio is queued but not yet played, and when that
+    // estimate was last brought up to date.
+    //
+    // A fixed guard window does not work here. The server delivers a whole
+    // response far faster than realtime, so at response.done the decoder can
+    // still hold seconds of speech. A constant window either expires too early -
+    // letting the local VAD mistake the tail for a new user turn and cancel the
+    // answer mid-sentence - or is needlessly long for short replies. Tracking
+    // the actual queued duration stays correct for both.
+    int64_t queued_audio_us = 0;
+    int64_t queued_tick_us = 0;
+
+    // Local energy VAD.
+    //
+    // Turn taking normally rides on the AFE's VAD. That is not always available:
+    // with CONFIG_USE_AUDIO_PROCESSOR disabled the codec path uses
+    // NoAudioProcessor, which accepts an OnVadStateChange callback and never
+    // calls it. Without a fallback the device would then never end a turn. This
+    // also serves as a sanity check on the AFE: if the energy VAD sees speech
+    // while the AFE reports silence, the AFE is suppressing real audio.
+#if !CONFIG_USE_AUDIO_PROCESSOR
+    bool energy_speech = false;
+    int silence_frames = 0;
+    int speech_frames = 0;
+#endif
 
     // Arrival-rate instrumentation: packets decoded for the current response.
     int packets_this_response = 0;
@@ -763,6 +790,7 @@ bool AliyunOmniProtocol::OpenAudioChannel()
         // Count decoded packets so the arrival rate can be compared with the
         // audio duration they represent (each packet is kOpusFrameMs).
         ++_impl->packets_this_response;
+        noteAudioQueued(kOpusFrameMs);
         // The demuxer reports 48 kHz for Opus, which is the codec's internal
         // rate. The session asked for 24 kHz output, which is what the speaker
         // path and the decoder are configured for.
@@ -935,6 +963,50 @@ bool AliyunOmniProtocol::SendAudio(std::unique_ptr<AudioStreamPacket> packet)
         return true;  // dropped on purpose, not an error
     }
 
+    // Energy VAD: decide turn boundaries from frame loudness alone.
+    //
+    // Only a fallback. When the audio processor is compiled in its VAD is
+    // authoritative - running both would end the same turn twice and could cut
+    // an answer short. NoAudioProcessor, by contrast, never invokes its VAD
+    // callback, so without this the device would never end a turn at all.
+#if !CONFIG_USE_AUDIO_PROCESSOR
+    {
+        const uint8_t* pcm_bytes = packet->payload.data();
+        const size_t sample_count = packet->payload.size() / sizeof(int16_t);
+        int64_t sum_sq = 0;
+        for (size_t i = 0; i < sample_count; ++i) {
+            // The payload is raw little-endian PCM; memcpy avoids a misaligned
+            // int16_t load.
+            int16_t sample = 0;
+            memcpy(&sample, pcm_bytes + i * sizeof(int16_t), sizeof(sample));
+            sum_sq += static_cast<int64_t>(sample) * sample;
+        }
+        const int rms = sample_count == 0
+                            ? 0
+                            : static_cast<int>(std::sqrt(static_cast<double>(sum_sq) / sample_count));
+        const bool loud = rms > kEnergyVadThreshold;
+
+        if (loud) {
+            ++_impl->speech_frames;
+            _impl->silence_frames = 0;
+            if (!_impl->energy_speech && _impl->speech_frames >= kEnergyVadMinSpeechFrames) {
+                _impl->energy_speech = true;
+                ESP_LOGI(TAG, "energy VAD: speech started (rms=%d)", rms);
+            }
+        } else {
+            _impl->speech_frames = 0;
+            if (_impl->energy_speech) {
+                if (++_impl->silence_frames >= kEnergyVadSilenceFrames) {
+                    _impl->energy_speech = false;
+                    _impl->silence_frames = 0;
+                    ESP_LOGI(TAG, "energy VAD: speech ended (rms=%d), ending the turn", rms);
+                    NotifyLocalSpeechEnded();
+                }
+            }
+        }
+    }
+#endif
+
     // The session is configured for "opus", i.e. Ogg-framed Opus, so each frame
     // the AFE produced is wrapped in an Ogg page. No decode and no resample are
     // involved, which keeps this cheap on the device.
@@ -973,17 +1045,57 @@ bool AliyunOmniProtocol::SendAudio(std::unique_ptr<AudioStreamPacket> packet)
     return SendAudioBuffer(page.data(), page.size());
 }
 
-bool AliyunOmniProtocol::IsModelSpeaking() const
+/** Bring the queued-audio estimate up to date by subtracting elapsed time. */
+void AliyunOmniProtocol::decayQueuedAudio()
+{
+    const int64_t now = esp_timer_get_time();
+    if (_impl->queued_tick_us != 0) {
+        _impl->queued_audio_us -= (now - _impl->queued_tick_us);
+        if (_impl->queued_audio_us < 0) {
+            _impl->queued_audio_us = 0;
+        }
+    }
+    _impl->queued_tick_us = now;
+}
+
+/** Record that `ms` of audio was handed to the decoder. */
+void AliyunOmniProtocol::noteAudioQueued(int ms)
+{
+    decayQueuedAudio();
+    _impl->queued_audio_us += static_cast<int64_t>(ms) * 1000;
+
+    // Clamp to what the decoder can physically hold.
+    //
+    // This is an open-loop estimate: it adds the length of every packet handed
+    // over and subtracts elapsed time. It drifts high, because Application drops
+    // packets while the device is not in the speaking state and those are still
+    // counted, and because the microphone path - and therefore the periodic
+    // decay - pauses while the device talks. Left unbounded it reached 64 s
+    // against an 8 s queue, which would keep the device deaf long after it had
+    // finished speaking.
+    //
+    // The true value cannot exceed the queue capacity: anything beyond it is
+    // either blocked by backpressure or dropped by the Application gate. So
+    // clamping makes the estimate safe even though it is approximate.
+    constexpr int64_t kMaxQueuedUs = static_cast<int64_t>(kDecodeQueueCapacityMs) * 1000;
+    if (_impl->queued_audio_us > kMaxQueuedUs) {
+        _impl->queued_audio_us = kMaxQueuedUs;
+    }
+}
+
+bool AliyunOmniProtocol::IsModelSpeaking()
 {
     if (_impl->response_active) {
         return true;
     }
-    // Drain tail: audio already queued but not yet played.
-    if (_impl->last_audio_us == 0) {
-        return false;
-    }
-    const int64_t since_us = esp_timer_get_time() - _impl->last_audio_us;
-    return since_us < static_cast<int64_t>(kDrainGuardMs) * 1000;
+    // Playback tail: audio already queued but not yet played out.
+    return queuedAudioMs() > 0;
+}
+
+int AliyunOmniProtocol::queuedAudioMs()
+{
+    decayQueuedAudio();
+    return static_cast<int>(_impl->queued_audio_us / 1000);
 }
 
 void AliyunOmniProtocol::NotifyLocalSpeechEnded()
@@ -1000,7 +1112,8 @@ void AliyunOmniProtocol::NotifyLocalSpeechEnded()
     // the model has genuinely finished - no response in flight and the playback
     // queue drained.
     if (IsModelSpeaking()) {
-        ESP_LOGI(TAG, "ignoring turn end: model audio still in flight or draining");
+        ESP_LOGI(TAG, "ignoring turn end: response_active=%d, %d ms still queued",
+                 _impl->response_active ? 1 : 0, queuedAudioMs());
         return;
     }
     // Manual mode: the buffer has to be committed explicitly, then a response
@@ -1095,8 +1208,7 @@ void AliyunOmniProtocol::HandleServerEvent(const std::string& raw)
         const cJSON* delta = cJSON_GetObjectItem(root, "delta");
         if (cJSON_IsString(delta)) {
             std::vector<uint8_t> ogg;
-            _impl->last_audio_us = esp_timer_get_time();
-        if (base64_decode(delta->valuestring, ogg) && !ogg.empty() && _impl->demuxer) {
+            if (base64_decode(delta->valuestring, ogg) && !ogg.empty() && _impl->demuxer) {
                 // Yields zero or more Opus packets via the demuxer callback.
                 _impl->demuxer->Process(ogg.data(), ogg.size());
             }
@@ -1117,9 +1229,9 @@ void AliyunOmniProtocol::HandleServerEvent(const std::string& raw)
         }
         _impl->response_active = false;
         // Note: audio for this response may still be draining from the decode
-        // queue; IsModelSpeaking() keeps gating for kDrainGuardMs after the last
-        // packet, which is what stops the tail from being mistaken for a new
-        // user turn.
+        // queue. IsModelSpeaking() keeps gating until that queued audio has
+        // actually played out, which is what stops the tail from being mistaken
+        // for a new user turn.
         EmitTtsState("stop");
 
     } else if (type == "input_audio_buffer.committed") {

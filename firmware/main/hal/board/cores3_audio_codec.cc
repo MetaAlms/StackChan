@@ -11,11 +11,20 @@ CoreS3AudioCodec::CoreS3AudioCodec(void* i2c_master_handle, int input_sample_rat
     uint8_t aw88298_addr, uint8_t es7210_addr, bool input_reference) {
     duplex_ = true; // 是否双工
     input_reference_ = input_reference; // 是否使用参考输入，实现回声消除
-    // Read both microphones. This used to be driven by input_reference_, which
-    // tied "2 channels" to "one of them is an echo reference" - but the hardware
-    // has two microphones and no reference, so that pairing silently discarded
-    // the second microphone. Both channels are inputs; the AFE decides how to
-    // combine them ("MM" for beamforming).
+    // Two channels. The ES7210 is configured for MIC1|MIC2|MIC3, and the AFE can
+    // be built for "MMR" (two microphones plus an echo reference), but the
+    // reference cannot be reached from here:
+    //
+    //   E (12088) I2S_IF: Not support channel 3
+    //
+    // esp_codec_dev's I2S interface caps the input at two channels, so asking
+    // for three leaves the microphone with no data at all (AFE output peak 0).
+    // Reading the third input would mean bypassing esp_codec_dev and driving the
+    // I2S TDM receive path directly.
+    //
+    // Two channels it is, which also means no usable device-side AEC: with AEC
+    // enabled the AFE treats the second *microphone* as the reference and cancels
+    // the user's voice along with the echo (peak 4036 -> 120).
     input_channels_ = 2;
     input_sample_rate_ = input_sample_rate;
     output_sample_rate_ = output_sample_rate;

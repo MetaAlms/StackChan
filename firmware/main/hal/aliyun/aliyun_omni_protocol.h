@@ -124,7 +124,16 @@ private:
     void HandleServerEvent(const std::string& raw);
 
     /** True while the model is speaking, including the playback drain tail. */
-    bool IsModelSpeaking() const;
+    bool IsModelSpeaking();
+
+    /** Milliseconds of downlink audio queued but not yet played. */
+    int queuedAudioMs();
+
+    /** Subtract elapsed time from the queued-audio estimate. */
+    void decayQueuedAudio();
+
+    /** Record that `ms` of downlink audio was handed to the decoder. */
+    void noteAudioQueued(int ms);
 
     /** Feed a transcript delta through the tag scanner and emit the results. */
     void HandleTranscriptDelta(const char* delta);
