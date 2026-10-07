@@ -45,3 +45,26 @@ Codex 负责设计与每阶段代码/证据复核及后续派单。
 - 共享目录不 reset、不覆盖他人改动
 - 设备维持当前状态；设计修订无需先刷回 WebSocket
 - 不 merge、不 auto-merge、不发布、不改上游、不泄露凭据
+
+## 实际评审与实现进度
+
+- Draft PR：[MetaAlms/StackChan #1](https://github.com/MetaAlms/StackChan/pull/1)。
+- D0首轮：HEAD `7acb6f398961fbdad4c5e454a273867d82bceeba`，
+  [Review 5445638146](https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5445638146)
+  要求修正D0-1～D0-4。
+- D0修复：HEAD `57ab76eba38b9b8c9bacc95c704698b6316f0ac2`，
+  [Review 5445711841](https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5445711841)
+  **放行进入M1**，未放行未实现的媒体/AEC/产品阶段。
+- M1任务：[完整任务书](webrtc-media-m1-task.md)；同一原生`stackchan`会话第63轮已接单实施。
+  首批候选本地提交为`e6d7158`，随后另修正重建补丁和tracked DTLS/SRTP配置。
+  **这些是开发中候选，尚无M1实际HEAD的正式REVIEW_REQUEST或放行。**
+- Codex开发中反馈落在[预检记录](webrtc-media-m1-preflight.md)：容量入参、真实任务退出、
+  配置回显、逐条ASR与时间轴、资源统计、M0互斥/复用等。通过原生UI送入原任务，
+  第63轮持续修正；不能把WIP预检当已提交PR的最终评审。
+- 设备恢复在线后，首轮串口采集在第一条fixture发生断言重启；修统计容器后明确main栈溢出。
+  独立检查又发现sender栈8192被误认为32KB，ESP-IDF实际按字节计。
+  Codex终止失效的第63轮，并在**同一个会话第64轮**恢复未完成M1；
+  当前源码已使用`kSenderStackBytes = 32768`，等待重新构建/真机结果。
+  两条较早诊断在UI仍显示发送中；第64轮已直接读取完整预检，不以这两条队列状态当送达证据。
+- [M1.5准备记录](webrtc-media-m15-preparation.md)为独立只读调查，**尚未派发**。
+  M1通过实际HEAD评审后再冻结下一阶段任务，保持用户要求的48k PCM与WebSocket回退。

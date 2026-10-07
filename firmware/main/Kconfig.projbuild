@@ -3,6 +3,9 @@ menu "StackChan Aliyun Realtime"
 config STACKCHAN_WEBRTC_M1
     bool "Boot into the M1 media-uplink probe"
     default n
+    # Real constraint, not just a claim in the help text: the two probes use
+    # the same transport and cannot both own the entry point.
+    depends on !STACKCHAN_WEBRTC_M0
     help
         Streams the bundled 16 kHz PCM fixture through the on-device
         resampler (16->48 kHz) and a 48 kHz mono Opus encoder, then sends

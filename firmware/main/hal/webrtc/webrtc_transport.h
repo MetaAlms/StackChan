@@ -108,6 +108,9 @@ public:
      */
     struct Impl;
 
+    /** Stop the tasks, close the peer and release every resource. */
+    static void cleanup(Impl* p);
+
 private:
     Impl* impl_ = nullptr;
 };

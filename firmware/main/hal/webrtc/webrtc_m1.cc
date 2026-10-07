@@ -6,6 +6,7 @@
 
 #include "webrtc_m1.h"
 
+#include <algorithm>
 #include <atomic>
 #include <cstring>
 #include <mutex>
@@ -70,8 +71,23 @@ constexpr int kGapMs = 800;
 constexpr int kSessionTimeoutMs = 25000;
 constexpr int kAsrTimeoutMs = 20000;
 constexpr int kSamplePeriodMs = 30000;
-/** Per-frame sender task stack. */
-constexpr int kSenderStackWords = 8192;
+/**
+ * Per-frame sender task stack, in BYTES.
+ *
+ * The media path runs here, not on the main task. On device,
+ * CONFIG_ESP_MAIN_TASK_STACK_SIZE (8192) was overflowed by the first frame:
+ * "***ERROR*** A stack overflow in task main has been detected", with ~149 KB of
+ * internal heap still free. That is the one proven fact about the failure; it
+ * does not by itself prove the earlier allocation abort had the same cause.
+ *
+ * ESP-IDF's xTaskCreate takes the stack as a NUMBER OF BYTES, unlike vanilla
+ * FreeRTOS (task.h: "differs from vanilla FreeRTOS"), and
+ * uxTaskGetStackHighWaterMark also reports bytes. Passing 8192 here would have
+ * reproduced the same 8 KB stack. The WebSocket audio path gives its Opus
+ * worker 2048*12 = 24576 bytes; 32768 is the starting point and the real
+ * requirement is reported from the measured high-water mark.
+ */
+constexpr int kSenderStackBytes = 32768;
 
 #if CONFIG_STACKCHAN_WEBRTC_M1_FRAME_60MS
 constexpr int kFrameMs = 60;
@@ -99,6 +115,7 @@ struct Metrics {
     uint32_t encode_fail = 0;
     uint32_t resample_fail = 0;
     uint32_t oversize = 0;
+    uint32_t oom_stop = 0;
     uint32_t clips_played = 0;
     int64_t media_us = 0;
     int64_t wall_us = 0;
@@ -108,6 +125,8 @@ struct Observed {
     std::mutex mtx;
     bool session_created = false;
     bool session_updated = false;
+    bool config_ok = false;
+    std::string config_failure;
     std::string config_echo;
     uint16_t reply_stream = 0xFFFF;
     bool reply_stream_known = false;
@@ -121,9 +140,59 @@ struct Observed {
     std::string last_transcript;
     std::string last_item_id;
     std::string last_error;
+
+    // Per-turn slot. The sender clears it before each clip and waits on it, so
+    // a late completion from the previous turn is never credited to this one.
+    bool turn_speech_started = false;
+    bool turn_speech_stopped = false;
+    bool turn_completed = false;
+    bool turn_failed = false;
+    std::string turn_transcript;
+    std::string turn_item_id;
+    std::string turn_failure;
 } g_obs;
 
 // ------------------------------------------------------------ media sender
+
+/**
+ * @brief Log per-capability heap so an allocation failure is observable.
+ *
+ * The first device run aborted inside the C++ exception machinery when an
+ * allocation on the per-frame path failed; without this the only symptom was a
+ * semaphore assert far from the cause.
+ */
+void LogHeap(const char* where)
+{
+    ESP_LOGW(TAG,
+             "[heap:%s] int free=%u largest=%u | int+8bit free=%u largest=%u | "
+             "dma free=%u largest=%u | psram free=%u largest=%u",
+             where,
+             (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
+             (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL),
+             (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT),
+             (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT),
+             (unsigned)heap_caps_get_free_size(MALLOC_CAP_DMA),
+             (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_DMA),
+             (unsigned)heap_caps_get_free_size(MALLOC_CAP_SPIRAM),
+             (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM));
+}
+
+/**
+ * @brief Zero-padding buffer.
+ *
+ * Allocated once in MediaSender::Open() so the per-frame path never grows it.
+ */
+std::vector<int16_t> g_pad;
+
+/** Refuse to run the media path when there is not enough contiguous RAM. */
+bool HeapHasRoomForFrame()
+{
+    // One frame needs the 48k working buffer plus the encoder's scratch; require
+    // a comfortable multiple so a marginal heap fails loudly instead of
+    // aborting inside a later allocation.
+    const size_t need = 16 * 1024;
+    return heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT) >= need;
+}
 
 /**
  * @brief Sole owner of the uplink media path.
@@ -135,6 +204,27 @@ struct Observed {
  */
 class MediaSender {
 public:
+public:
+    /** Bounded, allocation-free latency accumulator. */
+    class LatencyLog {
+    public:
+        static constexpr size_t kCap = 4096;
+        void Add(int32_t us)
+        {
+            if (n_ < kCap) {
+                v_[n_++] = us;
+            }
+        }
+        size_t size() const { return n_; }
+        int32_t at(size_t i) const { return v_[i]; }
+        /** Copy out for sorting; only called once, off the media path. */
+        std::vector<int32_t> Copy() const { return std::vector<int32_t>(v_, v_ + n_); }
+
+    private:
+        int32_t v_[kCap] = {};
+        size_t n_ = 0;
+    };
+
     bool Open(std::string* err)
     {
         esp_ae_rate_cvt_cfg_t rc = {};
@@ -190,8 +280,12 @@ public:
                  oc.sample_rate, oc.channel, kFrameMs, in_frame_bytes_, in_frame_samples_,
                  out_capacity_, have_info ? " bitrate=" : " bitrate=?", have_info ? info.bitrate : 0);
 
-        pcm48_.assign(in_frame_samples_ + kSlack, 0);
-        encoded_.assign(out_capacity_, 0);
+        // Reserve once with generous headroom so EncodeFrame never reallocates.
+        LogHeap("before-buffers");
+        pcm48_.assign(in_frame_samples_ * 2 + kSlack, 0);
+        encoded_.assign(out_capacity_ + kSlack, 0);
+        g_pad.assign(in_frame_samples_, 0);
+        LogHeap("after-buffers");
         return true;
     }
 
@@ -225,15 +319,28 @@ public:
             pcm48_.resize(max_out + pcm48_used_ + kSlack);
         }
 
-        uint32_t actual_out = 0;
-        if (esp_ae_rate_cvt_process(resampler_, (esp_ae_sample_t)const_cast<int16_t*>(in16),
-                                    (uint32_t)in_samples,
-                                    (esp_ae_sample_t)(pcm48_.data() + pcm48_used_),
-                                    &actual_out) != ESP_AE_ERR_OK) {
+        const int64_t t_rs0 = esp_timer_get_time();
+        // `out_sample_num` is an IN/OUT parameter: on entry it must hold the
+        // capacity available at that pointer, on exit the number actually
+        // written. Passing 0 makes every conversion fail.
+        const uint32_t capacity = (uint32_t)((int)pcm48_.size() - pcm48_used_);
+        uint32_t actual_out = capacity;
+        const esp_ae_err_t rc = esp_ae_rate_cvt_process(
+            resampler_, (esp_ae_sample_t)const_cast<int16_t*>(in16), (uint32_t)in_samples,
+            (esp_ae_sample_t)(pcm48_.data() + pcm48_used_), &actual_out);
+        if (rc != ESP_AE_ERR_OK) {
+            ESP_LOGE(TAG, "[rs] process failed rc=%d (in=%d samples, cap=%u)",
+                     (int)rc, in_samples, (unsigned)capacity);
             ++resample_fail_;
             return false;
         }
-        // Only actual_out is meaningful.
+        if (actual_out > capacity) {
+            ESP_LOGE(TAG, "[rs] wrote %u samples into a %u-sample capacity",
+                     (unsigned)actual_out, (unsigned)capacity);
+            ++resample_fail_;
+            return false;
+        }
+        resample_us_.Add((int32_t)(esp_timer_get_time() - t_rs0));
         pcm48_used_ += (int)actual_out;
 
         if (pcm48_used_ < in_frame_samples_) {
@@ -249,10 +356,12 @@ public:
         enc_out.buffer = encoded_.data();
         enc_out.len = (uint32_t)out_capacity_;
 
+        const int64_t t_enc0 = esp_timer_get_time();
         if (esp_opus_enc_process(encoder_, &in, &enc_out) != ESP_AUDIO_ERR_OK) {
             ++encode_fail_;
             return false;
         }
+        encode_us_.Add((int32_t)(esp_timer_get_time() - t_enc0));
 
         const int surplus = pcm48_used_ - in_frame_samples_;
         if (surplus > 0) {
@@ -276,6 +385,16 @@ public:
     uint32_t resample_fail() const { return resample_fail_; }
     uint32_t encode_fail() const { return encode_fail_; }
 
+    /**
+     * Per-call latencies in microseconds, for the bounded percentile report.
+     *
+     * Fixed storage on purpose: a growable vector in the per-frame path can
+     * reallocate, and an allocation failure there aborts inside the C++
+     * exception machinery rather than failing softly.
+     */
+    const LatencyLog& resample_us() const { return resample_us_; }
+    const LatencyLog& encode_us() const { return encode_us_; }
+
 private:
     static constexpr int kSlack = 64;
 
@@ -289,39 +408,93 @@ private:
     std::vector<uint8_t> encoded_;
     uint32_t resample_fail_ = 0;
     uint32_t encode_fail_ = 0;
+    LatencyLog resample_us_;
+    LatencyLog encode_us_;
 };
 
 MediaSender g_sender;
 
 // ---------------------------------------------------------- event handling
 
-std::string SummariseSession(const cJSON* session)
+/** Expected configuration, checked against the server's echo. */
+constexpr double kWantThreshold = 0.5;
+constexpr int kWantSilenceMs = 800;
+constexpr const char* kWantTurnType = "server_vad";
+constexpr const char* kWantAsrModel = "qwen3-asr-flash-realtime";
+
+struct ConfigCheck {
+    bool ok = false;
+    std::string detail;   // human-readable echo, always recorded
+    std::string failure;  // set when ok == false
+};
+
+/**
+ * @brief Verify the session.updated echo, not merely its arrival.
+ *
+ * Any session.updated used to pass the gate; a missing, null or wrong field
+ * must be reported as a configuration failure and must not release the fixture.
+ */
+ConfigCheck VerifySessionConfig(const cJSON* session)
 {
-    std::string out;
+    ConfigCheck c;
     if (session == nullptr) {
-        return out;
+        c.failure = "session object missing";
+        return c;
     }
+
     const cJSON* td = cJSON_GetObjectItemCaseSensitive(session, "turn_detection");
-    if (cJSON_IsObject(td)) {
-        const cJSON* type = cJSON_GetObjectItemCaseSensitive(td, "type");
-        const cJSON* thr = cJSON_GetObjectItemCaseSensitive(td, "threshold");
-        const cJSON* sil = cJSON_GetObjectItemCaseSensitive(td, "silence_duration_ms");
-        char b[96];
-        snprintf(b, sizeof(b), "turn_detection=%s thr=%.2f silence=%d",
-                 cJSON_IsString(type) ? type->valuestring : "?",
-                 cJSON_IsNumber(thr) ? thr->valuedouble : -1.0,
-                 cJSON_IsNumber(sil) ? sil->valueint : -1);
-        out += b;
+    if (!cJSON_IsObject(td)) {
+        c.failure = "turn_detection missing or not an object";
+        return c;
     }
+    const cJSON* type = cJSON_GetObjectItemCaseSensitive(td, "type");
+    const cJSON* thr = cJSON_GetObjectItemCaseSensitive(td, "threshold");
+    const cJSON* sil = cJSON_GetObjectItemCaseSensitive(td, "silence_duration_ms");
+    if (!cJSON_IsString(type)) {
+        c.failure = "turn_detection.type missing";
+        return c;
+    }
+
+    char buf[192];
+    snprintf(buf, sizeof(buf), "turn_detection=%s thr=%.2f silence=%d", type->valuestring,
+             cJSON_IsNumber(thr) ? thr->valuedouble : -1.0,
+             cJSON_IsNumber(sil) ? sil->valueint : -1);
+    c.detail = buf;
+
+    if (strcmp(type->valuestring, kWantTurnType) != 0) {
+        c.failure = std::string("turn_detection.type is ") + type->valuestring + ", want " +
+                    kWantTurnType;
+        return c;
+    }
+    if (!cJSON_IsNumber(thr) || thr->valuedouble != kWantThreshold) {
+        c.failure = "turn_detection.threshold is not 0.5";
+        return c;
+    }
+    if (!cJSON_IsNumber(sil) || sil->valueint != kWantSilenceMs) {
+        c.failure = "turn_detection.silence_duration_ms is not 800";
+        return c;
+    }
+
     const cJSON* tr = cJSON_GetObjectItemCaseSensitive(session, "input_audio_transcription");
-    if (cJSON_IsObject(tr)) {
-        const cJSON* model = cJSON_GetObjectItemCaseSensitive(tr, "model");
-        out += " transcription=";
-        out += cJSON_IsString(model) ? model->valuestring : "?";
-    } else {
-        out += " transcription=(absent)";
+    if (!cJSON_IsObject(tr)) {
+        c.failure = "input_audio_transcription missing or not an object";
+        return c;
     }
-    return out;
+    const cJSON* model = cJSON_GetObjectItemCaseSensitive(tr, "model");
+    if (!cJSON_IsString(model)) {
+        c.failure = "input_audio_transcription.model missing";
+        return c;
+    }
+    c.detail += " transcription=";
+    c.detail += model->valuestring;
+    if (strcmp(model->valuestring, kWantAsrModel) != 0) {
+        c.failure = std::string("transcription model is ") + model->valuestring + ", want " +
+                    kWantAsrModel;
+        return c;
+    }
+
+    c.ok = true;
+    return c;
 }
 
 /** Send session.update on the stream this session discovered. */
@@ -403,17 +576,27 @@ void HandleServerEvent(const std::string& json, uint16_t stream_id)
         TrySendSessionUpdate();
     } else if (t == "session.updated") {
         const cJSON* session = cJSON_GetObjectItemCaseSensitive(root, "session");
+        const ConfigCheck c = VerifySessionConfig(session);
         std::lock_guard<std::mutex> lock(g_obs.mtx);
         g_obs.session_updated = true;
-        g_obs.config_echo = SummariseSession(session);
-        ESP_LOGW(TAG, "[cfg] session.updated echo: %s", g_obs.config_echo.c_str());
+        g_obs.config_echo = c.detail;
+        g_obs.config_ok = c.ok;
+        g_obs.config_failure = c.failure;
+        if (c.ok) {
+            ESP_LOGW(TAG, "[cfg] session.updated verified: %s", c.detail.c_str());
+        } else {
+            ESP_LOGE(TAG, "[cfg] session.updated REJECTED: %s (echo: %s)",
+                     c.failure.c_str(), c.detail.c_str());
+        }
     } else if (t == "input_audio_buffer.speech_started") {
         std::lock_guard<std::mutex> lock(g_obs.mtx);
         ++g_obs.speech_started;
+        g_obs.turn_speech_started = true;
         ESP_LOGW(TAG, "[vad] speech_started (#%d)", g_obs.speech_started);
     } else if (t == "input_audio_buffer.speech_stopped") {
         std::lock_guard<std::mutex> lock(g_obs.mtx);
         ++g_obs.speech_stopped;
+        g_obs.turn_speech_stopped = true;
         ESP_LOGW(TAG, "[vad] speech_stopped (#%d)", g_obs.speech_stopped);
     } else if (t == "conversation.item.input_audio_transcription.completed") {
         const cJSON* tr = cJSON_GetObjectItemCaseSensitive(root, "transcript");
@@ -422,17 +605,29 @@ void HandleServerEvent(const std::string& json, uint16_t stream_id)
         ++g_obs.asr_completed;
         g_obs.last_transcript = cJSON_IsString(tr) ? tr->valuestring : "";
         g_obs.last_item_id = cJSON_IsString(id) ? id->valuestring : "";
+        g_obs.turn_completed = true;
+        g_obs.turn_transcript = g_obs.last_transcript;
+        g_obs.turn_item_id = g_obs.last_item_id;
         ESP_LOGW(TAG, "[asr] completed #%d item=%s transcript=\"%s\"",
                  g_obs.asr_completed, g_obs.last_item_id.c_str(), g_obs.last_transcript.c_str());
     } else if (t == "conversation.item.input_audio_transcription.failed") {
         const cJSON* err = cJSON_GetObjectItemCaseSensitive(root, "error");
-        const cJSON* msg = cJSON_IsObject(err)
-                               ? cJSON_GetObjectItemCaseSensitive(err, "message")
-                               : nullptr;
+        const cJSON* id = cJSON_GetObjectItemCaseSensitive(root, "item_id");
+        const cJSON* code = cJSON_IsObject(err) ? cJSON_GetObjectItemCaseSensitive(err, "code") : nullptr;
+        const cJSON* msg = cJSON_IsObject(err) ? cJSON_GetObjectItemCaseSensitive(err, "message") : nullptr;
+        const cJSON* param = cJSON_IsObject(err) ? cJSON_GetObjectItemCaseSensitive(err, "param") : nullptr;
         std::lock_guard<std::mutex> lock(g_obs.mtx);
         ++g_obs.asr_failed;
-        g_obs.last_error = cJSON_IsString(msg) ? msg->valuestring : "(no message)";
-        ESP_LOGE(TAG, "[asr] FAILED: %s", g_obs.last_error.c_str());
+        char b[256];
+        snprintf(b, sizeof(b), "item=%s code=%s message=%s param=%s",
+                 cJSON_IsString(id) ? id->valuestring : "?",
+                 cJSON_IsString(code) ? code->valuestring : "?",
+                 cJSON_IsString(msg) ? msg->valuestring : "?",
+                 cJSON_IsString(param) ? param->valuestring : "-");
+        g_obs.last_error = b;
+        g_obs.turn_failed = true;
+        g_obs.turn_failure = b;
+        ESP_LOGE(TAG, "[asr] FAILED: %s", b);
     } else if (t == "error") {
         const cJSON* err = cJSON_GetObjectItemCaseSensitive(root, "error");
         const cJSON* msg = cJSON_IsObject(err)
@@ -452,72 +647,22 @@ void HandleServerEvent(const std::string& json, uint16_t stream_id)
 // -------------------------------------------------------------- send paths
 
 /**
- * @brief Stream one clip (or silence) at realtime pace.
+ * @brief Media clock shared by every send path.
  *
- * Pacing uses absolute media deadlines rather than a relative sleep, so work
- * done per frame cannot drift the timeline. Dropped or failed frames still
- * advance `pts_ms`: the RTP timestamp must follow media time, not the number
- * of packets that happened to succeed.
+ * One monotonic media timeline in milliseconds. Waiting is *not* allowed to
+ * compress it: whoever waits keeps feeding silence at the frame cadence, so a
+ * multi-second ASR wait still shows up as multi-second media time.
  */
-void StreamPcm(const uint8_t* pcm, size_t pcm_bytes, uint32_t* pts_ms)
-{
-    const int in_samples = kFixtureRate * kFrameMs / 1000;
-    const int in_bytes = in_samples * (int)sizeof(int16_t);
-    std::vector<int16_t> pad(in_samples, 0);
+struct MediaClock {
+    uint32_t pts_ms = 0;
+    int64_t deadline_us = 0;
 
-    g_sender.ResetCarry();
-    int64_t deadline_us = esp_timer_get_time();
-    const int64_t start_us = deadline_us;
-    int frames = 0;
+    void Arm() { deadline_us = esp_timer_get_time(); }
 
-    // One extra frame boundary so a fixture whose length is not a multiple of
-    // the frame size still gets its tail encoded (zero padded).
-    for (size_t off = 0; off < pcm_bytes + (size_t)in_bytes; off += (size_t)in_bytes) {
-        if (g_stop.load() || !g_transport.CanSendAudio()) {
-            return;
-        }
-
-        const int16_t* src = nullptr;
-        if (off + (size_t)in_bytes <= pcm_bytes) {
-            src = reinterpret_cast<const int16_t*>(pcm + off);
-        } else {
-            const size_t avail = (pcm_bytes > off) ? (pcm_bytes - off) : 0;
-            if (avail == 0) {
-                break;
-            }
-            memcpy(pad.data(), pcm + off, avail);
-            src = pad.data();
-        }
-
-        const uint8_t* out = nullptr;
-        int out_size = 0;
-        if (g_sender.EncodeFrame(src, in_samples, &out, &out_size)) {
-            if (out_size > g_transport.MaxPayloadBytes()) {
-                std::lock_guard<std::mutex> lock(g_metrics.mtx);
-                ++g_metrics.oversize;
-                ESP_LOGE(TAG, "[pkt] %d B exceeds budget %d B; dropped",
-                         out_size, g_transport.MaxPayloadBytes());
-            } else {
-                const bool sent = g_transport.SendAudio(out, out_size, *pts_ms);
-                std::lock_guard<std::mutex> lock(g_metrics.mtx);
-                if (sent) {
-                    ++g_metrics.packets;
-                    g_metrics.bytes += (uint64_t)out_size;
-                    if (out_size > g_metrics.max_payload) {
-                        g_metrics.max_payload = out_size;
-                    }
-                    if (g_metrics.packets == 1) {
-                        g_metrics.first_pts = *pts_ms;
-                    }
-                    g_metrics.last_pts = *pts_ms;
-                } else {
-                    ++g_metrics.send_fail;
-                }
-            }
-        }
-        *pts_ms += kFrameMs;
-        ++frames;
-
+    /** Advance one frame and sleep until its absolute deadline. */
+    void Step()
+    {
+        pts_ms += kFrameMs;
         deadline_us += (int64_t)kFrameMs * 1000;
         const int64_t now = esp_timer_get_time();
         if (now < deadline_us) {
@@ -527,52 +672,346 @@ void StreamPcm(const uint8_t* pcm, size_t pcm_bytes, uint32_t* pts_ms)
             ++g_metrics.pacing_late;
         }
     }
+} g_clock;
 
-    const int64_t end_us = esp_timer_get_time();
-    {
-        std::lock_guard<std::mutex> lock(g_metrics.mtx);
-        g_metrics.media_us += (int64_t)frames * kFrameMs * 1000;
-        g_metrics.wall_us += (end_us - start_us);
+/**
+ * @brief Encode and send one frame from a PCM buffer (nullptr = silence).
+ * @return false when the link is gone and the caller should unwind
+ */
+bool SendOneFrame(const uint8_t* pcm, size_t pcm_bytes, size_t off)
+{
+    if (g_stop.load() || !g_transport.CanSendAudio()) {
+        return false;
     }
 
+    // Observable failure path: a marginal heap must be reported here rather
+    // than aborting inside a later allocation with an unrelated semaphore
+    // assert. Checked once per frame because the transport's buffers are live.
+    static bool first_frame = true;
+    static int frame_no = 0;
+    if (first_frame) {
+        LogHeap("first-frame-before");
+    }
+    if (!HeapHasRoomForFrame()) {
+        std::lock_guard<std::mutex> lock(g_metrics.mtx);
+        ++g_metrics.oom_stop;
+        ESP_LOGE(TAG, "[oom] contiguous internal RAM below budget at frame %d; "
+                      "stopping media instead of risking an allocation abort", frame_no);
+        g_stop.store(true);
+        return false;
+    }
+    const int in_samples = kFixtureRate * kFrameMs / 1000;
+    const int in_bytes = in_samples * (int)sizeof(int16_t);
+
+    // File-scope buffer, already sized: no allocation and no static-init guard
+    // on the per-frame path.
+    if ((int)g_pad.size() < in_samples) {
+        g_pad.assign(in_samples, 0);
+    }
+
+    const int16_t* src = nullptr;
+    if (pcm != nullptr && off + (size_t)in_bytes <= pcm_bytes) {
+        src = reinterpret_cast<const int16_t*>(pcm + off);
+    } else if (pcm != nullptr && off < pcm_bytes) {
+        memcpy(g_pad.data(), pcm + off, pcm_bytes - off);
+        src = g_pad.data();
+    } else {
+        src = g_pad.data();  // silence
+    }
+
+    const uint8_t* out = nullptr;
+    int out_size = 0;
+    if (g_sender.EncodeFrame(src, in_samples, &out, &out_size)) {
+        if (out_size > g_transport.MaxPayloadBytes()) {
+            std::lock_guard<std::mutex> lock(g_metrics.mtx);
+            ++g_metrics.oversize;
+            ESP_LOGE(TAG, "[pkt] %d B exceeds budget %d B; dropped",
+                     out_size, g_transport.MaxPayloadBytes());
+        } else {
+            const bool sent = g_transport.SendAudio(out, out_size, g_clock.pts_ms);
+            std::lock_guard<std::mutex> lock(g_metrics.mtx);
+            if (sent) {
+                ++g_metrics.packets;
+                g_metrics.bytes += (uint64_t)out_size;
+                if (out_size > g_metrics.max_payload) {
+                    g_metrics.max_payload = out_size;
+                }
+                if (g_metrics.packets == 1) {
+                    g_metrics.first_pts = g_clock.pts_ms;
+                }
+                g_metrics.last_pts = g_clock.pts_ms;
+            } else {
+                ++g_metrics.send_fail;
+            }
+        }
+    }
+    if (first_frame) {
+        LogHeap("first-frame-after");
+        first_frame = false;
+    }
+    ++frame_no;
+    g_clock.Step();
+    return true;
+}
+
+/** Stream one clip at realtime pace. Returns false if the link dropped. */
+bool StreamClip(const Clip& clip)
+{
+    const int in_bytes = (kFixtureRate * kFrameMs / 1000) * (int)sizeof(int16_t);
+    g_sender.ResetCarry();
+    g_clock.Arm();
+    const int64_t start_us = esp_timer_get_time();
+
+    for (size_t off = 0; off < clip.size + (size_t)in_bytes; off += (size_t)in_bytes) {
+        if (off >= clip.size && off > 0 && (clip.size % (size_t)in_bytes) == 0) {
+            break;
+        }
+        if (!SendOneFrame(clip.data, clip.size, off)) {
+            return false;
+        }
+    }
+
+    std::lock_guard<std::mutex> lock(g_metrics.mtx);
+    g_metrics.media_us += esp_timer_get_time() - start_us;
+    g_metrics.wall_us += esp_timer_get_time() - start_us;
+    return true;
+}
+
+/** Keep the media clock running by sending silence for `ms`. */
+bool StreamSilence(int ms)
+{
+    g_clock.Arm();
+    for (int elapsed = 0; elapsed < ms; elapsed += kFrameMs) {
+        if (!SendOneFrame(nullptr, 0, 0)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// ---------------------------------------------------------- per-clip result
+
+struct ClipResult {
+    const char* id = "";
+    bool speech_started = false;
+    bool speech_stopped = false;
+    bool completed = false;
+    bool failed = false;
+    std::string transcript;
+    std::string item_id;
+    std::string failure;
+    std::string keywords_hit;
+    int hits = 0;
+    int total = 0;
+    int64_t wait_ms = 0;
+    int64_t media_start_ms = 0;
+};
+
+/**
+ * @brief Wait for *this* clip's transcription while keeping media flowing.
+ *
+ * Attribution is by item_id recorded when the VAD/turn events arrive, not by a
+ * global completion counter: a late completion from a previous clip must not be
+ * credited to the next one.
+ */
+bool WaitForClipAsr(ClipResult& r, int timeout_ms)
+{
+    const int64_t t0 = esp_timer_get_time();
+    int64_t next_check = t0;
+    while ((esp_timer_get_time() - t0) / 1000 < timeout_ms) {
+        {
+            std::lock_guard<std::mutex> lock(g_obs.mtx);
+            if (g_obs.turn_completed || g_obs.turn_failed) {
+                r.completed = g_obs.turn_completed;
+                r.failed = g_obs.turn_failed;
+                r.transcript = g_obs.turn_transcript;
+                r.item_id = g_obs.turn_item_id;
+                r.failure = g_obs.turn_failure;
+                r.speech_started = g_obs.turn_speech_started;
+                r.speech_stopped = g_obs.turn_speech_stopped;
+                g_obs.turn_completed = false;
+                g_obs.turn_failed = false;
+                r.wait_ms = (esp_timer_get_time() - t0) / 1000;
+                return true;
+            }
+        }
+        // Keep sending silence so the media clock and the server's view of
+        // time both keep advancing during the wait.
+        if (!SendOneFrame(nullptr, 0, 0)) {
+            r.wait_ms = (esp_timer_get_time() - t0) / 1000;
+            return false;
+        }
+        (void)next_check;
+    }
+    r.wait_ms = (esp_timer_get_time() - t0) / 1000;
+    return false;
+}
+
+/** Score the transcript against the clip's frozen keywords. */
+void ScoreKeywords(ClipResult& r, const Clip& clip)
+{
+    r.total = clip.keyword_count;
+    for (int i = 0; i < clip.keyword_count; ++i) {
+        if (r.transcript.find(clip.keywords[i]) != std::string::npos) {
+            ++r.hits;
+            if (!r.keywords_hit.empty()) {
+                r.keywords_hit += ",";
+            }
+            r.keywords_hit += clip.keywords[i];
+        }
+    }
 }
 
 // ---------------------------------------------------------------- resources
 
 struct ResourceSample {
     int64_t t_ms;
-    size_t internal_free, internal_min, internal_largest;
-    size_t dma_free, dma_largest;
+    size_t int_free, int_min, int_largest;
+    size_t int8_free, int8_min;
+    size_t dma_free, dma_min, dma_largest;
     size_t psram_free, psram_min, psram_largest;
     UBaseType_t sender_stack_free;
 };
 
-void SampleResources(std::vector<ResourceSample>& out, TaskHandle_t sender)
+void SampleResources(std::vector<ResourceSample>& out)
 {
     ResourceSample s = {};
     s.t_ms = esp_timer_get_time() / 1000;
-    s.internal_free = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
-    s.internal_min = heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL);
-    s.internal_largest = heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL);
+    s.int_free = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
+    s.int_min = heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL);
+    s.int_largest = heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL);
+    s.int8_free = heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+    s.int8_min = heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
     s.dma_free = heap_caps_get_free_size(MALLOC_CAP_DMA);
+    s.dma_min = heap_caps_get_minimum_free_size(MALLOC_CAP_DMA);
     s.dma_largest = heap_caps_get_largest_free_block(MALLOC_CAP_DMA);
     s.psram_free = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
     s.psram_min = heap_caps_get_minimum_free_size(MALLOC_CAP_SPIRAM);
     s.psram_largest = heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM);
-    s.sender_stack_free = sender ? uxTaskGetStackHighWaterMark(sender) : 0;
+    // Called from the sender task, so nullptr resolves to its real handle.
+    // ESP-IDF returns this in BYTES.
+    s.sender_stack_free = uxTaskGetStackHighWaterMark(nullptr);
     out.push_back(s);
 
     ESP_LOGI(TAG,
-             "[res] t=%llds | int free=%u min=%u largest=%u | dma free=%u largest=%u | "
-             "psram free=%u min=%u largest=%u | sender stack free=%u",
-             (long long)(s.t_ms / 1000),
-             (unsigned)s.internal_free, (unsigned)s.internal_min, (unsigned)s.internal_largest,
-             (unsigned)s.dma_free, (unsigned)s.dma_largest,
+             "[res] t=%ds | int free=%u min=%u largest=%u | int8 free=%u min=%u | "
+             "dma free=%u min=%u largest=%u | psram free=%u min=%u largest=%u | "
+             "sender stack free=%u B",
+             (int)(s.t_ms / 1000),
+             (unsigned)s.int_free, (unsigned)s.int_min, (unsigned)s.int_largest,
+             (unsigned)s.int8_free, (unsigned)s.int8_min,
+             (unsigned)s.dma_free, (unsigned)s.dma_min, (unsigned)s.dma_largest,
              (unsigned)s.psram_free, (unsigned)s.psram_min, (unsigned)s.psram_largest,
              (unsigned)s.sender_stack_free);
 }
 
+/** Percentile of a latency sample set (microseconds). */
+int32_t Percentile(std::vector<int32_t> v, double p)
+{
+    if (v.empty()) {
+        return -1;
+    }
+    std::sort(v.begin(), v.end());
+    const size_t i = (size_t)(p * (double)(v.size() - 1) + 0.5);
+    return v[i];
+}
+
 }  // namespace
+
+// ------------------------------------------------ cross-task state (sender)
+
+std::vector<ClipResult> g_results;
+std::vector<ResourceSample> g_samples;
+int64_t g_run_start_us = 0;
+TaskHandle_t g_sender_task = nullptr;
+SemaphoreHandle_t g_sender_done = nullptr;
+UBaseType_t g_sender_stack_free = 0;
+bool g_loop_complete = true;
+
+void sender_task(void*)
+{
+    // Three clips, each attributed to its own turn.
+    for (int i = 0; i < kClipCount && !g_stop.load(); ++i) {
+        ClipResult r;
+        r.id = g_clips[i].id;
+        r.media_start_ms = g_clock.pts_ms;
+        {
+            std::lock_guard<std::mutex> lock(g_obs.mtx);
+            g_obs.turn_completed = false;
+            g_obs.turn_failed = false;
+            g_obs.turn_transcript.clear();
+            g_obs.turn_item_id.clear();
+            g_obs.turn_failure.clear();
+            g_obs.turn_speech_started = false;
+            g_obs.turn_speech_stopped = false;
+        }
+
+        ESP_LOGW(TAG, "[play] %s \"%s\" at media t=%u ms", r.id, g_clips[i].text,
+                 (unsigned)g_clock.pts_ms);
+        if (!StreamClip(g_clips[i])) {
+            ESP_LOGW(TAG, "[play] link dropped during %s", r.id);
+            break;
+        }
+        if (!StreamSilence(kGapMs)) {
+            break;
+        }
+        if (!WaitForClipAsr(r, kAsrTimeoutMs)) {
+            ESP_LOGW(TAG, "[asr] no result for %s within %d ms", r.id, kAsrTimeoutMs);
+        }
+        ScoreKeywords(r, g_clips[i]);
+        ESP_LOGW(TAG, "[clip] %s media=%u..%u ms wait=%d ms vad=%d/%d completed=%d "
+                      "failed=%d kw=%d/%d hit=[%s] transcript=\"%s\"",
+                 r.id, (unsigned)r.media_start_ms, (unsigned)g_clock.pts_ms,
+                 (int)r.wait_ms, (int)r.speech_started, (int)r.speech_stopped,
+                 (int)r.completed, (int)r.failed, r.hits, r.total,
+                 r.keywords_hit.c_str(), r.transcript.c_str());
+        g_results.push_back(r);
+    }
+
+    // Sustained loop for resource evidence.
+    const int64_t loop_end =
+        esp_timer_get_time() + (int64_t)CONFIG_STACKCHAN_WEBRTC_M1_LOOP_SECONDS * 1000000;
+    int64_t next_sample = esp_timer_get_time() + (int64_t)kSamplePeriodMs * 1000;
+    SampleResources(g_samples);
+
+    int rr = 0;
+    while (esp_timer_get_time() < loop_end) {
+        if (g_stop.load()) {
+            g_loop_complete = false;
+            break;
+        }
+        if (!StreamClip(g_clips[rr])) {
+            g_loop_complete = false;
+            break;
+        }
+        if (!StreamSilence(kGapMs)) {
+            g_loop_complete = false;
+            break;
+        }
+        {
+            std::lock_guard<std::mutex> lock(g_metrics.mtx);
+            ++g_metrics.clips_played;
+        }
+        rr = (rr + 1) % kClipCount;
+
+        if (esp_timer_get_time() >= next_sample) {
+            SampleResources(g_samples);
+            next_sample += (int64_t)kSamplePeriodMs * 1000;
+        }
+    }
+
+    // Measured headroom for the task that actually runs the codec. The API
+    // reports BYTES on ESP-IDF, not words.
+    g_sender_stack_free = uxTaskGetStackHighWaterMark(nullptr);
+    ESP_LOGW(TAG, "[stack] sender high-water mark: %u bytes free of %d allocated",
+             (unsigned)g_sender_stack_free, kSenderStackBytes);
+    LogHeap("sender-exit");
+
+    if (g_sender_done != nullptr) {
+        xSemaphoreGive(g_sender_done);
+    }
+    vTaskDelete(nullptr);
+}
 
 // ============================================================== entry point
 
@@ -581,21 +1020,19 @@ void WebRtcM1Run()
     std::vector<ResourceSample> samples;
 
     ESP_LOGW(TAG, "M1 uplink probe: fixture -> 16->48k -> Opus 48k mono %d ms -> RTP", kFrameMs);
-    ESP_LOGW(TAG, "payload budget %d B (library whole-packet buffer %d B used internally)",
-             g_transport.MaxPayloadBytes(), 1428);
+    ESP_LOGW(TAG, "payload budget %d B (library whole-packet buffer 1428 B, minus header/extension)",
+             g_transport.MaxPayloadBytes());
 
-    // Resolve the embedded ranges.
     {
         const uint8_t* starts[] = {zh_1_pcm, zh_2_pcm, zh_3_pcm};
         const uint32_t sizes[] = {zh_1_pcm_length, zh_2_pcm_length, zh_3_pcm_length};
         for (int i = 0; i < kClipCount; ++i) {
             g_clips[i].data = starts[i];
             g_clips[i].size = (size_t)sizes[i];
-            ESP_LOGI(TAG, "[fx] %s %s: %u bytes (%d samples, %d ms) kw=%s,%s",
-                     g_clips[i].id, g_clips[i].text, (unsigned)g_clips[i].size,
-                     (int)(g_clips[i].size / 2), (int)(g_clips[i].size / 2 / kFixtureRate * 1000),
-                     g_clips[i].keywords[0],
-                     g_clips[i].keyword_count > 1 ? g_clips[i].keywords[1] : "-");
+            const int n = (int)(g_clips[i].size / sizeof(int16_t));
+            ESP_LOGI(TAG, "[fx] %s \"%s\": %u B (%d samples, %d ms) kw=%s",
+                     g_clips[i].id, g_clips[i].text, (unsigned)g_clips[i].size, n,
+                     (int)((int64_t)n * 1000 / kFixtureRate), g_clips[i].keywords[0]);
         }
     }
 
@@ -614,30 +1051,28 @@ void WebRtcM1Run()
 
     webrtc_transport::Callbacks cb = {};
     cb.on_data = [](const std::string& json, uint16_t stream_id) {
-        // Runs on the peer loop task: parse and book-keep only, never block.
-        HandleServerEvent(json, stream_id);
+        HandleServerEvent(json, stream_id);   // parse + book-keep only
     };
     cb.on_state = [](esp_peer_state_t s) {
-        if (s == ESP_PEER_STATE_DISCONNECTED || s == ESP_PEER_STATE_CLOSED ||
-            s == ESP_PEER_STATE_CONNECT_FAILED || s == ESP_PEER_STATE_DATA_CHANNEL_CLOSED ||
-            s == ESP_PEER_STATE_DATA_CHANNEL_DISCONNECTED) {
-            ESP_LOGW(TAG, "[state] link down (%d); stopping media", (int)s);
-            g_stop.store(true);
+        switch (s) {
+            case ESP_PEER_STATE_DISCONNECTED:
+            case ESP_PEER_STATE_CLOSED:
+            case ESP_PEER_STATE_CONNECT_FAILED:
+            case ESP_PEER_STATE_DATA_CHANNEL_CLOSED:
+            case ESP_PEER_STATE_DATA_CHANNEL_DISCONNECTED:
+                ESP_LOGW(TAG, "[state] link down (%d); stopping media", (int)s);
+                g_stop.store(true);
+                break;
+            default:
+                break;
         }
     };
     cb.on_channel_open = [](esp_peer_data_channel_info_t*) {};
-    cb.on_audio = [](const uint8_t* data, int size, uint32_t pts) {
-        // Downlink is out of scope for M1: count and drop, never block here.
+    cb.on_audio = [](const uint8_t*, int, uint32_t) {
         static std::atomic<int> n{0};
-        const int c = ++n;
-        if (c <= 3 || c % 200 == 0) {
-            ESP_LOGI(TAG, "[dl] frame #%d %d B pts=%u (M1 discards downlink)",
-                     c, size, (unsigned)pts);
-        }
+        ++n;   // downlink is out of scope; just count, never block
     };
     cb.on_before_close = []() {
-        // Stop and join the media sender before the peer is closed; sending
-        // concurrently with close is not allowed.
         g_stop.store(true);
         vTaskDelay(pdMS_TO_TICKS(200));
     };
@@ -648,137 +1083,124 @@ void WebRtcM1Run()
         return;
     }
 
-    // Wait for session.updated, which is the configuration gate.
+    // Configuration gate: the *echo must verify*, not merely arrive.
     int waited = 0;
+    bool gate_ok = false;
+    std::string gate_detail, gate_failure;
     while (waited < kSessionTimeoutMs) {
         {
             std::lock_guard<std::mutex> lock(g_obs.mtx);
             if (g_obs.session_updated) {
+                gate_ok = g_obs.config_ok;
+                gate_detail = g_obs.config_echo;
+                gate_failure = g_obs.config_failure;
                 break;
             }
         }
         vTaskDelay(pdMS_TO_TICKS(200));
         waited += 200;
     }
-    {
-        std::lock_guard<std::mutex> lock(g_obs.mtx);
-        if (!g_obs.session_updated) {
-            ESP_LOGE(TAG,
-                     "VERDICT: FAIL - configuration layer: session.updated not received "
-                     "within %d ms (created=%d update_sent=%d). This is a configuration "
-                     "failure, not a transport failure.",
-                     kSessionTimeoutMs, (int)g_obs.session_created, (int)g_obs.update_sent);
-            g_transport.Stop();
-            g_sender.Close();
-            return;
-        }
-        ESP_LOGW(TAG, "[cfg] gate passed: %s", g_obs.config_echo.c_str());
-    }
-
-    // Play each clip once, pacing on an absolute media timeline.
-    uint32_t pts_ms = 0;
-    for (int i = 0; i < kClipCount; ++i) {
-        if (g_stop.load()) {
-            break;
-        }
-        const int before = [&] {
+    if (!gate_ok) {
+        bool created = false, sent = false;
+        {
             std::lock_guard<std::mutex> lock(g_obs.mtx);
-            return g_obs.asr_completed;
-        }();
-
-        ESP_LOGW(TAG, "[play] %s -> %s", g_clips[i].id, g_clips[i].text);
-        StreamPcm(g_clips[i].data, g_clips[i].size, &pts_ms);
-        // Trailing gap so the server observes end-of-speech for this turn.
-        {
-            std::vector<int16_t> zero(kFixtureRate * kGapMs / 1000, 0);
-            StreamPcm(reinterpret_cast<const uint8_t*>(zero.data()),
-                      zero.size() * sizeof(int16_t), &pts_ms);
+            created = g_obs.session_created;
+            sent = g_obs.update_sent;
         }
-        {
-            std::lock_guard<std::mutex> lock(g_metrics.mtx);
-            ++g_metrics.clips_played;
-        }
-
-        // Wait for this clip's transcription, bounded.
-        int w = 0;
-        while (w < kAsrTimeoutMs) {
-            int now = 0;
-            {
-                std::lock_guard<std::mutex> lock(g_obs.mtx);
-                now = g_obs.asr_completed;
-            }
-            if (now > before) {
-                break;
-            }
-            vTaskDelay(pdMS_TO_TICKS(200));
-            w += 200;
-        }
-        if (w >= kAsrTimeoutMs) {
-            ESP_LOGW(TAG, "[asr] no completed transcription for %s within %d ms",
-                     g_clips[i].id, kAsrTimeoutMs);
-        }
+        ESP_LOGE(TAG,
+                 "VERDICT: FAIL - configuration layer. created=%d update_sent=%d "
+                 "detail=%s reason=%s",
+                 (int)created, (int)sent, gate_detail.c_str(),
+                 gate_failure.empty() ? "session.updated not received in time"
+                                      : gate_failure.c_str());
+        ESP_LOGE(TAG, "The fixture was NOT sent. This is a configuration failure, "
+                      "not a transport failure.");
+        // Must release g_obs.mtx before Stop(): a callback waiting on that lock
+        // would otherwise deadlock the join.
+        g_transport.Stop();
+        g_sender.Close();
+        return;
     }
+    ESP_LOGW(TAG, "[cfg] gate passed: %s", gate_detail.c_str());
 
-    // Sustained loop for resource evidence.
-    const int64_t loop_end = esp_timer_get_time() +
-                             (int64_t)CONFIG_STACKCHAN_WEBRTC_M1_LOOP_SECONDS * 1000000;
-    int64_t next_sample = esp_timer_get_time() + (int64_t)kSamplePeriodMs * 1000;
-    SampleResources(samples, nullptr);
-
-    int rr = 0;
-    while (esp_timer_get_time() < loop_end && !g_stop.load()) {
-        StreamPcm(g_clips[rr].data, g_clips[rr].size, &pts_ms);
-        {
-            std::vector<int16_t> zero(kFixtureRate * kGapMs / 1000, 0);
-            StreamPcm(reinterpret_cast<const uint8_t*>(zero.data()),
-                      zero.size() * sizeof(int16_t), &pts_ms);
-        }
-        {
-            std::lock_guard<std::mutex> lock(g_metrics.mtx);
-            ++g_metrics.clips_played;
-        }
-        rr = (rr + 1) % kClipCount;
-
-        if (esp_timer_get_time() >= next_sample) {
-            SampleResources(samples, nullptr);
-            next_sample += (int64_t)kSamplePeriodMs * 1000;
-        }
+    // ---- media runs on its own task ----
+    g_sender_done = xSemaphoreCreateBinary();
+    if (g_sender_done == nullptr) {
+        ESP_LOGE(TAG, "VERDICT: FAIL - could not create the sender join semaphore");
+        g_transport.Stop();
+        g_sender.Close();
+        return;
     }
+    g_run_start_us = esp_timer_get_time();
+    if (xTaskCreate(sender_task, "m1_sender", kSenderStackBytes, nullptr, 5,
+                    &g_sender_task) != pdPASS) {
+        ESP_LOGE(TAG, "VERDICT: FAIL - could not create the media sender task");
+        g_transport.Stop();
+        g_sender.Close();
+        return;
+    }
+    // Join: the main task must not summarize or close the transport while the
+    // sender is still encoding or sending.
+    xSemaphoreTake(g_sender_done, portMAX_DELAY);
+    g_sender_task = nullptr;
 
-    // Summary.
+    // ---- summary ----
+    const int64_t loop_elapsed_ms = (esp_timer_get_time() - g_run_start_us) / 1000;
     {
         std::lock_guard<std::mutex> mlock(g_metrics.mtx);
         std::lock_guard<std::mutex> olock(g_obs.mtx);
         ESP_LOGW(TAG, "==================== M1 SUMMARY ====================");
         ESP_LOGW(TAG, "  frame duration     : %d ms", kFrameMs);
+        ESP_LOGW(TAG, "  sender stack high-water: %u bytes free of %d allocated",
+                 (unsigned)g_sender_stack_free, kSenderStackBytes);
+        ESP_LOGW(TAG, "  config echo        : %s", g_obs.config_echo.c_str());
         ESP_LOGW(TAG, "  clips played       : %u", g_metrics.clips_played);
         ESP_LOGW(TAG, "  opus packets       : %u", g_metrics.packets);
-        ESP_LOGW(TAG, "  total payload      : %llu B", (unsigned long long)g_metrics.bytes);
+        ESP_LOGW(TAG, "  total payload      : %u B", (unsigned)g_metrics.bytes);
         ESP_LOGW(TAG, "  max payload        : %d B (budget %d B)",
                  g_metrics.max_payload, g_transport.MaxPayloadBytes());
-        ESP_LOGW(TAG, "  pts range          : %u .. %u ms (%u ms media)",
-                 g_metrics.first_pts, g_metrics.last_pts,
-                 g_metrics.last_pts - g_metrics.first_pts);
-        ESP_LOGW(TAG, "  media/wall time    : %lld / %lld ms",
-                 (long long)(g_metrics.media_us / 1000), (long long)(g_metrics.wall_us / 1000));
+        ESP_LOGW(TAG, "  media clock range  : %u .. %u ms", g_metrics.first_pts, g_metrics.last_pts);
+        ESP_LOGW(TAG, "  media/wall elapsed : %d / %d ms",
+                 (int)(g_metrics.media_us / 1000), (int)(g_metrics.wall_us / 1000));
         ESP_LOGW(TAG, "  pacing late        : %u", g_metrics.pacing_late);
         ESP_LOGW(TAG, "  oversize dropped   : %u", g_metrics.oversize);
+        ESP_LOGW(TAG, "  oom stops          : %u", g_metrics.oom_stop);
         ESP_LOGW(TAG, "  send/encode/resample failures: %u / %u / %u",
                  g_metrics.send_fail, g_sender.encode_fail(), g_sender.resample_fail());
+        ESP_LOGW(TAG, "  sustained loop     : %s, wall %d ms (budget %d ms)",
+                 g_loop_complete ? "COMPLETE" : "INTERRUPTED",
+                 (int)loop_elapsed_ms, CONFIG_STACKCHAN_WEBRTC_M1_LOOP_SECONDS * 1000);
         ESP_LOGW(TAG, "  ---- four-layer evidence ----");
-        ESP_LOGW(TAG, "  [cfg] created=%d updated=%d echo=%s",
-                 (int)g_obs.session_created, (int)g_obs.session_updated,
-                 g_obs.config_echo.c_str());
+        ESP_LOGW(TAG, "  [cfg] created=%d updated=%d verified=%d",
+                 (int)g_obs.session_created, (int)g_obs.session_updated, (int)g_obs.config_ok);
         ESP_LOGW(TAG, "  [vad] started=%d stopped=%d", g_obs.speech_started, g_obs.speech_stopped);
         ESP_LOGW(TAG, "  [asr] completed=%d failed=%d server_errors=%d",
                  g_obs.asr_completed, g_obs.asr_failed, g_obs.server_errors);
-        ESP_LOGW(TAG, "  [asr] last item=%s transcript=\"%s\"",
-                 g_obs.last_item_id.c_str(), g_obs.last_transcript.c_str());
+        for (const auto& r : g_results) {
+            ESP_LOGW(TAG, "  [clip] %s kw=%d/%d completed=%d failed=%d wait=%d ms transcript=\"%s\"",
+                     r.id, r.hits, r.total, (int)r.completed, (int)r.failed,
+                     (int)r.wait_ms, r.transcript.c_str());
+        }
         if (!g_obs.last_error.empty()) {
             ESP_LOGW(TAG, "  last error         : %s", g_obs.last_error.c_str());
         }
-        ESP_LOGW(TAG, "  resource samples   : %d", (int)samples.size());
         ESP_LOGW(TAG, "====================================================");
+    }
+
+    {
+        auto rs = g_sender.resample_us().Copy();
+        auto en = g_sender.encode_us().Copy();
+        ESP_LOGW(TAG, "[lat] resample n=%d p50=%d p95=%d p99=%d us | encode n=%d p50=%d p95=%d p99=%d us",
+                 (int)rs.size(), Percentile(rs, 0.50), Percentile(rs, 0.95), Percentile(rs, 0.99),
+                 (int)en.size(), Percentile(en, 0.50), Percentile(en, 0.95), Percentile(en, 0.99));
+        if (g_samples.size() >= 2) {
+            const auto& a = g_samples.front();
+            const auto& b = g_samples.back();
+            ESP_LOGW(TAG, "[res] trend int free %u -> %u, int min %u -> %u, psram free %u -> %u",
+                     (unsigned)a.int_free, (unsigned)b.int_free,
+                     (unsigned)a.int_min, (unsigned)b.int_min,
+                     (unsigned)a.psram_free, (unsigned)b.psram_free);
+        }
     }
 
     g_transport.Stop();

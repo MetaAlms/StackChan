@@ -18,3 +18,96 @@
 
 Codex 另已补 `firmware/.gitignore` 的 `/build-*/`，避免正常配置构建产物被误提交，
 并已添加 findings B19 的多帧拼接证据；保留这些本轮记录。
+
+## 补充：长测前应修齐的必要契约
+
+下列内容核对了当前本地候选 `e6d7158c89448346261ef3aa3b47dab276687e6d`，
+并有两份独立只读检查支持。该提交尚未完成 M1 的正式评审请求；这仍是开发中反馈，
+不要求停止原任务。修复后继续本轮构建／真机／交付。
+
+1. **真实退出／初始化失败清理**：`webrtc_transport.cc:383/387` 创建 task 时传入
+   `nullptr`，`loop_task/signal_task` 永远为空；`Stop:476–489` 因而直接 close peer、
+   删除信号量，任务仍可能在30秒 SDP等待／HTTP请求／peer poll中使用它们。
+   保存句柄还不够，2秒等待也不能覆盖这些阻塞。使用同步停止与真实退出通知／join，
+   唤醒或有界取消信令，任务确实不再访问后才释放资源；不要把延时当join。
+   Start任一步失败走同一清理，MediaSender.Open的失败也释放已打开codec/resampler。
+   M1配置超时分支 `663–674` 必须**先释放 `g_obs.mtx` 再调用 Stop**，
+   否则等待正要取该锁的回调退出会死锁。
+   信令task中的局部 `std::string` 必须先离开作用域再 `vTaskDelete(nullptr)`，
+   FreeRTOS self-delete 不会执行C++栈析构；可用普通helper返回后通知退出并删除task。
+2. **核验配置，不能只打印**：`webrtc_m1.cc:404–409` 任何 `session.updated`
+   均令 gate通过；`SummariseSession` 只有摘要。核对当前会话／已发送update与实际字段：
+   `server_vad`、阈值0.5、静音800ms、期望的转录模型。
+   缺失、null或错误值应报告配置失败，不发送fixture；实际兼容性由服务端回显判定。
+3. **逐条ASR归属与关键词**：`684–719` 仅凭全局completed计数增加，关键词没有检查。
+   前一条超时后迟到的completed可被下一条误认。保存每条clip对应的item／结果／关键词命中，
+   从实际VAD／committed事件关联completed／failed；第一轮超时或failed不得让下一条吞掉迟到事件。
+   failed记录item_id、code、message、param。数字“一加一”可接受预先定义的等价转写，
+   不把数字格式差异误判成传输错误，也不在测试失败后任意放宽关键词。
+4. **时间轴不能压掉等待**：等待ASR期间无发送且不推进pts，下一条重置墙钟deadline并沿用旧pts，
+   会把真实几秒／几十秒的间隔压成0。使用同一sender媒体时钟；可以在等ASR时继续按节拍发静音，
+   或明确推进未发送间隔。不得以每条局部media/wall统计隐藏这些间隔。
+5. **资源证据应能真实采集**：`SampleResources` 的调用均传nullptr，栈余量恒0；
+   当前sender就在app_main，传实际task handle即可。补充 INTERNAL+8BIT、DMA minimum、
+   编码／转换耗时的有界采样及分位；记录持续loop实际elapsed与是否完整达到300秒，
+   提前断线不能算5分钟通过。fixture时长应先乘1000后除采样率，避免三条均误报3000ms。
+6. **保留M0配置确实可用**：`main.cpp:13–21` 把Board／WifiManager／esp_log的include
+   只放在M1 guard，M0分支仍使用它们；共享include用M0||M1并核对M0配置。
+   Kconfig只在help声称互斥，需真正拒绝M0/M1同时启用。
+   目前M0仍保留整套旧信令而Transport复制了它；按任务要求共用已验证传输层，
+   保持M0不发媒体／判据语义，并以相关配置检查确认回归。
+
+这些都是原 M1 任务已经要求的单位、时间轴、生命周期、验收与隔离契约；
+无需新增产品音频服务或复杂bench框架。修复并完成原任务后，仍按实际新HEAD交正式REVIEW_REQUEST。
+
+## 首轮真机崩溃证据：先定位再继续长测
+
+2026-10-08 读取当前 `/tmp/m1-run.log`，同一次采集已出现两次：
+
+```text
+assert failed: xQueueSemaphoreTake queue.c:1709 (( pxQueue ))
+rst:0xc (RTC_SW_CPU_RST)
+```
+
+两次均在配置回显已通过、开始第一条 fixture 后，尚无 completed ASR。
+用该次 `firmware/build/stack-chan.elf` 的 `addr2line -pfiaC` 解析：
+
+```text
+0x4200814d pthread_mutex_lock
+0x4214029a __gnu_cxx::__scoped_lock / eh_alloc.cc:259
+0x4214036f __cxa_allocate_exception
+0x42140e29 operator new
+0x4202db69 std::vector<long>::_M_realloc_append
+0x4202e9c9 EncodeFrame webrtc_m1.cc:287 / SendOneFrame:624
+0x4202eb53 StreamClip:664
+0x4202f53a WebRtcM1Run:946
+```
+
+调用链经过 timing vector 扩容与异常分配，**提示分配失败或先前内存损坏，但尚未定位根因**；
+不能只把日志表面的 semaphore assert 当生命周期缺陷修复。
+请核对采集对应的 ELF，停止无效长测，解析崩溃，记录首次编码前后分能力 heap／largest block
+及任务栈，检查真实编码缓冲容量／转换输出和库对返回值的语义。
+统计容器应预先分配、明确预算且避免在每帧路径动态扩容；内存不足要有可观察失败路径。
+修复后重新跑验收，断言重启的旧采集不能算五分钟稳定运行。
+
+### 修正容器后的新证据
+
+`/tmp/m1-run2.log` 第一帧前的内部heap为148871B、最大块63488B，PSRAM约7.9MB，
+随后出现 `***ERROR*** A stack overflow in task main has been detected.` 并重启。
+因此“每帧分配”还不是已证根因，必须进一步检查main栈被48k编解码耗尽／破坏的可能。
+实际配置 `CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192`；当前M1编码运行在app_main上，
+声明的 `kSenderStackWords` 并未创建独立task或扩大main栈。
+现有WS `AudioService::Start` 给Opus worker分配 `2048 * 12` 字节栈，
+是有用参照，不是48k路径所需栈的保证。
+请为M1 sender使用实际足够的独立task栈、退出同步与实测high-water mark，
+不要用全局修改normal固件main栈来代替本阶段的独立owner。
+
+### 独立sender的栈参数单位仍须纠正
+
+最新WIP改成 `kSenderStackWords = 8192; // 32 KB` 并直接传给 `xTaskCreate`。
+**ESP-IDF 5.5 的 `xTaskCreate` 参数单位是字节，不是普通FreeRTOS的words**：
+本机`components/freertos/FreeRTOS-Kernel/include/freertos/task.h:315–316`明确写NUMBER OF BYTES，
+394–398直接将该值交给PinnedToCore。
+因此当前 `m1_sender` 仍只有8192B，和刚溢出的main一样。
+请用实际字节值（例如32768B作为待实测起点）并按真实high-water API单位记录余量。
+“永远不是allocation问题”也不能从一次栈溢出推得；记录已证实的8KB栈溢出即可。

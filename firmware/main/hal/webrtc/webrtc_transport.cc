@@ -6,6 +6,7 @@
 #include "webrtc_transport.h"
 
 #include <algorithm>
+#include <atomic>
 #include <cstring>
 #include <mutex>
 
@@ -28,6 +29,14 @@ constexpr const char* kWebRtcHostFmt =
 
 /** How long Start() waits for the local SDP before giving up. */
 constexpr int kSdpWaitMs = 30000;
+
+/**
+ * How long cleanup() waits for a task to leave.
+ *
+ * The signaling task can be inside an HTTP request whose own timeout is 20 s,
+ * so this has to exceed that; a fixed short delay would be a guess, not a join.
+ */
+constexpr int kTaskExitWaitMs = 25000;
 
 /**
  * @brief Single-packet payload budget.
@@ -55,11 +64,15 @@ struct Transport::Impl {
     Config cfg;
     Callbacks cb;
 
-    // Tasks and lifecycle.
+    // Tasks and lifecycle. The exit semaphores are what make Stop() a real
+    // join: a delay is not a join, and esp_peer must not be closed while a task
+    // is still inside a poll or an HTTP request.
     TaskHandle_t loop_task = nullptr;
-    TaskHandle_t signal_task = nullptr;
+    TaskHandle_t sig_task = nullptr;
+    SemaphoreHandle_t loop_exited = nullptr;
+    SemaphoreHandle_t sig_exited = nullptr;
     SemaphoreHandle_t sdp_ready = nullptr;
-    bool stopping = false;
+    std::atomic<bool> stopping{false};
 
     std::string local_sdp;
 
@@ -267,32 +280,33 @@ void loop_task(void* arg)
     auto* p = impl_of(arg);
     ESP_LOGI(TAG, "peer main loop started");
     // esp_peer_main_loop() is a single poll iteration, not a blocking loop.
-    while (!p->stopping) {
+    while (!p->stopping.load()) {
         esp_peer_main_loop(p->peer);
         vTaskDelay(pdMS_TO_TICKS(20));
     }
+    // Nothing with a destructor is alive here, so self-deletion is safe.
     ESP_LOGI(TAG, "peer main loop exited");
-    p->loop_task = nullptr;
+    xSemaphoreGive(p->loop_exited);
     vTaskDelete(nullptr);
 }
 
-void signal_task(void* arg)
+/**
+ * @brief Signaling body.
+ *
+ * A plain function so that every C++ local (`err`, `answer`) is destroyed on
+ * return: FreeRTOS self-deletion does not unwind the stack and would leak them.
+ */
+void signal_body(Transport::Impl* p)
 {
-    auto* p = impl_of(arg);
-    std::string err;
-
     if (xSemaphoreTake(p->sdp_ready, pdMS_TO_TICKS(kSdpWaitMs)) != pdTRUE) {
         ESP_LOGE(TAG, "no local SDP within %d ms", kSdpWaitMs);
-        p->signal_task = nullptr;
-        vTaskDelete(nullptr);
         return;
     }
 
     std::string answer;
+    std::string err;
     if (!post_sdp(p->local_sdp, answer, &err)) {
         ESP_LOGE(TAG, "signaling failed: %s", err.c_str());
-        p->signal_task = nullptr;
-        vTaskDelete(nullptr);
         return;
     }
 
@@ -302,8 +316,13 @@ void signal_task(void* arg)
     msg.size = (int)answer.size();
     const int ret = esp_peer_send_msg(p->peer, &msg);
     ESP_LOGI(TAG, "fed answer to peer -> %d", ret);
+}
 
-    p->signal_task = nullptr;
+void signal_task(void* arg)
+{
+    auto* p = impl_of(arg);
+    signal_body(p);          // all C++ locals destroyed here
+    xSemaphoreGive(p->sig_exited);
     vTaskDelete(nullptr);
 }
 
@@ -327,8 +346,11 @@ bool Transport::Start(const Config& cfg, const Callbacks& cb, std::string* err)
     p->cfg = cfg;
     p->cb = cb;
     p->sdp_ready = xSemaphoreCreateBinary();
-    if (p->sdp_ready == nullptr) {
+    p->loop_exited = xSemaphoreCreateBinary();
+    p->sig_exited = xSemaphoreCreateBinary();
+    if (p->sdp_ready == nullptr || p->loop_exited == nullptr || p->sig_exited == nullptr) {
         *err = "semaphore alloc failed";
+        cleanup(p);
         return false;
     }
 
@@ -377,15 +399,19 @@ bool Transport::Start(const Config& cfg, const Callbacks& cb, std::string* err)
     ESP_LOGI(TAG, "esp_peer_open -> %d", ret);
     if (ret != 0 || p->peer == nullptr) {
         *err = "esp_peer_open failed (" + std::to_string(ret) + ")";
+        cleanup(p);
         return false;
     }
 
-    if (xTaskCreate(loop_task, "m_peer_loop", 8192, p, 5, nullptr) != pdPASS) {
+    // Handles are saved so Stop() can actually join instead of guessing.
+    if (xTaskCreate(loop_task, "m_peer_loop", 8192, p, 5, &p->loop_task) != pdPASS) {
         *err = "peer loop task create failed";
+        cleanup(p);
         return false;
     }
-    if (xTaskCreate(signal_task, "m_peer_sig", 8192, p, 5, nullptr) != pdPASS) {
+    if (xTaskCreate(signal_task, "m_peer_sig", 8192, p, 5, &p->sig_task) != pdPASS) {
         *err = "signaling task create failed";
+        cleanup(p);
         return false;
     }
 
@@ -394,9 +420,52 @@ bool Transport::Start(const Config& cfg, const Callbacks& cb, std::string* err)
     ESP_LOGI(TAG, "esp_peer_new_connection -> %d", conn_ret);
     if (conn_ret != 0) {
         *err = "esp_peer_new_connection failed (" + std::to_string(conn_ret) + ")";
+        cleanup(p);
         return false;
     }
     return true;
+}
+
+void Transport::cleanup(Impl* p)
+{
+    if (p == nullptr) {
+        return;
+    }
+    // Ask the tasks to stop and wait for them to actually leave. The signaling
+    // task may be inside an HTTP request (up to its 20 s timeout), so the wait
+    // is bounded by that rather than by a fixed guess.
+    p->stopping.store(true);
+    if (p->sdp_ready != nullptr) {
+        // Wake a signaling task that is blocked waiting for the local SDP.
+        xSemaphoreGive(p->sdp_ready);
+    }
+    if (p->loop_exited != nullptr) {
+        xSemaphoreTake(p->loop_exited, pdMS_TO_TICKS(kTaskExitWaitMs));
+    }
+    if (p->sig_exited != nullptr) {
+        xSemaphoreTake(p->sig_exited, pdMS_TO_TICKS(kTaskExitWaitMs));
+    }
+
+    if (p->peer != nullptr) {
+        esp_peer_close(p->peer);
+        p->peer = nullptr;
+    }
+    if (p->sdp_ready != nullptr) {
+        vSemaphoreDelete(p->sdp_ready);
+        p->sdp_ready = nullptr;
+    }
+    if (p->loop_exited != nullptr) {
+        vSemaphoreDelete(p->loop_exited);
+        p->loop_exited = nullptr;
+    }
+    if (p->sig_exited != nullptr) {
+        vSemaphoreDelete(p->sig_exited);
+        p->sig_exited = nullptr;
+    }
+    {
+        std::lock_guard<std::mutex> lock(p->mtx);
+        p->audio_ready = false;
+    }
 }
 
 bool Transport::SendJson(const std::string& json, uint16_t stream_id)
@@ -470,26 +539,7 @@ void Transport::Stop()
         p->cb.on_before_close();
         p->cb.on_before_close = nullptr;
     }
-
-    p->stopping = true;
-    // The loop task clears its handle as its last act.
-    for (int i = 0; i < 100 && p->loop_task != nullptr; ++i) {
-        vTaskDelay(pdMS_TO_TICKS(20));
-    }
-    for (int i = 0; i < 100 && p->signal_task != nullptr; ++i) {
-        vTaskDelay(pdMS_TO_TICKS(20));
-    }
-
-    if (p->peer != nullptr) {
-        esp_peer_close(p->peer);
-        p->peer = nullptr;
-    }
-    if (p->sdp_ready != nullptr) {
-        vSemaphoreDelete(p->sdp_ready);
-        p->sdp_ready = nullptr;
-    }
-    std::lock_guard<std::mutex> lock(p->mtx);
-    p->audio_ready = false;
+    cleanup(p);
 }
 
 }  // namespace webrtc_transport

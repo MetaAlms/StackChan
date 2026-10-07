@@ -10,14 +10,18 @@
 #include <apps/apps.h>
 #include <hal/hal.h>
 
+// Both probes need the board/Wi-Fi/log headers; only the probe entry points
+// themselves are per-probe.
+#if CONFIG_STACKCHAN_WEBRTC_M0 || CONFIG_STACKCHAN_WEBRTC_M1
+#include <board.h>
+#include <wifi_manager.h>
+#include <esp_log.h>
+#endif
 #if CONFIG_STACKCHAN_WEBRTC_M0
 #include <hal/webrtc/webrtc_m0.h>
 #endif
 #if CONFIG_STACKCHAN_WEBRTC_M1
 #include <hal/webrtc/webrtc_m1.h>
-#include <board.h>
-#include <wifi_manager.h>
-#include <esp_log.h>
 #endif
 
 using namespace mooncake;
