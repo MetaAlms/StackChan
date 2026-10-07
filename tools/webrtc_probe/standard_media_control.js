@@ -30,9 +30,14 @@ const path = require('path');
 const crypto = require('crypto');
 const https = require('https');
 const { setTimeout: delay } = require('node:timers/promises');
+// H6-3: Date.now is wall time and can step; performance.now is monotonic, which
+// is what an absolute media deadline must be measured against.
+const { performance } = require('node:perf_hooks');
+const now = () => performance.now();
 
 const NDC_PATH = process.env.NDC_PATH || '/tmp/wrtc-test/node_modules/node-datachannel';
 const ndc = require(NDC_PATH);
+const L = require('./control_logic');
 
 // ---------------------------------------------------------------- credentials
 
@@ -104,8 +109,8 @@ async function main() {
   // H3: all state is initialised before any branch can reach finish(). Declaring
   // consts further down meant a configuration failure hit the temporal dead zone
   // and lost the very evidence the failure needed.
-  const events = { created: false, updated: false, vad: [], asr: [], failed: [], errors: [],
-                   unknown: [], echo: null };
+  const events = { created: false, updated: false, vad: [], committed: [], asr: [],
+                   failed: [], errors: [], unknown: [], echo: null };
   let updateSent = false;
   let updateOk = false;
   let eventChannel = null;        // the actual channel object, not a label
@@ -120,6 +125,13 @@ async function main() {
   let mediaWallMs = 0;
   let mediaFirstTs = 0, mediaLastTs = 0;
   const silFrames = [];
+  // H6-3: these are read by finish() on every path, so they must exist before
+  // any branch can reach it. Declaring `extraSilenceFrames` later made the
+  // configuration-failure path throw a ReferenceError and lose its evidence.
+  let extraSilenceFrames = 0;
+  let inputEvidence = null;
+  let invalidReason = null;
+  let stage = 'start';
 
   function onEvent(json, ch, label) {
     let m;
@@ -151,6 +163,9 @@ async function main() {
       events.vad.push({ kind: 'stopped', at: Date.now(), item_id: m.item_id || null,
                         audio_end_ms: m.audio_end_ms });
       rec(`[vad] speech_stopped item=${m.item_id || '-'}`);
+    } else if (t === 'input_audio_buffer.committed') {
+      events.committed.push({ at: now(), item_id: m.item_id || null });
+      rec(`[vad] committed item=${m.item_id || '-'}`);
     } else if (t === 'conversation.item.input_audio_transcription.completed') {
       if (typeof m.transcript === 'string' && typeof m.item_id === 'string' && m.item_id) {
         events.asr.push({ transcript: m.transcript, item_id: m.item_id });
@@ -254,17 +269,45 @@ async function main() {
 
   // ------------------------------------------------------------------ media
 
-  const sil = JSON.parse(fs.readFileSync(path.join(__dirname, 'silence_packets.json'), 'utf8'));
+  // H6-1: the silence must come from the same generated directory as the voice
+  // frames. Reading a stale copy from the script directory meant the run used
+  // different audio than the manifest described, so the manifest's own numbers
+  // could not evidence it.
+  const silPath = path.join(framesDir, 'silence_packets.json');
+  const manPath = path.join(framesDir, 'manifest.json');
+  const sha = (b) => crypto.createHash('sha256').update(b).digest('hex');
+  const silRaw = fs.readFileSync(silPath);
+  const manRaw = fs.readFileSync(manPath);
+  const sil = JSON.parse(silRaw.toString('utf8'));
+
+  if (typeof sil.decoded_samples !== 'number' || sil.decoded_samples !== 960 ||
+      !Array.isArray(sil.silence) || sil.silence.length !== sil.frames ||
+      typeof sil.peak_abs !== 'number') {
+    invalidReason = 'silence file is missing its validation metadata';
+  }
   for (const s of sil.silence) silFrames.push(Buffer.from(s, 'base64'));
-  rec(`[sil] ${sil.frames} frames, mode=${sil.mode}, decoded ${sil.decoded_samples} ` +
-      `samples/frame, peak |x|=${sil.peak_abs}`);
+  rec(`[sil] ${sil.frames} frames (${sil.ms} ms), mode=${sil.mode}, ` +
+      `decoded ${sil.decoded_samples} samples/frame, peak |x|=${sil.peak_abs}, ` +
+      `pkt ${sil.pkt_min}..${sil.pkt_max}, sha256 ${sha(silRaw).slice(0, 16)}…`);
+  // H6-1: record the hashes of the inputs this run actually consumed, so the
+  // archived result identifies its own evidence instead of relying on a
+  // separately produced manifest.
+  inputEvidence = {
+    framesDir,
+    manifestSha256: sha(manRaw),
+    silenceSha256: sha(silRaw),
+    silence: { frames: sil.frames, ms: sil.ms, mode: sil.mode,
+               decoded_samples: sil.decoded_samples, peak_abs: sil.peak_abs,
+               pkt_min: sil.pkt_min, pkt_max: sil.pkt_max },
+    generator: sil.generator,
+  };
+  if (invalidReason) { rec(`INVALID: ${invalidReason}`); allOk = false; finish(); return; }
 
   // H1: one monotonic absolute deadline for the whole media run, shared by every
   // clip, silence stretch and ASR wait. Re-deriving it per segment hid boundary
   // cost and drift, and a nominal timestamp increment is not pacing evidence.
-  let deadline = Date.now();
-  const pacingStart = Date.now();
-  let extraSilenceFrames = 0;
+  let deadline = now();
+  const pacingStart = now();
 
   function buildRtp(payload) {
     const h = Buffer.alloc(12);
@@ -282,12 +325,16 @@ async function main() {
     // (direction mismatch, keys not ready) does not throw, so ignoring it counted
     // refused frames as sent.
     let ok = false;
+    let threw = false;
     try { ok = track.sendMessageBinary(pkt) !== false; }
-    catch (e) { stats.exceptions++; }
-    if (ok) { stats.accepted++; stats.bytes += pkt.length;
-              stats.pktMin = Math.min(stats.pktMin, payload.length);
-              stats.pktMax = Math.max(stats.pktMax, payload.length); }
-    else if (stats.exceptions === 0 || ok === false) { stats.refused++; }
+    catch (e) { threw = true; }
+    // Exactly one of the three counters moves: a frame that threw is not also a
+    // refusal, and only a true result is an accepted frame.
+    if (threw) { stats.exceptions++; }
+    else if (ok === true) { stats.accepted++; stats.bytes += pkt.length;
+                            stats.pktMin = Math.min(stats.pktMin, payload.length);
+                            stats.pktMax = Math.max(stats.pktMax, payload.length); }
+    else { stats.refused++; }
     if (stats.accepted === 0 && stats.refused === 0) { stats.firstSeq = seq; stats.firstTs = ts; }
     seq = (seq + 1) & 0xffff;
     ts = (ts + 960) >>> 0;
@@ -297,9 +344,13 @@ async function main() {
     for (const f of frames) {
       sendOne(f);
       deadline += 20;
-      const wait = deadline - Date.now();
+      const wait = deadline - now();
       if (wait > 0) await delay(wait);
-      else if (wait < -20) stats.lateFrames++;
+      else if (wait < -20) {
+        // Falling this far behind means a burst would be sent to catch up, which
+        // is not the continuous pacing the experiment claims to test.
+        stats.lateFrames++;
+      }
     }
   }
 
@@ -316,16 +367,37 @@ async function main() {
       finish();
       return;
     }
-    const frames = loadFrames(path.join(framesDir, `${clip.id}.opusframes`));
+    const framesPath = path.join(framesDir, `${clip.id}.opusframes`);
+    const framesRaw = fs.readFileSync(framesPath);
+    const frames = loadFrames(framesPath);
+    // H6-1: the voice container must be internally consistent and match the
+    // manifest before anything is sent.
+    if (typeof clip.tail_pad_samples === 'number') {
+      // recorded by the generator; kept for the evidence record
+    }
+    if (frames.length !== clip.packets) {
+      invalidReason = `${clip.id}: container has ${frames.length} packets, ` +
+                      `manifest says ${clip.packets}`;
+    }
+    if (!clip.decoded_samples_per_packet || clip.decoded_samples_per_packet !== 960) {
+      invalidReason = `${clip.id}: manifest lacks per-packet decode evidence`;
+    }
+    if (!clip.ctl || clip.ctl.bitrate !== 0 || clip.ctl.bitrate_readback !== 90000) {
+      invalidReason = `${clip.id}: encoder CTL readback missing or unexpected`;
+    }
+    if (invalidReason) { rec(`INVALID: ${invalidReason}`); allOk = false; finish(); return; }
     const r = { id: clip.id, text: clip.text, keywords: clip.keywords,
+                containerSha256: sha(framesRaw),
                 packets: frames.length, mediaMs: clip.media_ms,
                 vadStart: 0, vadStop: 0, itemIds: [], completed: 0, hits: [],
                 itemId: null, transcript: null, waitMs: 0, window: null };
 
-    const clipStart = Date.now();
+    const clipStart = now();
     const clipStartTs = ts;
     const asrBefore = events.asr.length;
     const vadBefore = events.vad.length;
+    const committedBefore = events.committed.length;
+    const failedBefore = events.failed.length;
 
     rec(`[play] ${clip.id} "${clip.text}" (${frames.length} packets, ${clip.media_ms} ms)`);
     await sendFrames(frames);
@@ -334,14 +406,27 @@ async function main() {
 
     // Keep the cadence while ASR is pending and give the server time to close
     // the turn; the media timeline stays continuous throughout.
-    const w0 = Date.now();
-    while (events.asr.length === asrBefore && Date.now() - w0 < 20000) {
+    // The items this clip's turn actually announced. A completion is only
+    // allowed to end this clip when it carries one of them; a stale or unknown
+    // item must not release the wait.
+    const announced = L.announcedItems(events.vad.slice(vadBefore),
+                                       events.committed.slice(committedBefore));
+
+    const w0 = now();
+    let owned = null;
+    while (now() - w0 < 20000) {
+      owned = L.pickOwnedCompletion(events.asr.slice(asrBefore), announced);
+      if (owned) break;
+      if (events.failed.slice(failedBefore).some((f) => !f.item_id || announced.size === 0 ||
+                                                  announced.has(f.item_id))) break;
       await sendFrames(silFrames);
       extraSilenceFrames += silFrames.length;
-      if (events.failed.length > 0) break;
     }
-    r.waitMs = Date.now() - w0;
-    r.window = { startTs: clipStartTs, endTs: clipEndTs, startMs: 0, endMs: clipEndTs - clipStartTs };
+    r.waitMs = Math.round(now() - w0);
+    // 48 RTP ticks per millisecond at the 48 kHz Opus clock.
+    r.window = { startTs: clipStartTs, endTs: clipEndTs,
+                 startMs: Math.round(clipStartTs / 48), endMs: Math.round(clipEndTs / 48),
+                 rtpTicksPerMs: 48 };
 
     // H2: attribute VAD and ASR to *this* clip only, by arrival window.
     const myVad = events.vad.slice(vadBefore);
@@ -349,34 +434,45 @@ async function main() {
     r.vadStop = myVad.filter((v) => v.kind === 'stopped').length;
     r.itemIds = [...new Set(myVad.map((v) => v.item_id).filter(Boolean))];
 
-    const newAsr = events.asr.slice(asrBefore);
-    if (newAsr.length > 0) {
-      const last = newAsr[newAsr.length - 1];
-      r.completed = 1; r.itemId = last.item_id; r.transcript = last.transcript;
+    r.committedItems = [...new Set(events.committed.slice(committedBefore)
+                                     .map((c) => c.item_id).filter(Boolean))];
+    if (owned) {
+      r.completed = 1; r.itemId = owned.item_id; r.transcript = owned.transcript;
       for (const kw of clip.keywords) {
-        if (last.transcript.includes(kw)) r.hits.push(kw);
-      }
-      // The completed item should be one the VAD for this clip announced.
-      if (r.itemIds.length > 0 && r.itemId && !r.itemIds.includes(r.itemId)) {
-        rec(`[asr] WARNING: ${r.id} completed item=${r.itemId} was not announced by ` +
-            `its own VAD (${r.itemIds.join(',')})`);
+        if (owned.transcript.includes(kw)) r.hits.push(kw);
       }
     }
-    rec(`[clip] ${r.id} vad=${r.vadStart}/${r.vadStop} items=${r.itemIds.join('|') || '-'} ` +
-        `completed=${r.completed} kw=${r.hits.length}/${clip.keywords.length} ` +
-        `item=${r.itemId || '-'} wait=${r.waitMs}ms "${r.transcript || ''}"`);
+    // Ownership is a criterion, not a warning: the completing item must be one
+    // this clip's own VAD/committed announced, and its start/stop must refer to
+    // that same item rather than to two different ones.
+    r.sameItemVad = L.sameItemVad(myVad);
+    r.ownedByClip = !!(r.itemId && announced.has(r.itemId));
+    if (r.completed && !r.ownedByClip) {
+      rec(`[asr] ${r.id}: completed item=${r.itemId} was NOT announced by this clip ` +
+          `(${[...announced].join(',') || '-'}); not credited`);
+      r.completed = 0; r.itemId = null; r.transcript = null; r.hits = [];
+    }
+    if (r.vadStart > 0 && r.vadStop > 0 && !r.sameItemVad) {
+      rec(`[asr] ${r.id}: start/stop refer to different items; VAD not accepted`);
+    }
+    rec(`[clip] ${r.id} vad=${r.vadStart}/${r.vadStop} sameItemVad=${r.sameItemVad} ` +
+        `announced=${r.itemIds.concat(r.committedItems).join('|') || '-'} ` +
+        `completed=${r.completed} owned=${r.ownedByClip} ` +
+        `kw=${r.hits.length}/${clip.keywords.length} item=${r.itemId || '-'} ` +
+        `wait=${r.waitMs}ms "${r.transcript || ''}"`);
     clipResults.push(r);
 
     // H2: stop the sequence on a miss or an outright failure; a late result must
     // not be credited to a later clip, and a failed turn is a real miss.
     if (!r.completed || r.hits.length < clip.keywords.length ||
-        r.vadStart === 0 || r.vadStop === 0 || events.failed.length > 0) {
+        r.vadStart === 0 || r.vadStop === 0 || !r.sameItemVad || !r.ownedByClip ||
+        events.failed.length > failedBefore) {
       rec(`[asr] stopping the sequence after ${r.id}`);
       break;
     }
   }
 
-  mediaWallMs = Date.now() - pacingStart;
+  mediaWallMs = Math.round(now() - pacingStart);
   mediaLastTs = ts;
   const mediaMs = stats.accepted * 20;
   rec(`[media] accepted=${stats.accepted} refused=${stats.refused} exceptions=${stats.exceptions} ` +
@@ -387,12 +483,16 @@ async function main() {
 
   // H1: a refused or throwing send makes the run invalid; it is reported as such
   // and never confused with "the remote received it".
-  const sendValid = (stats.refused === 0 && stats.exceptions === 0 && stats.accepted > 0);
+  const sendValid = (stats.refused === 0 && stats.exceptions === 0 &&
+                     stats.accepted > 0 && stats.lateFrames === 0 &&
+                     invalidReason === null);
   if (!sendValid) rec('INVALID: the send path refused or threw; results cannot be attributed');
 
-  allOk = sendValid && clipResults.length === manifest.clips.length &&
-    clipResults.every((r) => r.vadStart > 0 && r.vadStop > 0 && r.completed &&
-                              r.hits.length === r.keywords.length);
+  // The same evaluator the offline tests exercise decides the run.
+  const verdict = L.evaluateRun({ sendValid, invalidReason,
+                                  clips: clipResults, expectedClips: manifest.clips.length });
+  allOk = verdict.ok;
+  if (!allOk) rec(`[verdict] reasons: ${verdict.reasons.join(' | ')}`);
   rec(allOk
     ? 'VERDICT: PASS - standard stack produced VAD start+stop, complete ASR and keywords for all three clips'
     : 'VERDICT: FAIL - see per-clip results above');
@@ -403,7 +503,7 @@ async function main() {
     const out = {
       config: { nodeDatachannel: require(path.join(NDC_PATH, 'package.json')).version,
                 libopus: manifest.libopus, model, ssrc, pt: PT, clock: 48000 },
-      cfgOk, updateOk, eventChannelLabel,
+      cfgOk, updateOk, eventChannelLabel, stage, invalidReason, inputEvidence,
       echo: events.echo, clips: clipResults, stats,
       mediaWallMs, mediaFirstTs, mediaLastTs, extraSilenceFrames,
       vadEvents: events.vad.length, asrEvents: events.asr.length,

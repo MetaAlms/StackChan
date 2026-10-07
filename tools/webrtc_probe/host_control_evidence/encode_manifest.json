@@ -27,7 +27,15 @@
       "framed_bytes": 26566,
       "pkt_min": 3,
       "pkt_max": 388,
-      "framed_sha256": "2f5194230b05580079fe41b3c841d901c2f5b82c1366d0e93a548ccaed4c179a"
+      "framed_sha256": "2f5194230b05580079fe41b3c841d901c2f5b82c1366d0e93a548ccaed4c179a",
+      "ctl": {
+        "bitrate": 0,
+        "vbr": 0,
+        "dtx": 0,
+        "complexity": 0,
+        "bitrate_readback": 90000
+      },
+      "decoded_samples_per_packet": 960
     },
     {
       "id": "zh_2",
@@ -46,7 +54,15 @@
       "framed_bytes": 23250,
       "pkt_min": 3,
       "pkt_max": 382,
-      "framed_sha256": "886d0053325751a66a0bfc827bdb2284caf6eda33a80a5a2e96970292b3c4e23"
+      "framed_sha256": "886d0053325751a66a0bfc827bdb2284caf6eda33a80a5a2e96970292b3c4e23",
+      "ctl": {
+        "bitrate": 0,
+        "vbr": 0,
+        "dtx": 0,
+        "complexity": 0,
+        "bitrate_readback": 90000
+      },
+      "decoded_samples_per_packet": 960
     },
     {
       "id": "zh_3",
@@ -65,7 +81,15 @@
       "framed_bytes": 25165,
       "pkt_min": 3,
       "pkt_max": 389,
-      "framed_sha256": "05c7e3ed02685aa4feb7c7a6a5c24ebee3f79d40e87b646c42bf954ec0d1ad7c"
+      "framed_sha256": "05c7e3ed02685aa4feb7c7a6a5c24ebee3f79d40e87b646c42bf954ec0d1ad7c",
+      "ctl": {
+        "bitrate": 0,
+        "vbr": 0,
+        "dtx": 0,
+        "complexity": 0,
+        "bitrate_readback": 90000
+      },
+      "decoded_samples_per_packet": 960
     }
   ],
   "silence": {

@@ -114,8 +114,19 @@ def main() -> int:
             raise SystemExit(f"opus_encoder_create failed: {err.value}")
         # OPUS_SET_BITRATE_REQUEST = 4002, OPUS_SET_VBR_REQUEST = 4006,
         # OPUS_SET_DTX_REQUEST = 4016, OPUS_SET_COMPLEXITY_REQUEST = 4010
-        for req, val in ((4002, BITRATE), (4006, 1), (4016, 0), (4010, 5)):
-            lib.opus_encoder_ctl(C.c_void_p(enc), C.c_int(req), C.c_int(val))
+        # OPUS_SET_* return OPUS_OK on success; an unchecked failure would leave
+        # the encoder at defaults and make the recorded settings wrong.
+        ctl_results = {}
+        for name, req, val in (("bitrate", 4002, BITRATE), ("vbr", 4006, 1),
+                               ("dtx", 4016, 0), ("complexity", 4010, 5)):
+            rc = lib.opus_encoder_ctl(C.c_void_p(enc), C.c_int(req), C.c_int(val))
+            ctl_results[name] = rc
+            if rc != 0:      # OPUS_OK == 0
+                raise SystemExit(f"opus_encoder_ctl({name}={val}) returned {rc}")
+        # OPUS_GET_BITRATE_REQUEST = 4003: read back what the encoder really uses.
+        got = C.c_int(0)
+        lib.opus_encoder_ctl(C.c_void_p(enc), C.c_int(4003), C.byref(got))
+        ctl_results["bitrate_readback"] = got.value
 
         pcm48 = resample_16_to_48(src)
 
@@ -148,8 +159,10 @@ def main() -> int:
             dn = lib.opus_decode(C.c_void_p(dec),
                                  (C.c_ubyte * len(pkt)).from_buffer_copy(pkt),
                                  len(pkt), out, FRAME_SAMPLES * 6, 0)
-            if dn <= 0:
-                raise SystemExit(f"local decode failed for {cid} frame {len(frames)}")
+            if dn != FRAME_SAMPLES:
+                raise SystemExit(
+                    f"{cid} frame {len(frames)}: decode gave {dn} samples, "
+                    f"expected exactly {FRAME_SAMPLES} for 20 ms")
             frames.append(pkt)
 
         framed = b"".join(struct.pack(">I", len(p)) + p for p in frames)
@@ -171,6 +184,8 @@ def main() -> int:
             "pkt_min": min(sizes),
             "pkt_max": max(sizes),
             "framed_sha256": hashlib.sha256(framed).hexdigest(),
+            "ctl": ctl_results,
+            "decoded_samples_per_packet": FRAME_SAMPLES,
         })
         print(f"{cid}: {len(frames)} packets, {len(frames)*20} ms, "
               f"pkt {min(sizes)}..{max(sizes)} B, tail pad {pad_samples} samples")
@@ -209,6 +224,8 @@ def main() -> int:
         __import__("json").dumps(
             {"frames": len(sil), "ms": len(sil) * 20, "mode": SILENCE_MODE,
              "decoded_samples": FRAME_SAMPLES, "peak_abs": max(energies),
+             "pkt_min": min(len(__import__("base64").b64decode(x)) for x in sil),
+             "pkt_max": max(len(__import__("base64").b64decode(x)) for x in sil),
              "generator": "tools/webrtc_probe/encode_fixture.py",
              "silence": sil}) + "\n")
     manifest["silence"] = {"frames": len(sil), "ms": len(sil) * 20,

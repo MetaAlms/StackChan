@@ -27,15 +27,40 @@ VERDICT: PASS
 `qwen3-asr-flash-realtime` 配置下，**标准 WebRTC 栈能对同源冻结 fixture
 产生完整 VAD start+stop、完整 ASR 与关键词**。
 
-## 根因：每段重置 pacing 期限
+## 根因：**未隔离**（H6-4 订正）
 
-此前 `sendFrames` 每次调用都重新 `deadline = Date.now()`，在媒体流中引入间隙，
-服务端的 VAD 因此只触发 `speech_started`、**始终不触发 `speech_stopped`**。
-改成**全流程单一单调绝对期限**（H1）后，三条立即全部通过。
+此前本节把"每段重置 pacing 期限"认定为 `speech_stopped` 缺失的根因。
+**该认定没有单变量证据**：那一轮同时改变了回复通道、初始 seq/ts、尾静音长度等
+多个因素，因此不能把结果归给任何单一改动。
 
-**这同时撤回了先前两个猜测**：数字静音 vs 底噪、以及 `config.timestamp`
-与 RTP 头对齐，**都不是** stop 缺失的原因（两者都试过、都不改变结果）。
-本文件不再把 SR 时钟列为条件风险。
+**当前可支持的表述只有**：*本轮组合修复后完整对照通过，具体根因未隔离。*
+
+已排除的负结果（各自试过、都不改变当时的失败）：
+数字静音 vs 底噪、`config.timestamp` 与 RTP 头对齐。
+**但这也不证明它们永远无关**——它们只是在当轮组合下未改变结果。
+
+## H6-1～H6-4 处置
+
+| # | 处置 |
+|---|---|
+| **H6-1** | 静音文件改为**从本次生成目录读取**（此前从 `__dirname` 读到旧文件，`run_pass.log` 里 mode/decoded/peak 全是 undefined，而归档 manifest 声称 60 包/1200 ms —— 证明的是另一个文件）。**校验** voice 容器包数与 manifest 一致、`decoded_samples_per_packet==960`、encoder CTL 返回码与回读码率；缺失或不符判 **INVALID**。结果里记录**本次实际消费**的 manifest/静音 hash 与每条 voice 容器 hash |
+| **H6-2** | 等待不再按全局 ASR 数组长度释放，改为只由**本条 VAD/committed 公告的 item** 释放；`sameItemVad`、`ownedByClip` 从"告警"变成**判据**，进入终止条件与 PASS；旧/外来/重复/缺字段 completed 一律不释放当前条 |
+| **H6-3** | 全部结果字段**在任何失败入口前初始化**（配置失败也可落盘）；改用 **`performance.now()` 单调时钟**贯穿 deadline/边界/wall；`r.window.endMs` 按 **48 ticks/ms 换算**；send 的 `bool`/exception **互斥计数**，非 true 不默认计入 accepted；**迟到帧使本轮无效**而非仅累计 |
+| **H6-4** | 根因表述订正为"组合修复后通过，根因未隔离"（见上） |
+
+### 离线检查（H6-2/H6-3 要求）
+
+判定逻辑抽到 `tools/webrtc_probe/control_logic.js`，**runner 与测试共用同一实现**，
+因此测试的就是实际判据：
+
+```
+$ node tools/webrtc_probe/test_control_logic.js
+16 passed, 0 failed
+```
+
+覆盖：正常归属、旧/外来 item、重复、缺 `item_id`/`transcript`、
+start/stop 属不同 item、关键词缺失、无 VAD stop、未归属 completed、
+failed、拒发/异常/迟到使本轮无效、输入证据无效、条数不足。
 
 ## H1–H4 处置
 
@@ -54,7 +79,11 @@ VERDICT: PASS
 |---|---|
 | `run_pass.json` | 本次通过运行的完整结构化结果 |
 | `run_pass.log` | 同次运行的脱敏原始输出 |
-| `encode_manifest.json` | 源 hash、pcm48 hash、包数/包长、尾部补齐、静音参数与解码证据 |
+| `encode_manifest.json` | 源 hash、pcm48 hash、包数/包长、尾部补齐、CTL 返回码与回读、逐包解码样本数 |
+| `silence_packets.json` | 本次生成目录中**实际被消费**的静音文件（hash 记在 `run_pass.json`） |
+
+`run_pass.json` 的 `inputEvidence` 记录本次运行**实际消费**的 manifest/静音 hash
+与每条 voice 容器 hash，使结果自带输入证据。
 
 ## 重跑命令
 

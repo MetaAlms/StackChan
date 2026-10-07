@@ -167,3 +167,19 @@ Codex 负责设计与每阶段代码/证据复核及后续派单。
   真实投递与继续执行待后续 UI/源码核对，不重复发送。
 - 当前设备固件保持不变；48k PCM 约束保留，其他 M1 findings 尚未解决。
   M1.5 和产品集成继续 HOLD。
+
+### Host H1–H4 交付与残余修复
+
+- 原生第72轮已出现、composer清空，实际提交推送
+  `050a2f43410d5246239b1a1357078e3b52c33412`，
+  [RQ](https://github.com/MetaAlms/StackChan/pull/1#issuecomment-6046543591)。
+  手工与两项独立只读复核均确认原始日志的三条不同 item
+  各有完整 VAD start/stop/completed 与关键词命中；这是有效观察。
+- 仍发现 runner 读取旧120帧静音而归档生成60帧文件、item不匹配仅告警、
+  config失败落盘仍有TDZ、Date.now非单调以及多项改变被误报单独根因。
+  [Review 5448188682](https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5448188682)
+  已提交并回读核对 exact 050a2f4 full SHA，正文见
+  [残余复核](webrtc-media-host-control-review-result-2.md)。
+- 本轮仍只修host残余问题，纯逻辑验证并用同次生成输入真实重跑三条一次。
+  指令已填写到同一会话，投递与执行待核对；当前设备保持，M1.5/产品HOLD。
+  Host闭环后转回已授权设备DTLS/真实SRTP与UDP诊断，未放弃完整移植目标。
