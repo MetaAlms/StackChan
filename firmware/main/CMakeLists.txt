@@ -289,8 +289,19 @@ if(CONFIG_IDF_TARGET_ESP32S3)
     list(APPEND SOURCES "${XIAOZHI_MAIN_DIR}/boards/common/esp32_camera.cc")
 endif()
 
+# M1 probe fixture. Embedded only when the M1 probe is enabled so that the
+# normal firmware does not carry ~360 KB of probe audio.
+set(M1_FIXTURE "")
+if(CONFIG_STACKCHAN_WEBRTC_M1)
+    list(APPEND M1_FIXTURE
+        "hal/webrtc/fixture/zh_1.pcm"
+        "hal/webrtc/fixture/zh_2.pcm"
+        "hal/webrtc/fixture/zh_3.pcm")
+    message(STATUS "M1 probe fixture embedded: 3 PCM clips")
+endif()
+
 idf_component_register(SRCS ${SOURCES}
-                    EMBED_FILES ${LANG_SOUNDS} ${COMMON_SOUNDS}
+                    EMBED_FILES ${LANG_SOUNDS} ${COMMON_SOUNDS} ${M1_FIXTURE}
                     INCLUDE_DIRS ${INCLUDE_DIRS}
                     WHOLE_ARCHIVE
                     PRIV_REQUIRES

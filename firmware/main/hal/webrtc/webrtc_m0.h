@@ -1,5 +1,11 @@
 #pragma once
 
+#include <sdkconfig.h>
+
+
+// PROBE_GUARD
+#if CONFIG_STACKCHAN_WEBRTC_M0
+
 /**
  * @brief M0: verify that esp_peer interoperates with Aliyun's WebRTC endpoint.
  *
@@ -16,3 +22,5 @@
  * so the serial console keeps the evidence.
  */
 void WebRtcM0Run();
+
+#endif  // CONFIG_STACKCHAN_WEBRTC_M0

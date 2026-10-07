@@ -1,7 +1,8 @@
 # WebRTC 媒体 D0 复审
 
-评审提交：`7acb6f398961fbdad4c5e454a273867d82bceeba`  
-PR：<https://github.com/MetaAlms/StackChan/pull/1>  
+评审提交：`7acb6f398961fbdad4c5e454a273867d82bceeba`
+
+PR：<https://github.com/MetaAlms/StackChan/pull/1>
 范围：D0 文档；未改固件、未刷机。结论：**先修下列契约与阶段依赖，再进入 M1**。
 
 上一轮媒体评审的主要问题已订正：PCM 采样率与 RTP 时钟分开、AEC 作为假设、真实双向实验、回调数据所有权、WS 回退与提示音保留。48k PCM 是本次用户要求，继续保持。以下问题来自精确提交复核及两份独立只读检查。
@@ -35,3 +36,9 @@ SPEC 第 209–211 行要求每阶段删除当前 `xiaozhi-esp32/` 与 `managed_
 - 本轮只要求修正设计，无需提供尚未实现阶段的实测证明。M1 的具体 fixture、配置与通过标准在开发任务中冻结。
 
 修复后提交／推送，并针对实际新 HEAD 发 `REVIEW_REQUEST`；等待本轮复核通过后由 Codex 调度 M1。
+
+## 修复复核
+
+`57ab76eba38b9b8c9bacc95c704698b6316f0ac2` 已逐项修齐 D0-1～D0-4，允许进入 M1。
+权威记录：[Review 5445711841](https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5445711841)。
+这是 M1 的设计放行；后续媒体关联、真实打断与资源目标仍需对应阶段的实现证据。

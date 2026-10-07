@@ -2,8 +2,9 @@
 
 会话：既有 DSH `stackchan`；工作目录 `/Users/amtf/Documents/Git/StackChan`；分支 `feat/aliyun-omni-v2v`；PR <https://github.com/MetaAlms/StackChan/pull/1>。
 
-权威评审：Review ID **5445638146**  
-评审 URL：<https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5445638146>  
+权威评审：Review ID **5445638146**
+
+评审 URL：<https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5445638146>
 reviewed full HEAD：`7acb6f398961fbdad4c5e454a273867d82bceeba`
 
 先核对实际 HEAD，再直接读取上述 native PR review。评审正文同时落盘在 `docs/webrtc-media-d0-review-result.md`。修齐 D0-1～D0-4，并同步其“后续验证约束”；不要重复旧轮次已修项或扩展需求。范围仍为文档：SPEC、PLAN、review-request、调度／事实记录的必要一致性修订；本轮不改固件，不刷机。

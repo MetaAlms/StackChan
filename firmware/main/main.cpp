@@ -12,6 +12,9 @@
 
 #if CONFIG_STACKCHAN_WEBRTC_M0
 #include <hal/webrtc/webrtc_m0.h>
+#endif
+#if CONFIG_STACKCHAN_WEBRTC_M1
+#include <hal/webrtc/webrtc_m1.h>
 #include <board.h>
 #include <wifi_manager.h>
 #include <esp_log.h>
@@ -49,6 +52,27 @@ extern "C" void app_main(void)
         }
         ESP_LOGW("M0", "network is up");
         WebRtcM0Run();
+        while (1) {
+            GetHAL().feedTheDog();
+            GetHAL().delay(1000);
+        }
+    }
+#endif
+
+#if CONFIG_STACKCHAN_WEBRTC_M1
+    // M1: media-uplink probe. Runs instead of the normal firmware so the
+    // working WebSocket path is untouched. Never returns.
+    {
+        ESP_LOGW("M1", "starting the network...");
+        Board::GetInstance().StartNetwork();
+        auto& wifi = WifiManager::GetInstance();
+        ESP_LOGW("M1", "waiting for the network before starting the media probe...");
+        while (!wifi.IsConnected()) {
+            GetHAL().feedTheDog();
+            GetHAL().delay(500);
+        }
+        ESP_LOGW("M1", "network is up");
+        WebRtcM1Run();
         while (1) {
             GetHAL().feedTheDog();
             GetHAL().delay(1000);

@@ -655,3 +655,24 @@ audio_info.sample_rate 仍为 48000。协议/API 可行，阿里媒体效果尚�
 会话/响应代际与晚到 RTP 边界、有界非阻塞队列、全程采集和完整回退。
 N4 的 8KiB free 总和不足以证明资源预算，需结合能力 heap、largest block、栈与
 完整媒体/AFE/UI/重连实测。详见 [媒体评审结果](webrtc-media-review-result.md) Q5/Q6。
+
+### B19. 编码 API 的多帧输出不是一个可直接发送的 Opus packet
+
+**证据**（2026-10-08，M1 预检）：实际 `esp_audio_codec` 2.4.1，组件提交
+`4d5cbe02f59fb45e40112d63317a8ddd00019cd4`；ESP32-S3 库
+`firmware/managed_components/espressif__esp_audio_codec/lib/esp32s3/libesp_audio_codec.a`
+SHA256 为 `faf4c0d76030b58f22df8258ec1b9c436b7445a7d875de3b26a8c888f4d9657a`。
+
+`esp_opus_enc_get_frame_size` 的输入长度为字节，现有
+`audio_service.cc:82–83` 调用后除以 `sizeof(int16_t)`。48k mono s16、20ms
+对应 1920 字节／960 样本。编码结构中的 `out.len` 是调用方提供的缓冲容量，
+`out.encoded_bytes` 才是有效输出长度（`include/encoder/esp_audio_enc.h:59`）。
+
+对上述库中的 `esp_opus_enc.c.obj` 做 `objdump -dr --disassemble=esp_opus_enc_process`：
+函数偏移 `+0xb3` 用输入长度除以帧字节数，`+0x103` 调用 `opus_encode`，
+`+0x131–0x14e` 累加编码字节并移动输出指针继续编码。因此一次交给 API 多帧 PCM
+会把多个 raw Opus packet **直接拼接**，没有逐包长度前缀，不能把整块结果当单个 RTP payload。
+
+**状态**：API 行为已从头文件、现有调用与二进制独立核验；未声称 SDK 本身有缺陷。
+M1 任务要求每次 `in.len == in_size`，逐包发送 `encoded_bytes`，并检查缓冲容量和
+RTP payload 上限；实际实现及真机证据待复核。见 [M1 任务](webrtc-media-m1-task.md)。

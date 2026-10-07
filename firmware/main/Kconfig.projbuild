@@ -1,5 +1,44 @@
 menu "StackChan Aliyun Realtime"
 
+config STACKCHAN_WEBRTC_M1
+    bool "Boot into the M1 media-uplink probe"
+    default n
+    help
+        Streams the bundled 16 kHz PCM fixture through the on-device
+        resampler (16->48 kHz) and a 48 kHz mono Opus encoder, then sends
+        one raw Opus packet per RTP frame using the verified WebRTC transport.
+
+        M1 exercises the uplink only: it verifies configuration, media send,
+        server VAD and complete ASR in four separately observable layers. It
+        says nothing about downlink, AEC, double-talk or product integration.
+
+        Mutually exclusive with STACKCHAN_WEBRTC_M0.
+
+choice STACKCHAN_WEBRTC_M1_FRAME_MS
+    prompt "M1 Opus frame duration"
+    default STACKCHAN_WEBRTC_M1_FRAME_20MS
+    depends on STACKCHAN_WEBRTC_M1
+    help
+        Frame duration for the M1 encoder. This affects the WebRTC path only;
+        the global OPUS_FRAME_DURATION_MS used by WebSocket and the AFE is
+        never modified.
+
+config STACKCHAN_WEBRTC_M1_FRAME_20MS
+    bool "20 ms (48000 Hz mono s16: 1920 B / 960 samples)"
+
+config STACKCHAN_WEBRTC_M1_FRAME_60MS
+    bool "60 ms (48000 Hz mono s16: 5760 B / 2880 samples)"
+endchoice
+
+config STACKCHAN_WEBRTC_M1_LOOP_SECONDS
+    int "M1 continuous media loop duration (seconds)"
+    default 300
+    depends on STACKCHAN_WEBRTC_M1
+    help
+        After the three fixture clips have been played once, the probe keeps
+        cycling them for this long while sampling heap, stack and latency, so
+        the resource evidence covers sustained media rather than a single pass.
+
 config STACKCHAN_WEBRTC_M0
     bool "Boot into the WebRTC interop test (M0) instead of normal firmware"
     default n

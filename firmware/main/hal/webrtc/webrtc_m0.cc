@@ -1,3 +1,9 @@
+#include <sdkconfig.h>
+
+// PROBE_GUARD: M0 interoperability probe. Compiled only for that build so the normal
+// firmware carries none of this code.
+#if CONFIG_STACKCHAN_WEBRTC_M0
+
 #include "webrtc_m0.h"
 
 #include <algorithm>
@@ -447,3 +453,5 @@ void WebRtcM0Run()
     const int conn_ret = esp_peer_new_connection(g.peer);
     ESP_LOGI(TAG, "esp_peer_new_connection -> %d", conn_ret);
 }
+
+#endif  // CONFIG_STACKCHAN_WEBRTC_M0
