@@ -62,9 +62,11 @@ Distinguish binary vs source objects precisely:
    an officially declared mbedtls_dtls_srtp_info; use installed headers/member
    names (MBEDTLS_PRIVATE macro where required), never guessed byte offsets.
    Do not output MKI bytes, randoms, secrets, policies, certificates or fingerprints.
-   Label profile as selected/UNSET plus handshake rc: a selected profile during
-   a failed handshake does not prove the handshake completed. Full completion
-   requires actual handshake rc0/peer CONNECTED. Cipher may be absent on failure.
+   Installed `mbedtls_ssl_get_dtls_srtp_negotiation_result` returns void and its
+   public contract requires a completed handshake. Query it only after actual
+   rc0 and public `mbedtls_ssl_is_handshake_over`; on a failed/incomplete call
+   report profile as unconfirmed, not a trustworthy selected profile. The
+   handshake-over/role/config getters are inline: call them directly, not --wrap.
 6. Keep fixed aggregate counters plus a bounded chronological sample ring (e.g.
    first/last16 plus error records). No per-record printf, dynamic allocation,
    payload copy or I/O in wrappers; locks only briefly update metadata and never
@@ -111,9 +113,10 @@ For classic DTLS1.0/1.2 records (this peer forces DTLS1.2):
   the public BIO registration/callback contract can distinguish ingestion.
 - Handshake rc0 + selected profile0x0001 => current default AES128-CM/SHA1-80
   policy matches; SHA384 exporter hypothesis is already exonerated by source.
-- Selected0x0002/NULL orUNSET => source's unconditional default SRTP policy is a
-  concrete conditional concern; still do not attribute currentzeroVAD without
-  actual profile observation.
+- After confirmed handshake completion, selected0x0002/NULL orUNSET => source's
+  unconditional default SRTP policy is a concrete conditional concern; still do
+  not attribute currentzeroVAD without actual profile observation. Profile
+  output from a failed/incomplete handshake does not support this comparison.
 - No metadata probe is end-to-end proof of remote receipt/decryption/Opus/VAD/ASR.
 
 Primary references:

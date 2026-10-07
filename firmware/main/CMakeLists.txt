@@ -309,7 +309,9 @@ set(M1_WRAP_OPTIONS "")
 if(CONFIG_STACKCHAN_WEBRTC_M1)
     set(M1_WRAP_OPTIONS
         "-Wl,--wrap=srtp_protect"
-        "-Wl,--wrap=lwip_sendto")
+        "-Wl,--wrap=lwip_sendto"
+        "-Wl,--wrap=lwip_recvfrom"
+        "-Wl,--wrap=mbedtls_ssl_handshake")
     message(STATUS "M1 probe: RTP/SRTP/UDP send observation enabled")
 endif()
 

@@ -88,6 +88,13 @@ Report Snapshot();
 /** One-line summary, non-sensitive metadata only. */
 std::string Format(const Report& r);
 
+/**
+ * @brief Record one UDP write seen by the shared lwip_sendto wrapper.
+ * @param rc          the real call's return value
+ * @param saved_errno errno immediately after the real call
+ */
+void ObserveSendto(const void* dataptr, size_t size, ssize_t rc, int saved_errno);
+
 }  // namespace rtp_probe
 
 #endif  // CONFIG_STACKCHAN_WEBRTC_M1

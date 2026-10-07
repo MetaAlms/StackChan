@@ -174,7 +174,8 @@ async function main() {
         rec('[asr] completed without usable transcript/item_id; ignored');
       }
     } else if (t === 'conversation.item.input_audio_transcription.failed') {
-      events.failed.push(m.error || {});
+      // H7-1: keep the item so a failure can be attributed to a clip.
+      events.failed.push(Object.assign({}, m.error || {}, { item_id: m.item_id || null }));
       rec(`[asr] FAILED ${JSON.stringify(m.error || {})}`);
     } else if (t === 'error') {
       events.errors.push(m.error || {});
@@ -409,12 +410,16 @@ async function main() {
     // The items this clip's turn actually announced. A completion is only
     // allowed to end this clip when it carries one of them; a stale or unknown
     // item must not release the wait.
-    const announced = L.announcedItems(events.vad.slice(vadBefore),
-                                       events.committed.slice(committedBefore));
+    // H7-1: the set is re-derived on every poll. Freezing it before the wait
+    // meant an item announced only during the wait could never release it.
+    const currentAnnounced = () => L.announcedItems(events.vad.slice(vadBefore),
+                                                    events.committed.slice(committedBefore));
 
     const w0 = now();
     let owned = null;
+    let announced = currentAnnounced();
     while (now() - w0 < 20000) {
+      announced = currentAnnounced();
       owned = L.pickOwnedCompletion(events.asr.slice(asrBefore), announced);
       if (owned) break;
       if (events.failed.slice(failedBefore).some((f) => !f.item_id || announced.size === 0 ||
@@ -446,6 +451,7 @@ async function main() {
     // this clip's own VAD/committed announced, and its start/stop must refer to
     // that same item rather than to two different ones.
     r.sameItemVad = L.sameItemVad(myVad);
+    r.bracketedItem = L.bracketedItem(myVad);
     r.ownedByClip = !!(r.itemId && announced.has(r.itemId));
     if (r.completed && !r.ownedByClip) {
       rec(`[asr] ${r.id}: completed item=${r.itemId} was NOT announced by this clip ` +

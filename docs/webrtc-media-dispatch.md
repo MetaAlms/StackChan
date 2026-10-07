@@ -183,3 +183,22 @@ Codex 负责设计与每阶段代码/证据复核及后续派单。
 - 本轮仍只修host残余问题，纯逻辑验证并用同次生成输入真实重跑三条一次。
   指令已填写到同一会话，投递与执行待核对；当前设备保持，M1.5/产品HOLD。
   Host闭环后转回已授权设备DTLS/真实SRTP与UDP诊断，未放弃完整移植目标。
+
+### 有效host重跑后返回设备诊断
+
+- 原生第73轮已交付 `7317037231fbdba21a1cc029205fca0efb2ca264`，
+  [RQ](https://github.com/MetaAlms/StackChan/pull/1#issuecomment-6046696531)。
+  Codex核对同次输入hash/60帧静音、744包、单调时间和三条item对应事件链，
+  确认本次实际正对照结果成立；16项原有离线检查也通过。
+- 两个独立构造反例仍揭示host判据可混合A的VAD与B的completed、
+  空公告集合接受OLD。作为H7-1续修，不要求再开host云会话。
+- [Review 5448296466](https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5448296466)
+  已提交并回读核对exact 7317037 full SHA。
+  本轮聚焦H7-1及原R3-4的设备DTLS短诊断/实际发送计数（D1-1/D1-2），
+  正文见 [设备诊断复核](webrtc-media-m1-device-diagnostic-review.md)。
+  授权必要构建/flash/一次短尝试及发现具体错误后的短复测；
+  未先放行300s/60ms完整M1验收，更未放行M1.5/产品集成。
+- 下一指令仍通过同一原生stackchan发送；完整Review/SHA核对后发一次，
+  实际投递状态随后核对，不切换实现者或复制会话。
+- 最小Review ID/full SHA/H7-D1唯一范围/验证flash+push+exact-head RQ+STOP草稿
+  已完整回读并点击发送一次；等待原生新轮次/实际源码证据确认执行。

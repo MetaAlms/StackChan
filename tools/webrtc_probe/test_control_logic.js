@@ -77,5 +77,42 @@ t('invalid input evidence fails', () =>
 t('a short run fails', () =>
   assert.strictEqual(L.evaluateRun(run({ clips: [clip()], expectedClips: 3 })).ok, false));
 
+console.log('H7-1 counterexamples (from the review)');
+t('foreign completion is rejected when nothing was announced', () => {
+  // The review's exact counterexample: announced.size === 0 used to accept OLD.
+  const ann = L.announcedItems([], []);
+  assert.strictEqual(ann.size, 0);
+  assert.strictEqual(L.pickOwnedCompletion([{ item_id: 'OLD', transcript: 'x' }], ann), null);
+});
+t('a different completed item than the VAD-bracketed one fails', () => {
+  // VAD brackets A; committed/completed are B. Some item did have both edges,
+  // so a plain sameItemVad boolean would have passed this.
+  const vad = [{ kind: 'started', item_id: 'A' }, { kind: 'stopped', item_id: 'A' }];
+  assert.strictEqual(L.bracketedItem(vad), 'A');
+  const e = L.evaluateClip({ ...clip(), itemId: 'B', bracketedItem: 'A',
+                             ownedByClip: true, completed: 1 });
+  assert.strictEqual(e.ok, false);
+  assert.ok(e.reasons.some((r) => r.includes('not the VAD-bracketed item')));
+});
+t('matching bracketed and completed item passes', () => {
+  const vad = [{ kind: 'started', item_id: 'A' }, { kind: 'stopped', item_id: 'A' }];
+  const e = L.evaluateClip({ ...clip(), itemId: 'A', bracketedItem: 'A' });
+  assert.strictEqual(e.ok, true);
+});
+
+console.log('H7-1 announcement appearing during the wait');
+t('announcement discovered mid-wait is usable', () => {
+  // The wait re-reads this clip's announcement set, so an item that shows up
+  // only after the wait began must still be able to release it.
+  let ann = L.announcedItems([], []);
+  assert.strictEqual(L.pickOwnedCompletion([{ item_id: 'A', transcript: 'x' }], ann), null);
+  ann = L.announcedItems([{ kind: 'started', item_id: 'A' }], [{ item_id: 'A' }]);
+  assert.strictEqual(L.pickOwnedCompletion([{ item_id: 'A', transcript: 'x' }], ann).item_id, 'A');
+});
+t('a failed turn carries its own item and is not usable as a completion', () => {
+  const ann = L.announcedItems([{ kind: 'started', item_id: 'A' }], []);
+  assert.strictEqual(L.pickOwnedCompletion([{ item_id: 'A' }], ann), null);
+});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);

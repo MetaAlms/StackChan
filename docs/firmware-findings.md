@@ -697,3 +697,34 @@ AFE 因此组成 MR，但设备 AEC 关闭，第二路仍是麦克风，未混�
 不能直接打开 AEC，把第二只麦当参考，也不能据接口可用宣称打断可用。
 不改变已冻结 SPEC 或 M1.5 HOLD，后续需要具体设计复核与真实同步/双讲实验。
 完整路径与边界见 [条件预研](webrtc-software-reference-feasibility.md)。
+
+### B20. `--wrap` 无法截获 Mbed TLS 的 inline getter，且本机构建无公开 profile/role getter
+
+**证据**（2026-10-08，D1-1 实现）：本机 Mbed TLS 3.6.5
+（`~/esp/esp-idf-5.5/components/mbedtls/mbedtls/include/mbedtls/ssl.h`）中
+`mbedtls_ssl_get_ciphersuite(ssl)` 存在（:4860），但**没有**公开的
+endpoint role 或 selected SRTP profile getter；`chosen_dtls_srtp_profile`
+是 `MBEDTLS_PRIVATE` 字段（:1247）。
+
+**影响**：短诊断**不能**通过公开接口报告 role 或 SRTP profile。
+读取该私有字段即等于猜结构体布局，是必须避免的做法。
+报告中应记 `n/a`，而不是编造或从私有内存推断。
+
+**状态**：已在 `dtls_short_probe.cc` 中按此实现；cipher **名称**可获取。
+
+### B21. `--wrap` 同一符号只能有一个定义；跨探针共享需导出内部入口
+
+**证据**：同时为 RTP 与 DTLS 观测包装 `lwip_sendto` 会产生
+`multiple definition of __wrap_lwip_sendto`。
+
+**处置**：`__wrap_lwip_sendto` 只保留一处（`dtls_short_probe.cc`），
+RTP 侧改为导出 `rtp_probe::ObserveSendto()`，由该唯一包装转发。
+
+### B22. 设备侧 SSRC 异常小（待验证）
+
+**证据**（2026-10-08，D1-2 短诊断）：`first: pt=111 seq=0 ts=0 ssrc=0x00000006`。
+
+**状态**：**仅记录，未定位、未验证**。host 标准栈使用会话内随机非零 SSRC 并通过
+`addSSRC()` 在 SDP 中宣告；设备侧该数值可疑，是下一轮的首要核对项。
+不得在未做单变量验证前当作根因。
+

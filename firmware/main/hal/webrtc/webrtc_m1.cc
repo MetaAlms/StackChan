@@ -25,6 +25,7 @@
 
 #include "decoder/impl/esp_opus_dec.h"
 #include "encoder/impl/esp_opus_enc.h"
+#include "dtls_short_probe.h"
 #include "rtp_send_probe.h"
 #include "webrtc_transport.h"
 
@@ -1256,6 +1257,10 @@ void WebRtcM1Run()
         return;
     }
 
+    // D1-1: a separate short diagnostic generation, armed *before* the
+    // transport starts, so a handshake failure still has observable evidence.
+    dtls_probe::Arm();
+
     webrtc_transport::Config tcfg = {};
     tcfg.pcm_sample_rate = kPcmRate;
     tcfg.pcm_channels = kChannels;
@@ -1293,6 +1298,7 @@ void WebRtcM1Run()
 
     if (!g_transport.Start(tcfg, cb, &err)) {
         ESP_LOGE(TAG, "VERDICT: FAIL - transport: %s", err.c_str());
+        dtls_probe::LogReport("start-failed");
         g_sender.Close();
         return;
     }
@@ -1354,6 +1360,8 @@ void WebRtcM1Run()
                           "configuration could be verified");
         }
         ESP_LOGE(TAG, "The fixture was NOT sent.");
+        // D1-1: the handshake report must exist on the failure path too.
+        dtls_probe::LogReport("gate-failed");
         // Release g_obs.mtx before Stop(): a callback waiting on that lock would
         // otherwise deadlock the join.
         g_transport.Stop();
@@ -1361,6 +1369,7 @@ void WebRtcM1Run()
         return;
     }
     ESP_LOGW(TAG, "[cfg] gate passed: %s", gate_detail.c_str());
+    dtls_probe::LogReport("connected");
 
     // R2-4: fresh observation generation before any media is sent.
     rtp_probe::Arm();

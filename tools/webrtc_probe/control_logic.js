@@ -25,23 +25,38 @@ function announcedItems(vad, committed) {
  * wait: that is how a stale or foreign result used to end the wrong clip.
  */
 function pickOwnedCompletion(freshAsr, announced) {
+  // H7-1: an empty announcement set means this clip has not announced any item,
+  // so there is nothing a completion could belong to. Accepting it let a
+  // foreign OLD result end the clip.
+  if (!announced || announced.size === 0) return null;
   for (let i = (freshAsr || []).length - 1; i >= 0; i--) {
     const c = freshAsr[i];
     if (!c || typeof c.item_id !== 'string' || !c.item_id) continue;
     if (typeof c.transcript !== 'string') continue;
-    if (announced.size === 0 || announced.has(c.item_id)) return c;
+    if (announced.has(c.item_id)) return c;
   }
   return null;
 }
 
-/** True only when some single item has both a start and a stop. */
-function sameItemVad(vad) {
+/**
+ * @brief Item bracketed by both a start and a stop.
+ *
+ * Returns the item itself, not a boolean: H7-1 requires the completion to belong
+ * to the *same* item the VAD bracketed, so a run where VAD is A but the
+ * completion is B must not pass just because some item had both edges.
+ */
+function bracketedItem(vad) {
   const started = new Set((vad || []).filter((v) => v.kind === 'started' && v.item_id)
                                        .map((v) => v.item_id));
   const stopped = new Set((vad || []).filter((v) => v.kind === 'stopped' && v.item_id)
                                        .map((v) => v.item_id));
-  for (const i of started) if (stopped.has(i)) return true;
-  return false;
+  for (const i of started) if (stopped.has(i)) return i;
+  return null;
+}
+
+/** Kept for callers that only need the boolean. */
+function sameItemVad(vad) {
+  return bracketedItem(vad) !== null;
 }
 
 /** Per-clip verdict with explicit reasons. */
@@ -52,6 +67,11 @@ function evaluateClip(r) {
   if (!r.sameItemVad) reasons.push('start/stop refer to different items');
   if (!r.completed) reasons.push('no owned completed transcription');
   if (!r.ownedByClip) reasons.push('completed item was not announced by this clip');
+  // H7-1: the completion must belong to the item the VAD actually bracketed.
+  if (r.completed && r.bracketedItem && r.itemId !== r.bracketedItem) {
+    reasons.push(`completed item ${r.itemId} is not the VAD-bracketed item ` +
+                 `${r.bracketedItem}`);
+  }
   if (!(r.hits.length === r.keywords.length)) {
     reasons.push(`keywords ${r.hits.length}/${r.keywords.length}`);
   }
@@ -73,4 +93,5 @@ function evaluateRun({ sendValid, invalidReason, clips, expectedClips }) {
   return { ok: reasons.length === 0, reasons };
 }
 
-module.exports = { announcedItems, pickOwnedCompletion, sameItemVad, evaluateClip, evaluateRun };
+module.exports = { announcedItems, pickOwnedCompletion, bracketedItem, sameItemVad,
+                   evaluateClip, evaluateRun };

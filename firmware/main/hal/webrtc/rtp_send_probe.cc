@@ -119,17 +119,36 @@ bool ParseRtp(const uint8_t* d, size_t n, Record* out)
     return true;
 }
 
+/**
+ * @brief Classify a record before its slot is released.
+ *
+ * Which counter moves depends on how far the record got. Treating every
+ * non-free state as "completed" hid exactly the case this probe exists to find:
+ * a packet that reached SRTP and was never written to the socket.
+ */
+void RetireLocked(Record& r)
+{
+    switch (r.state) {
+        case Slot::kPending:
+            ++g_rep.retired_pending;        // never saw a protect result
+            break;
+        case Slot::kProtected:
+            ++g_rep.protected_unwritten;    // protected, no write ever observed
+            break;
+        default:
+            break;
+    }
+    r.state = Slot::kFree;
+    ++g_rep.retired;
+}
+
 /** Retire records that are too old to still be in flight. */
 void ExpireLocked(int64_t now)
 {
     for (size_t i = 0; i < kRing; ++i) {
         Record& r = g_ring[i];
         if (r.state != Slot::kFree && (now - r.t_us) > kRecordTtlUs) {
-            if (r.state == Slot::kPending) {
-                ++g_rep.retired_pending;   // never saw a protect result
-            }
-            r.state = Slot::kFree;
-            ++g_rep.retired;
+            RetireLocked(r);
         }
     }
 }
@@ -147,24 +166,21 @@ Record* AcquireLocked(int64_t now)
     // Reuse the oldest completed slot; recycling a *pending* one means a real
     // observation was lost, which is what overflow must count. Normal traffic
     // recycling a completed slot is not overflow.
-    Record* oldest_done = nullptr;
-    Record* oldest_any = &g_ring[0];
+    Record* oldest = &g_ring[0];
     for (size_t i = 0; i < kRing; ++i) {
-        Record& r = g_ring[i];
-        if (r.state != Slot::kPending) {
-            if (oldest_done == nullptr || r.t_us < oldest_done->t_us) {
-                oldest_done = &r;
-            }
-        }
-        if (r.t_us < oldest_any->t_us) {
-            oldest_any = &r;
+        if (g_ring[i].t_us < oldest->t_us) {
+            oldest = &g_ring[i];
         }
     }
-    if (oldest_done != nullptr) {
-        return oldest_done;
+    // Reusing the slot loses whatever it held, so classify it the same way a
+    // retirement would be classified, and count it as overflow only when the
+    // lost observation was still pending.
+    const bool was_pending = (oldest->state == Slot::kPending);
+    RetireLocked(*oldest);
+    if (was_pending) {
+        ++g_rep.overflow_pending;
     }
-    ++g_rep.overflow_pending;
-    return oldest_any;
+    return oldest;
 }
 
 Record* FindMatchLocked(uint16_t seq, uint32_t ts, uint32_t ssrc, int64_t now)
@@ -205,6 +221,13 @@ void Arm()
 Report Snapshot()
 {
     std::lock_guard<std::mutex> lock(g_mtx);
+    // Settle the window: everything still pending or protected-but-unwritten is
+    // classified now, so a short run cannot claim coverage it never had.
+    for (size_t i = 0; i < kRing; ++i) {
+        if (g_ring[i].state != Slot::kFree) {
+            RetireLocked(g_ring[i]);
+        }
+    }
     return g_rep;
 }
 
@@ -217,7 +240,8 @@ std::string Format(const Report& r)
              "gen=%u | srtp_protect calls=%u ok=%u fail=%u unparsable=%u | "
              "udp attempts=%u packets_written=%u write_incomplete=%u write_failed=%u "
              "unmatched=%u last_rc=%d last_errno=%d | retired=%u retired_pending=%u "
-             "overflow_pending=%u | first: pt=%d seq=%u ts=%u ssrc=0x%08x rtp_len=%d "
+             "overflow_pending=%u protected_unwritten=%u length_mismatch=%u "
+             "wrote_after_protect_fail=%u | first: pt=%d seq=%u ts=%u ssrc=0x%08x rtp_len=%d "
              "hdr_len=%d srtp_cap=%d srtp_len=%d | last: seq=%u ts=%u | "
              "ssrc_changes=%u pt_changes=%u",
              (unsigned)r.generation,
@@ -227,7 +251,8 @@ std::string Format(const Report& r)
              (unsigned)r.write_incomplete, (unsigned)r.write_failed,
              (unsigned)r.udp_unmatched, r.last_rc, r.last_errno,
              (unsigned)r.retired, (unsigned)r.retired_pending,
-             (unsigned)r.overflow_pending,
+             (unsigned)r.overflow_pending, (unsigned)r.protected_unwritten,
+             (unsigned)r.length_mismatch, (unsigned)r.wrote_after_protect_fail,
              r.first_pt, (unsigned)r.first_seq, (unsigned)r.first_ts,
              (unsigned)r.first_ssrc, r.first_rtp_len, r.first_header_len,
              r.first_out_capacity, r.first_srtp_len,
@@ -353,56 +378,68 @@ extern "C" srtp_err_status_t __wrap_srtp_protect(srtp_t ctx, const uint8_t* rtp,
     return rc;
 }
 
-extern "C" ssize_t __wrap_lwip_sendto(int s, const void* dataptr, size_t size, int flags,
-                                      const struct sockaddr* to, socklen_t tolen)
+/**
+ * @brief Observe one UDP write for the RTP path.
+ *
+ * The actual --wrap_lwip_sendto lives in dtls_short_probe.cc so that a single
+ * wrapper feeds both probes; defining it twice would be a duplicate symbol.
+ */
+namespace rtp_probe {
+
+void ObserveSendto(const void* dataptr, size_t size, ssize_t rc, int saved_errno)
 {
-    using namespace rtp_probe;
+    Record parsed_rec;
+    const bool parsed = ParseRtp((const uint8_t*)dataptr, size, &parsed_rec);
+    std::lock_guard<std::mutex> lock(g_mtx);
+    if (!parsed) {
+        ++g_rep.udp_unmatched;
+        return;
+    }
+    const int64_t now = esp_timer_get_time();
+    Record* hit = FindMatchLocked(parsed_rec.seq, parsed_rec.ts, parsed_rec.ssrc, now);
+    if (hit == nullptr) {
+        ++g_rep.udp_unmatched;
+        return;
+    }
+    ++hit->attempts;
+    ++g_rep.udp_attempts;
 
-    const ssize_t rc = __real_lwip_sendto(s, dataptr, size, flags, to, tolen);
-    const int saved_errno = errno;   // immediately after the real call
-
-    {
-        Record parsed_rec;
-        const bool parsed = ParseRtp((const uint8_t*)dataptr, size, &parsed_rec);
-        std::lock_guard<std::mutex> lock(g_mtx);
-        if (parsed) {
-            const int64_t now = esp_timer_get_time();
-            Record* hit = FindMatchLocked(parsed_rec.seq, parsed_rec.ts, parsed_rec.ssrc, now);
-            if (hit != nullptr) {
-                // Attempt counting and packet success are deliberately separate:
-                // the UDP path can retry, so attempts > packets.
-                ++hit->attempts;
-                ++g_rep.udp_attempts;
-                if (rc == (ssize_t)size) {
-                    if (!hit->any_success) {
-                        hit->any_success = true;
-                        ++g_rep.packets_written;
-                    }
-                    hit->state = Slot::kWritten;
-                } else {
-                    if (rc >= 0) {
-                        ++g_rep.write_incomplete;
-                    } else {
-                        ++g_rep.write_failed;
-                        g_rep.last_rc = (int)rc;
-                        g_rep.last_errno = saved_errno;
-                    }
-                    if (!hit->any_success) {
-                        hit->state = Slot::kWriteFailed;
-                    }
-                }
-                hit->last_rc = (int)rc;
-                hit->last_errno = saved_errno;
-            } else {
-                ++g_rep.udp_unmatched;
-            }
-        } else {
-            ++g_rep.udp_unmatched;
-        }
+    // A success needs all three: protect succeeded, the UDP request length
+    // equals that record's SRTP output length, and the call wrote it all.
+    const bool protect_ok = (hit->state == Slot::kProtected ||
+                             hit->state == Slot::kWritten);
+    const bool length_ok = (hit->srtp_len >= 0 &&
+                            (ssize_t)hit->srtp_len == (ssize_t)size);
+    if (!protect_ok) {
+        ++g_rep.wrote_after_protect_fail;
+    }
+    if (protect_ok && !length_ok && rc >= 0) {
+        ++g_rep.length_mismatch;
     }
 
-    errno = saved_errno;
-    return rc;
+    if (protect_ok && length_ok && rc == (ssize_t)size) {
+        if (!hit->any_success) {          // retries must not double-count
+            hit->any_success = true;
+            ++g_rep.packets_written;
+        }
+        hit->state = Slot::kWritten;
+    } else if (rc >= 0 && rc < (ssize_t)size) {
+        ++g_rep.write_incomplete;
+        if (!hit->any_success) {
+            hit->state = Slot::kWriteFailed;
+        }
+    } else if (rc < 0) {
+        ++g_rep.write_failed;
+        g_rep.last_rc = (int)rc;
+        g_rep.last_errno = saved_errno;
+        if (!hit->any_success) {
+            hit->state = Slot::kWriteFailed;
+        }
+    }
+    hit->last_rc = (int)rc;
+    hit->last_errno = saved_errno;
 }
+
+}  // namespace rtp_probe
 
 #endif  // CONFIG_STACKCHAN_WEBRTC_M1

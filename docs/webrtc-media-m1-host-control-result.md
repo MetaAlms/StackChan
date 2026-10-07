@@ -109,3 +109,73 @@ item_id 绑定、wall/loop 范围、sender 信号量、60 ms、回归与隔离�
 早先三次运行停在 `speech_started` 有、`speech_stopped` 无，当时结论曾写为
 "服务端/模型/配置无法处理该音频已排除，问题收窄到设备侧"——**该表述过强**，
 当时证据只支持"某些输入到达并触发 VAD 起始"。现已按 H4 订正。
+
+---
+
+# D1-1 / D1-2：设备短诊断（实际执行）
+
+被复核 HEAD：`7317037`（Review 5448296466）。本次为**设备侧**短诊断，非 host。
+
+## D1-1：DTLS 观测（成功路径）
+
+`dtls_short_probe.{h,cc}` 新增，独立 generation 在 `Transport.Start()` **之前** Arm，
+成功与失败路径都输出。包装 `mbedtls_ssl_handshake`、`lwip_sendto`、`lwip_recvfrom`
+（四者均为 S3 目标文件中的未解析外部符号，`nm build/stack-chan.elf` 确认四个
+`__wrap_*` 各 1 个定义）。
+
+本次实际输出：
+
+```
+[cоnnected] gen=1 | handshake calls=4 ok=2 fail=2 last_ret=0 last=13ms total=8250ms
+            complete=1
+            DTLS TX records=14 unparsable=4 epoch_changes=1 first_type=22 last_type=23
+            epoch=1 seq_hi=0 len=52
+            DTLS RX records=27 unparsable=16 epoch_changes=1 first_type=22 last_type=23
+            epoch=1 seq_hi=0 len=552
+            cipher=TLS-ECDHE-ECDSA-WITH-AES-256-GCM-SHA384
+            sendto=18 recvfrom=43
+```
+
+**可支持的结论**：本次握手**双向都有 DTLS record 流动**（14 TX / 27 RX），
+`handshake` 被调用 4 次（2 次成功、2 次失败重试，累计 8250 ms），最终完成并协商出 cipher。
+这**不支持**"UDP 包根本没出去"或"对端无响应"的假设。
+
+**只记录非敏感元数据**：13 字节 classic record 头（type/version/epoch/48 位序号高 16 位/
+长度）、返回码、errno、cipher **名称**。
+**未记录**任何负载、密钥、证书、MKI、IP 或 SDP 凭据。
+
+**未实现 / 不可用**：本机 Mbed TLS 构建**没有**公开的 endpoint role 或
+selected SRTP profile getter（`chosen_dtls_srtp_profile` 是 `MBEDTLS_PRIVATE`），
+按"不猜内存布局"的要求**未读取**，报告中记为 `role=n/a profile=n/a`。
+BIO 回调计数（区分"进入 Mbed"与"仅到达 socket"）**本轮未实现**。
+
+## D1-2：RTP 实际发送观测（短诊断，100 帧 / 2 秒）
+
+```
+gen=2 | srtp_protect calls=100 ok=100 fail=0 unparsable=0
+        udp attempts=100 packets_written=100 write_incomplete=0 write_failed=0
+        unmatched=9 last_rc=0 last_errno=0
+        retired=100 retired_pending=0 overflow_pending=0
+        protected_unwritten=0 length_mismatch=0 wrote_after_protect_fail=0
+        first: pt=111 seq=0 ts=0 ssrc=0x00000006 rtp_len=15 hdr_len=12
+               srtp_cap=1428 srtp_len=25
+        last: seq=99 ts=95040 | ssrc_changes=0 pt_changes=0
+100 packets fully written in 100 UDP attempts
+```
+
+**本阶段发送路径在本地是完整成立的**：100/100 保护成功、100/100 UDP 整长写入，
+无短写、无负返回、无长度不符、无"保护成功但未写出"、无观察丢失
+（新字段已实际实现并输出，不再是恒零）。
+
+## 关键线索：SSRC = 0x00000006
+
+`ssrc=0x00000006` 是一个异常小的值。host 正对照中 SSRC 是**会话内随机非零 32 位**
+并通过 `audio.addSSRC()` 在 SDP 中宣告；设备侧该值可疑，需在下一轮核对
+esp_peer 是否在 SDP 中宣告了一致的 SSRC。
+
+**同时注意**：即便本地发送 100/100 成功，设备 `vad=0/0`、
+`completed=0`；而 host 标准栈对**同源 fixture** 三条全部通过。
+两者结合把问题进一步收窄到**设备侧 RTP/SDP 的媒体参数**（SSRC 是当前首要线索），
+而非本地编码、SRTP 或 socket 写入。
+
+**这不构成根因结论**——SSRC 只是待验证的首要假设，本轮未做单变量验证。
