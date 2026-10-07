@@ -1,5 +1,8 @@
 # 复核请求：ESP32 上 esp_peer 与阿里云 WebRTC 端点握手失败，是否为 esp_peer 缺陷
 
+> **后续**：本请求的结论见 [webrtc-m0-review-result.md](webrtc-m0-review-result.md)；
+> 由该结论推出的取舍另有[第二轮复核请求](webrtc-m0-review-request-2.md)。
+
 请独立复核下面这个结论。**不要默认我判断正确**——请重点找反例、找我自己配置错误的可能。
 
 ---
