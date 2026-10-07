@@ -10,6 +10,20 @@
 #include <apps/apps.h>
 #include <hal/hal.h>
 
+// Both probes need the board/Wi-Fi/log headers; only the probe entry points
+// themselves are per-probe.
+#if CONFIG_STACKCHAN_WEBRTC_M0 || CONFIG_STACKCHAN_WEBRTC_M1
+#include <board.h>
+#include <wifi_manager.h>
+#include <esp_log.h>
+#endif
+#if CONFIG_STACKCHAN_WEBRTC_M0
+#include <hal/webrtc/webrtc_m0.h>
+#endif
+#if CONFIG_STACKCHAN_WEBRTC_M1
+#include <hal/webrtc/webrtc_m1.h>
+#endif
+
 using namespace mooncake;
 using namespace smooth_ui_toolkit;
 
@@ -21,6 +35,54 @@ extern "C" void app_main(void)
 
     // HAL init
     GetHAL().init();
+
+#if CONFIG_STACKCHAN_WEBRTC_M0
+    // M0: WebRTC interoperability probe. Runs instead of the normal firmware so
+    // the working WebSocket path is left untouched. Never returns.
+    {
+        // Nothing else in this path brings the network up: normally
+        // startXiaozhi() -> Application::Initialize() calls StartNetwork(), and
+        // M0 skips all of that. Without this the wait below never ends.
+        ESP_LOGW("M0", "starting the network...");
+        Board::GetInstance().StartNetwork();
+
+        // WifiManager is the interface the Aliyun protocol already uses to ask
+        // whether the link is up.
+        auto& wifi = WifiManager::GetInstance();
+        ESP_LOGW("M0", "waiting for the network before probing WebRTC...");
+        while (!wifi.IsConnected()) {
+            GetHAL().feedTheDog();
+            GetHAL().delay(500);
+        }
+        ESP_LOGW("M0", "network is up");
+        WebRtcM0Run();
+        while (1) {
+            GetHAL().feedTheDog();
+            GetHAL().delay(1000);
+        }
+    }
+#endif
+
+#if CONFIG_STACKCHAN_WEBRTC_M1
+    // M1: media-uplink probe. Runs instead of the normal firmware so the
+    // working WebSocket path is untouched. Never returns.
+    {
+        ESP_LOGW("M1", "starting the network...");
+        Board::GetInstance().StartNetwork();
+        auto& wifi = WifiManager::GetInstance();
+        ESP_LOGW("M1", "waiting for the network before starting the media probe...");
+        while (!wifi.IsConnected()) {
+            GetHAL().feedTheDog();
+            GetHAL().delay(500);
+        }
+        ESP_LOGW("M1", "network is up");
+        WebRtcM1Run();
+        while (1) {
+            GetHAL().feedTheDog();
+            GetHAL().delay(1000);
+        }
+    }
+#endif
 
     // Setup ui hal
     ui_hal::on_delay([](uint32_t ms) { GetHAL().delay(ms); });

@@ -1,3 +1,117 @@
+menu "StackChan Aliyun Realtime"
+
+config STACKCHAN_WEBRTC_M1
+    bool "Boot into the M1 media-uplink probe"
+    default n
+    # Real constraint, not just a claim in the help text: the two probes use
+    # the same transport and cannot both own the entry point.
+    depends on !STACKCHAN_WEBRTC_M0
+    help
+        Streams the bundled 16 kHz PCM fixture through the on-device
+        resampler (16->48 kHz) and a 48 kHz mono Opus encoder, then sends
+        one raw Opus packet per RTP frame using the verified WebRTC transport.
+
+        M1 exercises the uplink only: it verifies configuration, media send,
+        server VAD and complete ASR in four separately observable layers. It
+        says nothing about downlink, AEC, double-talk or product integration.
+
+        Mutually exclusive with STACKCHAN_WEBRTC_M0.
+
+choice STACKCHAN_WEBRTC_M1_FRAME_MS
+    prompt "M1 Opus frame duration"
+    default STACKCHAN_WEBRTC_M1_FRAME_20MS
+    depends on STACKCHAN_WEBRTC_M1
+    help
+        Frame duration for the M1 encoder. This affects the WebRTC path only;
+        the global OPUS_FRAME_DURATION_MS used by WebSocket and the AFE is
+        never modified.
+
+config STACKCHAN_WEBRTC_M1_FRAME_20MS
+    bool "20 ms (48000 Hz mono s16: 1920 B / 960 samples)"
+
+config STACKCHAN_WEBRTC_M1_FRAME_60MS
+    bool "60 ms (48000 Hz mono s16: 5760 B / 2880 samples)"
+endchoice
+
+config STACKCHAN_WEBRTC_M1_LOOP_SECONDS
+    int "M1 continuous media loop duration (seconds)"
+    default 300
+    depends on STACKCHAN_WEBRTC_M1
+    help
+        After the three fixture clips have been played once, the probe keeps
+        cycling them for this long while sampling heap, stack and latency, so
+        the resource evidence covers sustained media rather than a single pass.
+
+config STACKCHAN_WEBRTC_M0
+    bool "Boot into the WebRTC interop test (M0) instead of normal firmware"
+    default n
+    help
+        Brings up esp_peer against Aliyun's WebRTC endpoint and stops after the
+        DataChannel reports session.created / session.updated. No media is sent.
+
+        This exists to answer one question before committing to a full WebRTC
+        port: does esp_peer interoperate with Aliyun at all? If it does not, the
+        WebSocket implementation remains the answer.
+
+        Requires CONFIG_MBEDTLS_SSL_PROTO_DTLS and CONFIG_MBEDTLS_SSL_DTLS_SRTP.
+
+config STACKCHAN_ALIYUN_ENABLE
+    bool "Use Aliyun Qwen-Omni-Realtime instead of the xiaozhi backend"
+    default n
+    help
+        When enabled, the device talks only to Alibaba Cloud Bailian and never
+        contacts the xiaozhi OTA endpoint. Requires an API key below.
+
+config STACKCHAN_ALIYUN_API_KEY
+    string "Bailian API key"
+    default ""
+    depends on STACKCHAN_ALIYUN_ENABLE
+    help
+        DashScope API key (starts with "sk-"). It is seeded into NVS on first
+        boot and can later be changed at runtime without reflashing.
+
+        SECURITY: building the key into the firmware means anyone holding the
+        device can extract it. Fine for development; for a device you hand to
+        someone else, provision it over BLE instead and leave this empty.
+
+config STACKCHAN_ALIYUN_WORKSPACE_ID
+    string "Bailian workspace ID"
+    default ""
+    depends on STACKCHAN_ALIYUN_ENABLE
+    help
+        Business workspace ID. When set, the workspace-scoped domain
+        {WorkspaceId}.cn-beijing.maas.aliyuncs.com is used, which the
+        qwen3.x-omni-*-realtime family requires. Leave empty to use the public
+        dashscope.aliyuncs.com endpoint.
+
+config STACKCHAN_ALIYUN_USE_WORKSPACE_DOMAIN
+    bool "Use the workspace-scoped endpoint instead of the public one"
+    default n
+    depends on STACKCHAN_ALIYUN_ENABLE
+    help
+        Two endpoints serve the same model:
+
+          public     wss://dashscope.aliyuncs.com/api-ws/v1/realtime
+                     plus an X-DashScope-WorkSpace header
+          workspace  wss://{WorkspaceId}.cn-beijing.maas.aliyuncs.com/api-ws/v1/realtime
+
+        Both respond immediately from a desktop, but the ESP32's mbedtls
+        behaved very differently on the workspace-scoped host: the server's
+        first frame only surfaced after the wait timed out. Default to the
+        public endpoint, which is the path validated end to end on the Mac.
+
+config STACKCHAN_ALIYUN_MODEL
+    string "Realtime model"
+    default "qwen3.8-omni-flash-realtime"
+    depends on STACKCHAN_ALIYUN_ENABLE
+
+config STACKCHAN_ALIYUN_VOICE
+    string "Output voice"
+    default "Tina"
+    depends on STACKCHAN_ALIYUN_ENABLE
+
+endmenu
+
 menu "StackChan Server"
 
 config STACKCHAN_SERVER_URL
@@ -762,6 +876,13 @@ config USE_AUDIO_PROCESSOR
     help
         Requires ESP32 S3 and PSRAM
 
+# NOTE: BOARD_TYPE_M5STACK_STACK_CHAN was missing from the inherited board list,
+# which made this option invisible for StackChan and left the device with no echo
+# cancellation at all (USE_SERVER_AEC is off by default and Aliyun's WebSocket
+# Realtime API does not perform AEC server-side). The audible symptom is the
+# device interrupting itself with its own speaker output. StackChan has the
+# hardware for device-side AEC: the ES7210 array captures a speaker reference
+# channel (AUDIO_INPUT_REFERENCE is true).
 config USE_DEVICE_AEC
     bool "Enable Device-Side AEC"
     default n
@@ -771,7 +892,8 @@ config USE_DEVICE_AEC
         || BOARD_TYPE_WAVESHARE_ESP32_P4_WIFI6_TOUCH_LCD_3_4C || BOARD_TYPE_WAVESHARE_ESP32_P4_WIFI6_TOUCH_LCD_4C || BOARD_TYPE_ESP_S3_LCD_EV_Board_2 || BOARD_TYPE_YUNLIAO_S3 \
         || BOARD_TYPE_WAVESHARE_ESP32_P4_WIFI6_TOUCH_LCD_7 || BOARD_TYPE_WAVESHARE_ESP32_P4_WIFI6_TOUCH_LCD_8 || BOARD_TYPE_WAVESHARE_ESP32_P4_WIFI6_TOUCH_LCD_10_1 \
         || BOARD_TYPE_ECHOEAR || BOARD_TYPE_WAVESHARE_ESP32_S3_TOUCH_LCD_3_49 || BOARD_TYPE_WAVESHARE_ESP32_S3_RLCD_4_2 || BOARD_TYPE_ZHENGCHEN_CAM || BOARD_TYPE_ZHENGCHEN_CAM_ML307 \
-        || BOARD_TYPE_WAVESHARE_ESP32_S3_TOUCH_LCD_4_3C)
+        || BOARD_TYPE_WAVESHARE_ESP32_S3_TOUCH_LCD_4_3C \
+        || BOARD_TYPE_M5STACK_STACK_CHAN)
     help
         To work properly, device-side AEC requires a clean output reference path from the speaker signal and physical acoustic isolation between the microphone and speaker.
 

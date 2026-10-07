@@ -36,6 +36,7 @@
 
 # Build files
 build/
+/build-*/
 cmake-build-*/
 /components/
 managed_components/
@@ -63,5 +64,9 @@ obj/
 
 sdkconfig
 sdkconfig.old
+# Local build overlay: holds credentials (e.g. the Aliyun API key).
+# Plain `sdkconfig` above does NOT match these names.
+sdkconfig.defaults.local
+sdkconfig.local
 
 xiaozhi-esp32/

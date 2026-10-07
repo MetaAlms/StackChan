@@ -1,0 +1,246 @@
+{
+  "config": {
+    "nodeDatachannel": "0.33.4",
+    "libopus": "libopus 1.5.2",
+    "model": "qwen3.8-omni-flash-realtime",
+    "ssrc": 609645184,
+    "pt": 111,
+    "clock": 48000
+  },
+  "cfgOk": true,
+  "updateOk": true,
+  "eventChannelLabel": "txt",
+  "stage": "start",
+  "invalidReason": null,
+  "inputEvidence": {
+    "framesDir": "/tmp/host_media",
+    "manifestSha256": "eedb026a5897470f117e2c4720861f6680fa6f678a2cb7b84c837fe2f390495c",
+    "silenceSha256": "5b09cd73cc943af58c7a8f02967a051711aa82253549b569f624a4efa4b7c6b6",
+    "silence": {
+      "frames": 60,
+      "ms": 1200,
+      "mode": "dither",
+      "decoded_samples": 960,
+      "peak_abs": 49,
+      "pkt_min": 99,
+      "pkt_max": 110
+    },
+    "generator": "tools/webrtc_probe/encode_fixture.py"
+  },
+  "echo": {
+    "type": "server_vad",
+    "threshold": 0.5,
+    "silence": 800,
+    "asr": "qwen3-asr-flash-realtime"
+  },
+  "clips": [
+    {
+      "id": "zh_1",
+      "text": "今天我们测试语音连接",
+      "keywords": [
+        "测试",
+        "语音",
+        "连接"
+      ],
+      "containerSha256": "2f5194230b05580079fe41b3c841d901c2f5b82c1366d0e93a548ccaed4c179a",
+      "packets": 195,
+      "mediaMs": 3900,
+      "vadStart": 1,
+      "vadStop": 1,
+      "itemIds": [
+        "item_SGz67zU97tK1tmAXFg17p"
+      ],
+      "completed": 1,
+      "hits": [
+        "测试",
+        "语音",
+        "连接"
+      ],
+      "itemId": "item_SGz67zU97tK1tmAXFg17p",
+      "transcript": "今天我们测试语音连接。",
+      "waitMs": 0,
+      "window": {
+        "startTs": 0,
+        "endTs": 244800,
+        "startMs": 0,
+        "endMs": 5100,
+        "rtpTicksPerMs": 48
+      },
+      "committedItems": [
+        "item_SGz67zU97tK1tmAXFg17p"
+      ],
+      "sameItemVad": true,
+      "ownedByClip": true
+    },
+    {
+      "id": "zh_2",
+      "text": "桌上有一本蓝色的书",
+      "keywords": [
+        "蓝色",
+        "书"
+      ],
+      "containerSha256": "886d0053325751a66a0bfc827bdb2284caf6eda33a80a5a2e96970292b3c4e23",
+      "packets": 183,
+      "mediaMs": 3660,
+      "vadStart": 1,
+      "vadStop": 1,
+      "itemIds": [
+        "item_VGvii4dfIsLMPbwcq4Mws"
+      ],
+      "completed": 1,
+      "hits": [
+        "蓝色",
+        "书"
+      ],
+      "itemId": "item_VGvii4dfIsLMPbwcq4Mws",
+      "transcript": "桌上有一本蓝色的书。",
+      "waitMs": 0,
+      "window": {
+        "startTs": 244800,
+        "endTs": 478080,
+        "startMs": 5100,
+        "endMs": 9960,
+        "rtpTicksPerMs": 48
+      },
+      "committedItems": [
+        "item_VGvii4dfIsLMPbwcq4Mws"
+      ],
+      "sameItemVad": true,
+      "ownedByClip": true
+    },
+    {
+      "id": "zh_3",
+      "text": "请回答一加一等于几",
+      "keywords": [
+        "一加一",
+        "等于"
+      ],
+      "containerSha256": "05c7e3ed02685aa4feb7c7a6a5c24ebee3f79d40e87b646c42bf954ec0d1ad7c",
+      "packets": 186,
+      "mediaMs": 3720,
+      "vadStart": 1,
+      "vadStop": 1,
+      "itemIds": [
+        "item_OxNvxCtqjnCFX5nTXKR4i"
+      ],
+      "completed": 1,
+      "hits": [
+        "一加一",
+        "等于"
+      ],
+      "itemId": "item_OxNvxCtqjnCFX5nTXKR4i",
+      "transcript": "请回答一加一等于几。",
+      "waitMs": 0,
+      "window": {
+        "startTs": 478080,
+        "endTs": 714240,
+        "startMs": 9960,
+        "endMs": 14880,
+        "rtpTicksPerMs": 48
+      },
+      "committedItems": [
+        "item_OxNvxCtqjnCFX5nTXKR4i"
+      ],
+      "sameItemVad": true,
+      "ownedByClip": true
+    }
+  ],
+  "stats": {
+    "accepted": 744,
+    "refused": 0,
+    "exceptions": 0,
+    "bytes": 100379,
+    "pktMin": 3,
+    "pktMax": 389,
+    "firstSeq": 0,
+    "firstTs": 0,
+    "lateFrames": 0
+  },
+  "mediaWallMs": 14882,
+  "mediaFirstTs": 0,
+  "mediaLastTs": 714240,
+  "extraSilenceFrames": 0,
+  "vadEvents": 6,
+  "asrEvents": 3,
+  "failedEvents": [],
+  "errorEvents": [],
+  "unknownEvents": [
+    "conversation.item.created",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "response.created",
+    "conversation.item.created",
+    "response.output_item.added",
+    "response.content_part.added",
+    "response.audio_transcript.delta",
+    "response.audio_transcript.delta",
+    "response.audio_transcript.delta",
+    "response.audio_transcript.delta",
+    "response.done",
+    "conversation.item.created",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "response.created",
+    "response.output_item.added",
+    "conversation.item.created",
+    "response.content_part.added",
+    "response.audio_transcript.delta",
+    "response.audio_transcript.delta",
+    "response.audio_transcript.delta",
+    "response.audio_transcript.done",
+    "response.audio.done",
+    "response.content_part.done",
+    "response.output_item.done",
+    "response.done",
+    "conversation.item.created",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "conversation.item.input_audio_transcription.delta",
+    "response.created",
+    "response.output_item.added",
+    "conversation.item.created",
+    "response.content_part.added",
+    "response.audio_transcript.delta",
+    "response.audio_transcript.delta",
+    "response.audio_transcript.delta"
+  ],
+  "sendValid": true,
+  "verdict": "PASS"
+}

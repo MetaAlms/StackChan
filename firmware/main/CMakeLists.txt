@@ -289,8 +289,38 @@ if(CONFIG_IDF_TARGET_ESP32S3)
     list(APPEND SOURCES "${XIAOZHI_MAIN_DIR}/boards/common/esp32_camera.cc")
 endif()
 
+# M1 probe fixture. Embedded only when the M1 probe is enabled so that the
+# normal firmware does not carry ~360 KB of probe audio.
+set(M1_FIXTURE "")
+if(CONFIG_STACKCHAN_WEBRTC_M1)
+    list(APPEND M1_FIXTURE
+        "hal/webrtc/fixture/zh_1.pcm"
+        "hal/webrtc/fixture/zh_2.pcm"
+        "hal/webrtc/fixture/zh_3.pcm")
+    message(STATUS "M1 probe fixture embedded: 3 PCM clips")
+endif()
+
+# R2-4: observe the real RTP -> SRTP -> UDP boundaries.
+#
+# `srtp_protect` and `lwip_sendto` are unresolved externals in the matching
+# esp32s3 objects, so GNU ld --wrap can redirect them without touching managed
+# sources or guessing at opaque object layouts. Gated to the M1 probe build.
+set(M1_WRAP_OPTIONS "")
+if(CONFIG_STACKCHAN_WEBRTC_M1)
+    set(M1_WRAP_OPTIONS
+        "-Wl,--wrap=srtp_protect"
+        "-Wl,--wrap=lwip_sendto"
+        "-Wl,--wrap=lwip_recvfrom"
+        "-Wl,--wrap=mbedtls_ssl_handshake"
+        "-Wl,--wrap=mbedtls_ssl_setup"
+        "-Wl,--wrap=mbedtls_ssl_conf_free"
+        "-Wl,--wrap=mbedtls_ssl_config_defaults"
+        "-Wl,--wrap=mbedtls_ssl_conf_transport")
+    message(STATUS "M1 probe: RTP/SRTP/UDP send observation enabled")
+endif()
+
 idf_component_register(SRCS ${SOURCES}
-                    EMBED_FILES ${LANG_SOUNDS} ${COMMON_SOUNDS}
+                    EMBED_FILES ${LANG_SOUNDS} ${COMMON_SOUNDS} ${M1_FIXTURE}
                     INCLUDE_DIRS ${INCLUDE_DIRS}
                     WHOLE_ARCHIVE
                     PRIV_REQUIRES
@@ -531,4 +561,20 @@ if ("${size}" AND "${offset}")
     endif()
 else()
     message(STATUS "Assets partition not found, using v1 partition table")
+endif()
+
+# R2-4: apply the linker wraps after the component target exists.
+if(CONFIG_STACKCHAN_WEBRTC_M1)
+    target_link_options(${COMPONENT_LIB} INTERFACE ${M1_WRAP_OPTIONS})
+    # The observation unit includes the *installed* srtp.h and lwip/sockets.h
+    # rather than copied opaque declarations.
+    # Header comes from the fetched component directory; the link dependency is
+    # declared by component name so IDF resolves the real target. lwIP is already
+    # a requirement of this component.
+    target_include_directories(${COMPONENT_LIB} PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/../managed_components/espressif__esp_libsrtp/libsrtp/include")
+    idf_component_get_property(_srtp_lib espressif__esp_libsrtp COMPONENT_LIB)
+    if(_srtp_lib)
+        target_link_libraries(${COMPONENT_LIB} INTERFACE ${_srtp_lib})
+    endif()
 endif()
