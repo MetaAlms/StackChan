@@ -94,6 +94,14 @@ public:
     /** Last observed peer state. */
     esp_peer_state_t state() const;
 
+    /**
+     * @brief Furthest handshake stage reached.
+     *
+     * Lets a caller report the stage that actually failed instead of blaming
+     * configuration for a handshake that never completed.
+     */
+    int stage() const;
+
     /** Stop the sender via on_before_close, then tear everything down. */
     void Stop();
 

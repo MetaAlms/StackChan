@@ -14,6 +14,8 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
+#include <cJSON.h>
+
 #include "webrtc_transport.h"
 
 #define TAG "M0"
@@ -38,10 +40,76 @@ struct Observed {
     std::mutex mtx;
     bool session_created = false;
     bool session_updated = false;
+    bool update_sent = false;
     bool channel_seen = false;
     std::string channel_label;
     uint16_t channel_stream = 0xFFFF;
+    /** Stream discovered from this session's events; never hard-coded. */
+    uint16_t reply_stream = 0xFFFF;
+    bool reply_stream_known = false;
 } g_obs;
+
+webrtc_transport::Transport* g_transport = nullptr;
+
+/**
+ * @brief Send session.update on the stream this session discovered.
+ *
+ * Restored after the transport refactor dropped it: without an update the
+ * server never answers session.updated, so M0 would wait out its full timeout
+ * even on a perfectly healthy connection.
+ *
+ * The lock is released before sending: the send can synchronously reach the
+ * peer, and a callback taking g_obs.mtx from that path must not deadlock.
+ */
+void TrySendSessionUpdate()
+{
+    uint16_t stream = 0xFFFF;
+    {
+        std::lock_guard<std::mutex> lock(g_obs.mtx);
+        if (!g_obs.session_created || g_obs.update_sent || !g_obs.reply_stream_known) {
+            return;
+        }
+        stream = g_obs.reply_stream;
+    }
+    if (g_transport == nullptr) {
+        return;
+    }
+
+    cJSON* root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "event_id", "event_m0_cfg");
+    cJSON_AddStringToObject(root, "type", "session.update");
+    cJSON* session = cJSON_CreateObject();
+    cJSON_AddItemToObject(root, "session", session);
+    cJSON* modalities = cJSON_CreateArray();
+    cJSON_AddItemToArray(modalities, cJSON_CreateString("text"));
+    cJSON_AddItemToArray(modalities, cJSON_CreateString("audio"));
+    cJSON_AddItemToObject(session, "modalities", modalities);
+    cJSON* td = cJSON_CreateObject();
+    cJSON_AddStringToObject(td, "type", "server_vad");
+    cJSON_AddNumberToObject(td, "threshold", 0.5);
+    cJSON_AddNumberToObject(td, "silence_duration_ms", 800);
+    cJSON_AddItemToObject(session, "turn_detection", td);
+
+    char* text = cJSON_PrintUnformatted(root);
+    const std::string json = text ? text : "";
+    if (text) {
+        cJSON_free(text);
+    }
+    cJSON_Delete(root);
+    if (json.empty()) {
+        ESP_LOGE(TAG, "[cfg] failed to serialise session.update");
+        return;
+    }
+
+    if (g_transport->SendJson(json, stream)) {
+        std::lock_guard<std::mutex> lock(g_obs.mtx);
+        g_obs.update_sent = true;
+        ESP_LOGI(TAG, "[cfg] session.update sent on stream %u", (unsigned)stream);
+    } else {
+        ESP_LOGW(TAG, "[cfg] session.update send failed; another attempt is allowed "
+                      "on the next event");
+    }
+}
 
 /** Record the two events that decide the experiment. */
 void HandleEvent(const std::string& json, uint16_t stream_id)
@@ -49,13 +117,24 @@ void HandleEvent(const std::string& json, uint16_t stream_id)
     const bool created = json.find("\"session.created\"") != std::string::npos;
     const bool updated = json.find("\"session.updated\"") != std::string::npos;
     ESP_LOGI(TAG, "[data stream=%u] %s", (unsigned)stream_id, json.c_str());
-    std::lock_guard<std::mutex> lock(g_obs.mtx);
+    {
+        std::lock_guard<std::mutex> lock(g_obs.mtx);
+        if (created) {
+            g_obs.session_created = true;
+            if (!g_obs.reply_stream_known) {
+                g_obs.reply_stream = stream_id;
+                g_obs.reply_stream_known = true;
+            }
+        }
+        if (updated) {
+            g_obs.session_updated = true;
+        }
+    }
     if (created) {
-        g_obs.session_created = true;
-        ESP_LOGW(TAG, ">>> session.created received");
+        ESP_LOGW(TAG, ">>> session.created received on stream %u", (unsigned)stream_id);
+        TrySendSessionUpdate();
     }
     if (updated) {
-        g_obs.session_updated = true;
         ESP_LOGW(TAG, ">>> session.updated received");
     }
 }
@@ -80,18 +159,24 @@ void WebRtcM0Run()
         HandleEvent(json, stream_id);
     };
     cb.on_channel_open = [](esp_peer_data_channel_info_t* ch) {
-        std::lock_guard<std::mutex> lock(g_obs.mtx);
-        g_obs.channel_seen = true;
-        g_obs.channel_label = (ch && ch->label) ? ch->label : "?";
-        g_obs.channel_stream = ch ? ch->stream_id : 0xFFFF;
+        {
+            std::lock_guard<std::mutex> lock(g_obs.mtx);
+            g_obs.channel_seen = true;
+            g_obs.channel_label = (ch && ch->label) ? ch->label : "?";
+            g_obs.channel_stream = ch ? ch->stream_id : 0xFFFF;
+        }
+        // A channel opening after session.created is the retry opportunity.
+        TrySendSessionUpdate();
     };
     // M0 never sends media, so there is no sender to quiesce before close.
     cb.on_audio = nullptr;
     cb.on_before_close = nullptr;
 
+    g_transport = &transport;
     std::string err;
     if (!transport.Start(cfg, cb, &err)) {
         ESP_LOGE(TAG, "VERDICT: FAIL - transport: %s", err.c_str());
+        g_transport = nullptr;
         return;
     }
 
@@ -119,13 +204,20 @@ void WebRtcM0Run()
         stream = g_obs.channel_stream;
     }
     const esp_peer_state_t st = transport.state();
+    bool sent_update = false;
+    {
+        std::lock_guard<std::mutex> lock(g_obs.mtx);
+        sent_update = g_obs.update_sent;
+    }
     transport.Stop();
+    g_transport = nullptr;
 
     ESP_LOGW(TAG, "---------------- M0 RESULT ----------------");
     ESP_LOGW(TAG, "  peer state at end  : %d", (int)st);
     ESP_LOGW(TAG, "  data channel       : %s label='%s' stream=%u",
              channel ? "OPENED" : "not seen", label.c_str(), (unsigned)stream);
     ESP_LOGW(TAG, "  session.created    : %s", created ? "YES" : "NO");
+    ESP_LOGW(TAG, "  session.update sent: %s", sent_update ? "YES" : "NO");
     ESP_LOGW(TAG, "  session.updated    : %s", updated ? "YES" : "NO");
     ESP_LOGW(TAG, "  media sent         : NONE (M0 sends no media by design)");
 

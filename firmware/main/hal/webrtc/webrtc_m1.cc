@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cmath>
 #include <cstring>
 #include <mutex>
 #include <string>
@@ -22,6 +23,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
+#include "decoder/impl/esp_opus_dec.h"
 #include "encoder/impl/esp_opus_enc.h"
 #include "webrtc_transport.h"
 
@@ -119,6 +121,11 @@ struct Metrics {
     uint32_t clips_played = 0;
     int64_t media_us = 0;
     int64_t wall_us = 0;
+    /** Frames of media produced; media_ms = frames * kFrameMs, independent of
+     *  the wall clock. */
+    uint64_t frames_media = 0;
+    /** Frames dropped or failed, which still advance the media timeline. */
+    uint64_t frames_dropped = 0;
 } g_metrics;
 
 struct Observed {
@@ -183,6 +190,43 @@ void LogHeap(const char* where)
  * Allocated once in MediaSender::Open() so the per-frame path never grows it.
  */
 std::vector<int16_t> g_pad;
+
+/**
+ * @brief Diagnostics for locating the no-VAD root cause (M1-5).
+ *
+ * `esp_peer_send_audio` returning 0 does not prove the payload reached the
+ * socket: the library's RTP encoder calls a void packet callback and returns 0
+ * unconditionally, and the SRTP/socket write result is not propagated. These
+ * measurements instead answer the two questions that matter:
+ *   - did the resampler produce real audio,
+ *   - is the encoded packet decodable audio rather than opaque bytes.
+ */
+struct Diagnostics {
+    std::mutex mtx;
+    double resample_rms_peak = 0.0;
+    double resample_rms_sum = 0.0;
+    uint32_t resample_frames = 0;
+    double opus_rt_rms_peak = 0.0;
+    double opus_rt_rms_sum = 0.0;
+    uint32_t opus_rt_frames = 0;
+    uint32_t opus_rt_fail = 0;
+    int pkt_min = 1 << 30;
+    int pkt_max = 0;
+} g_diag;
+
+/** RMS of s16 samples, normalised to 0..1. */
+double Rms16(const int16_t* s, int n)
+{
+    if (n <= 0) {
+        return 0.0;
+    }
+    double acc = 0.0;
+    for (int i = 0; i < n; ++i) {
+        const double v = (double)s[i] / 32768.0;
+        acc += v * v;
+    }
+    return sqrt(acc / (double)n);
+}
 
 /** Refuse to run the media path when there is not enough contiguous RAM. */
 bool HeapHasRoomForFrame()
@@ -289,8 +333,23 @@ public:
         return true;
     }
 
+    void OpenDecoder()
+    {
+        esp_opus_dec_cfg_t dc = ESP_OPUS_DEC_CONFIG_DEFAULT();
+        dc.sample_rate = kPcmRate;
+        dc.channel = kChannels;
+        if (esp_opus_dec_open(&dc, sizeof(dc), &decoder_) != ESP_AUDIO_ERR_OK) {
+            decoder_ = nullptr;
+        }
+        rt_pcm_.assign(5760, 0);   // 120 ms at 48 kHz mono, the max Opus frame
+    }
+
     void Close()
     {
+        if (decoder_ != nullptr) {
+            esp_opus_dec_close(decoder_);
+            decoder_ = nullptr;
+        }
         if (encoder_ != nullptr) {
             esp_opus_enc_close(encoder_);
             encoder_ = nullptr;
@@ -377,9 +436,63 @@ public:
             return false;
         }
 
+        {
+            const double r = Rms16(pcm48_.data(), in_frame_samples_);
+            std::lock_guard<std::mutex> lock(g_diag.mtx);
+            if (r > g_diag.resample_rms_peak) {
+                g_diag.resample_rms_peak = r;
+            }
+            g_diag.resample_rms_sum += r;
+            ++g_diag.resample_frames;
+        }
+
         *out = encoded_.data();
         *out_size = (int)enc_out.encoded_bytes;
+
+        // Decode our own packet: a packet that decodes to silence means the
+        // encoder produced nothing usable, whatever the send API returned.
+        RoundTripCheck(encoded_.data(), *out_size);
         return true;
+    }
+
+    /** Decode one packet locally and record its energy. */
+    void RoundTripCheck(const uint8_t* pkt, int size)
+    {
+        if (decoder_ == nullptr) {
+            OpenDecoder();
+            if (decoder_ == nullptr) {
+                std::lock_guard<std::mutex> lock(g_diag.mtx);
+                ++g_diag.opus_rt_fail;
+                return;
+            }
+        }
+        esp_audio_dec_in_raw_t raw = {};
+        raw.buffer = const_cast<uint8_t*>(pkt);
+        raw.len = (uint32_t)size;
+        esp_audio_dec_out_frame_t frame = {};
+        frame.buffer = (uint8_t*)rt_pcm_.data();
+        frame.len = (uint32_t)(rt_pcm_.size() * sizeof(int16_t));
+        esp_audio_dec_info_t info = {};
+
+        const esp_audio_err_t rc = esp_opus_dec_decode(decoder_, &raw, &frame, &info);
+        std::lock_guard<std::mutex> lock(g_diag.mtx);
+        if (rc != ESP_AUDIO_ERR_OK || frame.decoded_size == 0) {
+            ++g_diag.opus_rt_fail;
+            return;
+        }
+        const int n = (int)(frame.decoded_size / sizeof(int16_t));
+        const double r = Rms16(rt_pcm_.data(), n);
+        if (r > g_diag.opus_rt_rms_peak) {
+            g_diag.opus_rt_rms_peak = r;
+        }
+        g_diag.opus_rt_rms_sum += r;
+        ++g_diag.opus_rt_frames;
+        if (size < g_diag.pkt_min) {
+            g_diag.pkt_min = size;
+        }
+        if (size > g_diag.pkt_max) {
+            g_diag.pkt_max = size;
+        }
     }
 
     uint32_t resample_fail() const { return resample_fail_; }
@@ -400,6 +513,8 @@ private:
 
     esp_ae_rate_cvt_handle_t resampler_ = nullptr;
     void* encoder_ = nullptr;
+    void* decoder_ = nullptr;      // diagnostic round-trip only
+    std::vector<int16_t> rt_pcm_;
     int in_frame_bytes_ = 0;
     int in_frame_samples_ = 0;
     int out_capacity_ = 0;
@@ -750,6 +865,12 @@ bool SendOneFrame(const uint8_t* pcm, size_t pcm_bytes, size_t off)
         first_frame = false;
     }
     ++frame_no;
+    // One frame of media, counted whether or not the send succeeded: the media
+    // timeline advances regardless.
+    {
+        std::lock_guard<std::mutex> lock(g_metrics.mtx);
+        ++g_metrics.frames_media;
+    }
     g_clock.Step();
     return true;
 }
@@ -771,8 +892,10 @@ bool StreamClip(const Clip& clip)
         }
     }
 
+    // Media duration is derived from frames actually encoded, never from the
+    // wall clock: reporting the same expression for both made the "media == wall"
+    // check tautological.
     std::lock_guard<std::mutex> lock(g_metrics.mtx);
-    g_metrics.media_us += esp_timer_get_time() - start_us;
     g_metrics.wall_us += esp_timer_get_time() - start_us;
     return true;
 }
@@ -927,6 +1050,7 @@ TaskHandle_t g_sender_task = nullptr;
 SemaphoreHandle_t g_sender_done = nullptr;
 UBaseType_t g_sender_stack_free = 0;
 bool g_loop_complete = true;
+bool g_acceptance_incomplete = false;
 
 void sender_task(void*)
 {
@@ -955,7 +1079,8 @@ void sender_task(void*)
         if (!StreamSilence(kGapMs)) {
             break;
         }
-        if (!WaitForClipAsr(r, kAsrTimeoutMs)) {
+        const bool got = WaitForClipAsr(r, kAsrTimeoutMs);
+        if (!got) {
             ESP_LOGW(TAG, "[asr] no result for %s within %d ms", r.id, kAsrTimeoutMs);
         }
         ScoreKeywords(r, g_clips[i]);
@@ -966,6 +1091,16 @@ void sender_task(void*)
                  (int)r.completed, (int)r.failed, r.hits, r.total,
                  r.keywords_hit.c_str(), r.transcript.c_str());
         g_results.push_back(r);
+
+        // Minimum safe attribution: once a clip has no result, later clips must
+        // not start, because a late completion from this one would land in the
+        // next clip's slot and be scored as its transcript.
+        if (!got) {
+            ESP_LOGW(TAG, "[asr] stopping the acceptance sequence after %s: a late "
+                          "result must not be credited to a later clip", r.id);
+            g_acceptance_incomplete = true;
+            break;
+        }
     }
 
     // Sustained loop for resource evidence.
@@ -1107,16 +1242,41 @@ void WebRtcM1Run()
             created = g_obs.session_created;
             sent = g_obs.update_sent;
         }
+        // Name the stage that actually failed. A handshake that never reached
+        // CONNECTED is a transport failure, not a configuration one.
+        const int stage = g_transport.stage();
+        const esp_peer_state_t pst = g_transport.state();
+        const char* stage_name = "unknown";
+        const char* blame = "transport";
+        switch (stage) {
+            case 0: stage_name = "not started"; break;
+            case 1: stage_name = "local SDP gathered"; break;
+            case 2: stage_name = "SDP exchange failed"; break;
+            case 3: stage_name = "SDP gathering timed out"; break;
+            case 4: stage_name = "server answer received"; break;
+            case 5: stage_name = "ICE/DTLS connected"; break;
+            case 6: stage_name = "DataChannel opened"; break;
+            default: break;
+        }
+        if (stage >= 6) {
+            blame = "configuration";
+        }
+
         ESP_LOGE(TAG,
-                 "VERDICT: FAIL - configuration layer. created=%d update_sent=%d "
-                 "detail=%s reason=%s",
-                 (int)created, (int)sent, gate_detail.c_str(),
-                 gate_failure.empty() ? "session.updated not received in time"
-                                      : gate_failure.c_str());
-        ESP_LOGE(TAG, "The fixture was NOT sent. This is a configuration failure, "
-                      "not a transport failure.");
-        // Must release g_obs.mtx before Stop(): a callback waiting on that lock
-        // would otherwise deadlock the join.
+                 "VERDICT: FAIL - %s layer. stage=%s(%d) peer_state=%d "
+                 "session_created=%d update_sent=%d",
+                 blame, stage_name, stage, (int)pst, (int)created, (int)sent);
+        if (blame[0] == 'c') {
+            ESP_LOGE(TAG, "  echo=%s reason=%s", gate_detail.c_str(),
+                     gate_failure.empty() ? "session.updated not received in time"
+                                          : gate_failure.c_str());
+        } else {
+            ESP_LOGE(TAG, "  the session handshake never completed, so no "
+                          "configuration could be verified");
+        }
+        ESP_LOGE(TAG, "The fixture was NOT sent.");
+        // Release g_obs.mtx before Stop(): a callback waiting on that lock would
+        // otherwise deadlock the join.
         g_transport.Stop();
         g_sender.Close();
         return;
@@ -1160,8 +1320,10 @@ void WebRtcM1Run()
         ESP_LOGW(TAG, "  max payload        : %d B (budget %d B)",
                  g_metrics.max_payload, g_transport.MaxPayloadBytes());
         ESP_LOGW(TAG, "  media clock range  : %u .. %u ms", g_metrics.first_pts, g_metrics.last_pts);
-        ESP_LOGW(TAG, "  media/wall elapsed : %d / %d ms",
-                 (int)(g_metrics.media_us / 1000), (int)(g_metrics.wall_us / 1000));
+        const int64_t media_ms = (int64_t)g_metrics.frames_media * kFrameMs;
+        ESP_LOGW(TAG, "  media/wall elapsed : %d / %d ms  (media derived from %u frames)",
+                 (int)media_ms, (int)(g_metrics.wall_us / 1000),
+                 (unsigned)g_metrics.frames_media);
         ESP_LOGW(TAG, "  pacing late        : %u", g_metrics.pacing_late);
         ESP_LOGW(TAG, "  oversize dropped   : %u", g_metrics.oversize);
         ESP_LOGW(TAG, "  oom stops          : %u", g_metrics.oom_stop);
@@ -1201,6 +1363,28 @@ void WebRtcM1Run()
                      (unsigned)a.int_min, (unsigned)b.int_min,
                      (unsigned)a.psram_free, (unsigned)b.psram_free);
         }
+    }
+
+    // ---- M1-5 diagnostics: is the uplink real audio? ----
+    {
+        std::lock_guard<std::mutex> dlock(g_diag.mtx);
+        const double rs_avg = g_diag.resample_frames
+                                  ? g_diag.resample_rms_sum / g_diag.resample_frames
+                                  : 0.0;
+        const double rt_avg = g_diag.opus_rt_frames
+                                  ? g_diag.opus_rt_rms_sum / g_diag.opus_rt_frames
+                                  : 0.0;
+        ESP_LOGW(TAG, "-------------- UPLINK DIAGNOSTICS --------------");
+        ESP_LOGW(TAG, "  resampler 48k RMS  : peak=%.4f avg=%.4f over %u frames",
+                 g_diag.resample_rms_peak, rs_avg, (unsigned)g_diag.resample_frames);
+        ESP_LOGW(TAG, "  local Opus decode  : peak=%.4f avg=%.4f over %u ok, %u failed",
+                 g_diag.opus_rt_rms_peak, rt_avg,
+                 (unsigned)g_diag.opus_rt_frames, (unsigned)g_diag.opus_rt_fail);
+        ESP_LOGW(TAG, "  packet size        : min=%d max=%d B",
+                 g_diag.pkt_min == (1 << 30) ? -1 : g_diag.pkt_min, g_diag.pkt_max);
+        ESP_LOGW(TAG, "  interpretation     : resampler RMS ~0 means silence was "
+                       "produced; decode failures mean the payload is not valid Opus");
+        ESP_LOGW(TAG, "------------------------------------------------");
     }
 
     g_transport.Stop();

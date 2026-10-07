@@ -68,3 +68,20 @@ Codex 负责设计与每阶段代码/证据复核及后续派单。
   两条较早诊断在UI仍显示发送中；第64轮已直接读取完整预检，不以这两条队列状态当送达证据。
 - [M1.5准备记录](webrtc-media-m15-preparation.md)为独立只读调查，**尚未派发**。
   M1通过实际HEAD评审后再冻结下一阶段任务，保持用户要求的48k PCM与WebSocket回退。
+
+### M1 第一次正式交付与修复轮
+
+- DSH第64轮提交并推送 `c3e658200d8365ac4bbb19a28290d491f2c04df3`，
+  [REVIEW_REQUEST](https://github.com/MetaAlms/StackChan/pull/1#issuecomment-6044400269)，并明确STOP。
+- 真机20ms sender未再panic、栈余量10232B；3条VAD/ASR均0、持续loop中断。
+  本地send API返回0不证明SRTP/socket成功；没有60ms通过证据。
+- Codex正式[Review 5446817816](https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5446817816)
+  绑定该完整SHA，回读commit_id已核对，决定**需要修复、不放行M1.5**。
+  正文见[复核结果](webrtc-media-m1-review-result.md)：M0 update丢失、真实退出、
+  ASR归属、独立时间轴、媒体诊断与验收、失败分层、可复核交付。
+- 已向同一原生`stackchan`发送绑定Review ID/SHA的最小修复指令。
+  新第65轮可见且进行中（1064步），源码已针对该Review恢复M0 update、
+  更正失败分层并增加媒体能量/本地解码诊断；不是另一会话或重复派单。
+  后续1065步可见一次`Read PR #1 ... Review 5446817816`用户消息与DSH对该轮的回应。
+  run8再次在DTLS阶段停住，现已正确报告transport失败，任务确认退出后才释放。
+  **仍为修复中，未交新HEAD复审。** M1.5、产品下行/AudioService/UI继续HOLD。

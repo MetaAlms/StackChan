@@ -111,3 +111,40 @@ rst:0xc (RTC_SW_CPU_RST)
 因此当前 `m1_sender` 仍只有8192B，和刚溢出的main一样。
 请用实际字节值（例如32768B作为待实测起点）并按真实high-water API单位记录余量。
 “永远不是allocation问题”也不能从一次栈溢出推得；记录已证实的8KB栈溢出即可。
+
+## 后续真机证据：日志格式与媒体接收仍须分开定位
+
+`/tmp/m1-run6.log` 已通过配置 gate 和首帧编码，但第一段无 VAD/ASR，
+随后在 `[clip]` 日志中发生 `LoadProhibited`、`EXCVADDR=0`。
+该次 ELF `971ed8d55` 当时定址到 nano vfprintf / `sender_task` 日志路径；
+后续 ELF 已覆盖，不把新 ELF 当旧回溯的直接证据。
+本机 newlib Kconfig 明确 nano formatting 不支持64位整数；
+独立反汇编核查 `%lld` 不消费该实参，会使后续 `%s` 读到错位的零值。
+当前源码已把 M1 / transport 的这些格式改为32位显式转换。
+证据摘要 `/tmp/stackchan-media-review-v155/nano-printf-evidence.md`。
+这是日志崩溃的强解释，**不能解释此前无 VAD/ASR**。
+
+`/tmp/m1-run7.log` 的20ms路径已成功返回16521次发送，最大payload325B，
+编码/重采样/发送失败计数均0，sender栈最低余量10232B/32768B，未再panic。
+但三段均20秒ASR超时，VAD started/stopped、ASR completed/failed均0；
+随后连接中断，sustained loop标记INTERRUPTED。
+因此这一采集证明sender运行与资源余量，**未通过任何一条ASR或完整loop验收**。
+当前 media/wall 输出222470/222470ms来自重复墙钟计量，
+与0..330400ms RTP媒体范围不符，仍须独立核算样本时钟/墙钟/loop起止。
+
+本地fixture16k s16le核算：三条peak分别18545/23715/21671，
+全段RMS约-19.77/-20.26/-20.34 dBFS，非零样本RMS约-17.25/-17.52/-17.66 dBFS。
+这排除了输入文件全零，未证明重采样/编码/实际RTP仍有语音。
+先补最小诊断：设备PCM输出能量、编码packet有效帧/时长、实际发送RTP的PT/时戳/计数，
+只打印非敏感元数据；配置echo和send API=0不能替代服务端可用媒体证据。
+
+### DTLS timeout不能归为session配置失败
+
+run4/run5的`-0x6800`为本机Mbed TLS3.6.5的`MBEDTLS_ERR_SSL_TIMEOUT`。
+`dtls_common.h:211` 的 `SRTP connected OK` 在导出密钥时创建SRTP context，
+并不证明 `mbedtls_ssl_handshake()==0`；真正成功在该文件643行。
+两次缺少CONNECTED/DataChannel/session.created，属于传输握手失败，
+当前gate超时日志写“not a transport failure”应修正为实际截止阶段。
+run1/2/3的后续重启也有相同timeout，因此不是32KB sender引入的回归。
+HELLO缓存是1.5.6的已知修复，但尚无报文到达/丢弃证据证明本次命中；
+不得据此升级1.5.6、改SDP、降48k或宣称已定根因。

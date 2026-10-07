@@ -31,12 +31,34 @@ constexpr const char* kWebRtcHostFmt =
 constexpr int kSdpWaitMs = 30000;
 
 /**
+ * Furthest stage reached. Reported so a failure names the stage that actually
+ * failed instead of blaming configuration for a handshake that never started.
+ */
+enum Stage {
+    kStageStart = 0,
+    kStageSdpGathered,        // local offer produced
+    kStageSdpExchangeFailed,  // HTTP/SDP exchange did not succeed
+    kStageSdpTimeout,
+    kStageAnswerReceived,     // server answer fed to the peer
+    kStageConnected,          // DTLS/ICE connected
+    kStageDataChannel,        // DataChannel opened
+};
+
+/**
  * How long cleanup() waits for a task to leave.
  *
  * The signaling task can be inside an HTTP request whose own timeout is 20 s,
  * so this has to exceed that; a fixed short delay would be a guess, not a join.
  */
 constexpr int kTaskExitWaitMs = 25000;
+
+/**
+ * Peer task stacks, in BYTES.
+ *
+ * ESP-IDF's xTaskCreate takes bytes, unlike vanilla FreeRTOS. The signaling
+ * task performs TLS/HTTP, so it needs more than a nominal RTOS task.
+ */
+constexpr int kPeerTaskStackBytes = 8192;
 
 /**
  * @brief Single-packet payload budget.
@@ -73,6 +95,15 @@ struct Transport::Impl {
     SemaphoreHandle_t sig_exited = nullptr;
     SemaphoreHandle_t sdp_ready = nullptr;
     std::atomic<bool> stopping{false};
+    // Only a task that was actually created and has confirmed exit may have its
+    // resources released; anything else means we would free memory still in use.
+    std::atomic<bool> loop_created{false};
+    std::atomic<bool> sig_created{false};
+    std::atomic<bool> loop_confirmed_exit{false};
+    std::atomic<bool> sig_confirmed_exit{false};
+    std::atomic<bool> cleaned{false};
+    /** Furthest stage reached, so a failure can name the real stage (M1-6). */
+    std::atomic<int> stage{0};
 
     std::string local_sdp;
 
@@ -186,9 +217,11 @@ int cb_state(esp_peer_state_t state, void* ctx)
         switch (state) {
             case ESP_PEER_STATE_CONNECTED:
                 // Transport is up; the audio channel is not necessarily open.
+                p->stage.store(kStageConnected);
                 break;
             case ESP_PEER_STATE_DATA_CHANNEL_OPENED:
                 p->audio_ready = true;
+                p->stage.store(kStageDataChannel);
                 break;
             case ESP_PEER_STATE_CONNECT_FAILED:
             case ESP_PEER_STATE_DISCONNECTED:
@@ -226,6 +259,7 @@ int cb_msg(esp_peer_msg_t* info, void* ctx)
     }
     if (info->type == ESP_PEER_MSG_TYPE_SDP) {
         p->local_sdp.assign((const char*)info->data, info->size);
+        p->stage.store(kStageSdpGathered);
         const bool has_candidate = p->local_sdp.find("a=candidate:") != std::string::npos;
         ESP_LOGI(TAG, "[msg] local SDP, %d bytes, candidates=%s",
                  info->size, has_candidate ? "YES" : "NO");
@@ -286,6 +320,7 @@ void loop_task(void* arg)
     }
     // Nothing with a destructor is alive here, so self-deletion is safe.
     ESP_LOGI(TAG, "peer main loop exited");
+    p->loop_confirmed_exit.store(true);
     xSemaphoreGive(p->loop_exited);
     vTaskDelete(nullptr);
 }
@@ -299,7 +334,18 @@ void loop_task(void* arg)
 void signal_body(Transport::Impl* p)
 {
     if (xSemaphoreTake(p->sdp_ready, pdMS_TO_TICKS(kSdpWaitMs)) != pdTRUE) {
-        ESP_LOGE(TAG, "no local SDP within %d ms", kSdpWaitMs);
+        if (p->stopping.load()) {
+            ESP_LOGI(TAG, "signaling cancelled while waiting for the local SDP");
+        } else {
+            ESP_LOGE(TAG, "no local SDP within %d ms", kSdpWaitMs);
+            p->stage.store(kStageSdpTimeout);
+        }
+        return;
+    }
+    // Stop() may have woken this wait on purpose: do not then start an HTTP
+    // request against a peer that is being torn down.
+    if (p->stopping.load()) {
+        ESP_LOGI(TAG, "signaling cancelled after the SDP wake");
         return;
     }
 
@@ -307,8 +353,15 @@ void signal_body(Transport::Impl* p)
     std::string err;
     if (!post_sdp(p->local_sdp, answer, &err)) {
         ESP_LOGE(TAG, "signaling failed: %s", err.c_str());
+        p->stage.store(kStageSdpExchangeFailed);
         return;
     }
+    // The request can take seconds; cancellation during it must be honoured.
+    if (p->stopping.load()) {
+        ESP_LOGI(TAG, "signaling cancelled after the SDP exchange");
+        return;
+    }
+    p->stage.store(kStageAnswerReceived);
 
     esp_peer_msg_t msg = {};
     msg.type = ESP_PEER_MSG_TYPE_SDP;
@@ -322,6 +375,7 @@ void signal_task(void* arg)
 {
     auto* p = impl_of(arg);
     signal_body(p);          // all C++ locals destroyed here
+    p->sig_confirmed_exit.store(true);
     xSemaphoreGive(p->sig_exited);
     vTaskDelete(nullptr);
 }
@@ -404,12 +458,16 @@ bool Transport::Start(const Config& cfg, const Callbacks& cb, std::string* err)
     }
 
     // Handles are saved so Stop() can actually join instead of guessing.
-    if (xTaskCreate(loop_task, "m_peer_loop", 8192, p, 5, &p->loop_task) != pdPASS) {
+    p->loop_created.store(true);
+    if (xTaskCreate(loop_task, "m_peer_loop", kPeerTaskStackBytes, p, 5, &p->loop_task) != pdPASS) {
+        p->loop_created.store(false);
         *err = "peer loop task create failed";
         cleanup(p);
         return false;
     }
-    if (xTaskCreate(signal_task, "m_peer_sig", 8192, p, 5, &p->sig_task) != pdPASS) {
+    p->sig_created.store(true);
+    if (xTaskCreate(signal_task, "m_peer_sig", kPeerTaskStackBytes, p, 5, &p->sig_task) != pdPASS) {
+        p->sig_created.store(false);
         *err = "signaling task create failed";
         cleanup(p);
         return false;
@@ -431,20 +489,47 @@ void Transport::cleanup(Impl* p)
     if (p == nullptr) {
         return;
     }
-    // Ask the tasks to stop and wait for them to actually leave. The signaling
-    // task may be inside an HTTP request (up to its 20 s timeout), so the wait
-    // is bounded by that rather than by a fixed guess.
+    // Idempotent: Stop() and the destructor both call this, and Start() calls it
+    // on every failure path.
+    if (p->cleaned.exchange(true)) {
+        return;
+    }
+
     p->stopping.store(true);
+
+    // Wake a signaling task that is blocked on the local SDP so it can observe
+    // the cancellation instead of waiting out its full timeout.
     if (p->sdp_ready != nullptr) {
-        // Wake a signaling task that is blocked waiting for the local SDP.
         xSemaphoreGive(p->sdp_ready);
     }
-    if (p->loop_exited != nullptr) {
+
+    bool loop_exited = !p->loop_created.load();
+    bool sig_exited = !p->sig_created.load();
+
+    if (p->loop_created.load()) {
+        // Wait on the semaphore, but only trust the task's own exit flag: a
+        // timeout is not proof that the task stopped touching the peer.
         xSemaphoreTake(p->loop_exited, pdMS_TO_TICKS(kTaskExitWaitMs));
+        loop_exited = p->loop_confirmed_exit.load();
     }
-    if (p->sig_exited != nullptr) {
+    if (p->sig_created.load()) {
         xSemaphoreTake(p->sig_exited, pdMS_TO_TICKS(kTaskExitWaitMs));
+        sig_exited = p->sig_confirmed_exit.load();
     }
+
+    if (!loop_exited || !sig_exited) {
+        // A task may still be inside an HTTP request, a DNS lookup or a peer
+        // poll. Freeing the peer and the semaphores underneath it would be a
+        // use-after-free, so keep them alive and report the failure instead.
+        ESP_LOGE(TAG,
+                 "tasks did not confirm exit (loop=%d sig=%d) within %d ms; "
+                 "NOT releasing the peer or the semaphores - they may still be in use",
+                 (int)loop_exited, (int)sig_exited, kTaskExitWaitMs);
+        p->stopping.store(false);   // leave the tasks able to finish normally
+        return;
+    }
+
+    ESP_LOGI(TAG, "both tasks confirmed exit; releasing transport resources");
 
     if (p->peer != nullptr) {
         esp_peer_close(p->peer);
@@ -514,6 +599,12 @@ bool Transport::CanSendAudio() const
     }
     std::lock_guard<std::mutex> lock(p->mtx);
     return p->audio_ready;
+}
+
+int Transport::stage() const
+{
+    auto* p = impl_;
+    return p == nullptr ? 0 : p->stage.load();
 }
 
 esp_peer_state_t Transport::state() const

@@ -103,3 +103,58 @@ M2 才做完整产品预算）。
 - M1.5（AEC 假设、双讲、打断）保持**未开始**，按指令 on hold
 - 未做下行播放、未做产品 AudioService/UI 接入
 - 未宣称 48k 路径产品级可用
+
+---
+
+# 复核修复轮（M1-1 ～ M1-7）
+
+修复对象：Review 5446817816，reviewed exact HEAD `c3e6582`。
+
+## 修复对照
+
+| # | 处置 |
+|---|---|
+| **M1-1** | M0 恢复在**本会话发现的 stream** 上发送 `session.update`，成功后标记；channel 回调提供重试；发送前释放观察锁避免死锁；不发媒体语义不变。M0 结果新增 `session.update sent` 一行。 |
+| **M1-2** | `cleanup()` 改为**幂等**（`cleaned` 交换）；只等待**确实创建**过的任务；以任务自己的 `*_confirmed_exit` 标志为准，**超时不再释放 peer/信号量**，而是报告失败并保留仍被访问的资源；`signal_body` 在等待 SDP 前后与 HTTP 返回后**均检查取消**；task 栈显式命名并注明**字节**单位。 |
+| **M1-3** | 采用评审给出的**最小安全策略**：首条 clip 无结果即**停止验收序列**，不再开始后续 clip，避免迟到结果落入下一条槽位。实测已按此停止（本轮只出现 `[clip] zh_1`）。关键词计分保留。 |
+| **M1-4** | 媒体时长**由帧计数推导**（`frames_media × kFrameMs`），墙钟独立测量；两者不再共用同一表达式。实测 `media/wall = 327020 / 252723 ms`，**不再相等**。持续 loop 独立记录起止与 COMPLETE。 |
+| **M1-5** | 加入受控诊断：重采样输出 RMS、**本地 Opus 解码往返**（能量 + 失败数）、包长分布。全部为白名单非敏感元数据，不含 key/Authorization/完整 SDP。 |
+| **M1-6** | 失败按**实际阶段**报告。实测输出 `VERDICT: FAIL - transport layer. stage=server answer received(4) peer_state=6` —— 不再把未完成的握手说成配置失败。 |
+| **M1-7** | 本文件补齐；SPEC/PLAN/调度/PR 状态同步；patch 行尾空白清理（见下）。 |
+
+## M1-5 诊断结果：上行音频是真实有效的
+
+| 诊断项 | 值 |
+|---|---|
+| 重采样 48k RMS | peak **0.2010**，avg 0.0507，16351 帧 |
+| 本地 Opus 解码往返 | peak **0.2019**，avg 0.0506，**16351 成功 / 0 失败** |
+| raw Opus 包长 | min 3 B，max 325 B |
+
+**结论：重采样确实产出真实音频，编码产物确实是可解码的 Opus 音频。**
+因此"无 VAD"**不能**归因于本地静音、重采样失败或编码产物无效。
+
+评审已指出 `SendAudio` 返回 0 不证明 SRTP/socket 写入成功
+（`rtp_encoder_encode_generic` 调 void 回调后固定 return 0，
+`write_rtp_packet` 不向上传递 SRTP/agent/socket 失败）。
+本轮**未**推翻该判断，也**未**据此宣称服务端已收到。
+仍未定位的是 **RTP/SRTP 发送链路或服务端侧**，需要评审所指的
+RTP PT/seq/ts/SSRC/发送长度与实际写入结果才能继续。
+
+## 本轮稳定运行证据
+
+| 项 | 值 |
+|---|---|
+| 持续 loop | **COMPLETE**，325831 ms（预算 300000 ms）|
+| clips / packets / bytes | 66 / 16351 / 1660625 B |
+| sender 栈高水位 | 10172 B 空闲 / 32768 分配 |
+| 重采样 | p50 344 µs，p95 358 µs，p99 417 µs |
+| 编码 48k mono 20 ms | p50 2742 µs，p95 7022 µs，p99 7435 µs |
+| 失败计数 | send/encode/resample/oversize/oom/pacing_late **全 0** |
+| 堆趋势 | int 114835 → 114887（无下降）|
+| VAD / ASR | `started=0 stopped=0` / `completed=0` —— **仍未达成** |
+
+## 仍未完成
+
+- **VAD/ASR 仍未触发**；根因未定位，方向已收窄到 RTP/SRTP 发送链路或服务端侧
+- 60 ms 帧长证据、隔离重建逐条记录、完整命令与 hash 仍在补齐中
+- 本轮只修 M1 findings；**M1.5 与产品下行/AudioService/UI 保持 HOLD**
