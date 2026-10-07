@@ -263,22 +263,40 @@ public:
          * 81 s of a 20 ms run, which is not the sustained loop. This keeps at
          * most kCap samples but spreads them across every call.
          */
+        /**
+         * @brief Uniform sampling at one fixed rate from the very first call.
+         *
+         * The previous version kept every sample until full and only then
+         * switched to an every-4th stride. That mixture is not a uniform sample
+         * of the run: a slow spell just after the buffer filled was 4x
+         * over-represented, enough to move p95 the wrong way. Sampling every
+         * kStride-th call from the start keeps the rate constant, so the stored
+         * set is an unbiased sample of all calls and needs no reweighting.
+         */
         void Add(int32_t us)
         {
-            ++seen_;
-            if (n_ < kCap) {
-                v_[n_++] = us;
+            const uint64_t idx = seen_++;
+            if ((idx % kStride) != 0) {
                 return;
             }
-            // Reservoir-style stride: replace an existing slot occasionally so
-            // later samples are represented without unbounded storage.
-            if ((seen_ % kStride) == 0) {
-                v_[next_] = us;
-                next_ = (next_ + 1) % kCap;
+            if (n_ < kCap) {
+                v_[n_++] = us;
+            } else {
+                // Fixed-rate sampling can still overflow on a very long run:
+                // keep counting and stop storing, and report the shortfall
+                // rather than silently mislabelling the window.
+                ++dropped_;
             }
         }
         size_t size() const { return n_; }
         uint64_t seen() const { return seen_; }
+        uint64_t dropped() const { return dropped_; }
+        /** Window actually described, as a fraction of all calls. */
+        double coverage() const
+        {
+            return seen_ == 0 ? 0.0
+                              : (double)n_ / (double)((seen_ + kStride - 1) / kStride);
+        }
         int32_t at(size_t i) const { return v_[i]; }
         /** Copy out for sorting; only called once, off the media path. */
         std::vector<int32_t> Copy() const { return std::vector<int32_t>(v_, v_ + n_); }
@@ -287,8 +305,8 @@ public:
         static constexpr uint64_t kStride = 4;
         int32_t v_[kCap] = {};
         size_t n_ = 0;
-        size_t next_ = 0;
         uint64_t seen_ = 0;
+        uint64_t dropped_ = 0;
     };
 
     bool Open(std::string* err)
@@ -1416,9 +1434,16 @@ void WebRtcM1Run()
     {
         auto rs = g_sender.resample_us().Copy();
         auto en = g_sender.encode_us().Copy();
-        ESP_LOGW(TAG, "[lat] resample n=%d p50=%d p95=%d p99=%d us | encode n=%d p50=%d p95=%d p99=%d us",
-                 (int)rs.size(), Percentile(rs, 0.50), Percentile(rs, 0.95), Percentile(rs, 0.99),
-                 (int)en.size(), Percentile(en, 0.50), Percentile(en, 0.95), Percentile(en, 0.99));
+        // Sampling rate and window are reported explicitly: the percentiles
+        // describe 1-in-kStride of all calls, not every call.
+        constexpr uint64_t kStride = 4;
+        ESP_LOGW(TAG, "[lat] uniform 1-in-%d sampling; resample n=%d p50=%d p95=%d p99=%d us | "
+                      "encode n=%d p50=%d p95=%d p99=%d us",
+                 (int)kStride,
+                 (int)rs.size(),
+                 Percentile(rs, 0.50), Percentile(rs, 0.95), Percentile(rs, 0.99),
+                 (int)en.size(),
+                 Percentile(en, 0.50), Percentile(en, 0.95), Percentile(en, 0.99));
         if (g_samples.size() >= 2) {
             const auto& a = g_samples.front();
             const auto& b = g_samples.back();
@@ -1480,10 +1505,18 @@ void WebRtcM1Run()
     // ---- R2-5: VERDICT computed from the real acceptance conditions ----
     {
         const rtp_probe::Report sp = rtp_probe::Snapshot();
+        // R3-2: a clip passes only when its turn was bracketed by real VAD and
+        // its own completed transcription matched every keyword. Three matching
+        // transcripts without VAD are not the four-layer acceptance.
         int clips_ok = 0;
+        int clips_vad_ok = 0;
         bool any_failed = false;
         for (const auto& r : g_results) {
-            if (r.completed && !r.failed && r.hits == r.total && r.total > 0) {
+            const bool vad_ok = r.speech_started && r.speech_stopped;
+            if (vad_ok) {
+                ++clips_vad_ok;
+            }
+            if (vad_ok && r.completed && !r.failed && r.hits == r.total && r.total > 0) {
                 ++clips_ok;
             }
             if (r.failed) {
@@ -1495,12 +1528,24 @@ void WebRtcM1Run()
         const bool no_codec_err = (g_sender.encode_fail() == 0 &&
                                    g_sender.resample_fail() == 0 &&
                                    g_metrics.oversize == 0);
-        const bool send_ok = (sp.protect_calls > 0 && sp.udp_attempts > 0 &&
-                              sp.write_failed == 0);
+        // R3-1: a send may only count as verified when protect succeeded, the
+        // successful writes actually correspond to protected packets with the
+        // expected length, nothing was short-written or lost to observation,
+        // and every protected packet was seen to reach the socket.
+        const bool send_ok = (sp.protect_calls > 0 &&
+                              sp.protect_fail == 0 &&
+                              sp.packets_written > 0 &&
+                              sp.write_failed == 0 &&
+                              sp.write_incomplete == 0 &&
+                              sp.length_mismatch == 0 &&
+                              sp.protected_unwritten == 0 &&
+                              sp.retired_pending == 0 &&
+                              sp.overflow_pending == 0);
 
         ESP_LOGW(TAG, "==================== FINAL VERDICT ====================");
         ESP_LOGW(TAG, "  config verified        : %s", cfg_ok ? "yes" : "NO");
         ESP_LOGW(TAG, "  3 clips with keywords  : %d/%d", clips_ok, kClipCount);
+        ESP_LOGW(TAG, "  3 clips with valid VAD : %d/%d", clips_vad_ok, kClipCount);
         ESP_LOGW(TAG, "  any clip failed        : %s", any_failed ? "yes" : "no");
         ESP_LOGW(TAG, "  zero codec/oversize    : %s", no_codec_err ? "yes" : "NO");
         ESP_LOGW(TAG, "  send path observed     : %s (protect=%u udp=%u failed=%u)",
@@ -1522,14 +1567,26 @@ void WebRtcM1Run()
                 ESP_LOGE(TAG, "    - configuration was not verified");
             }
             if (!three_ok) {
-                ESP_LOGE(TAG, "    - only %d/%d clips produced a complete keyword-matching "
-                              "transcription", clips_ok, kClipCount);
+                ESP_LOGE(TAG, "    - only %d/%d clips had valid VAD start+stop plus a "
+                              "complete keyword-matching transcription",
+                         clips_ok, kClipCount);
+                if (clips_vad_ok < kClipCount) {
+                    ESP_LOGE(TAG, "      VAD bracketed only %d/%d clips", clips_vad_ok,
+                             kClipCount);
+                }
             }
             if (!no_codec_err) {
                 ESP_LOGE(TAG, "    - codec/oversize errors present");
             }
             if (!send_ok) {
-                ESP_LOGE(TAG, "    - no confirmed SRTP+UDP send, or writes failed");
+                ESP_LOGE(TAG, "    - send path not fully verified: protect ok=%u fail=%u, "
+                          "packets_written=%u, short=%u, failed=%u, len_mismatch=%u, "
+                          "protected_unwritten=%u, lost=%u",
+                     (unsigned)sp.protect_ok, (unsigned)sp.protect_fail,
+                     (unsigned)sp.packets_written, (unsigned)sp.write_incomplete,
+                     (unsigned)sp.write_failed, (unsigned)sp.length_mismatch,
+                     (unsigned)sp.protected_unwritten,
+                     (unsigned)(sp.retired_pending + sp.overflow_pending));
             }
             if (!g_loop_complete) {
                 ESP_LOGE(TAG, "    - the sustained loop did not complete");

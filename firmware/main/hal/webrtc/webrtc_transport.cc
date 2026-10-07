@@ -101,7 +101,8 @@ struct Transport::Impl {
     std::atomic<bool> sig_created{false};
     std::atomic<bool> loop_confirmed_exit{false};
     std::atomic<bool> sig_confirmed_exit{false};
-    std::atomic<bool> cleaned{false};
+    std::atomic<bool> released{false};
+    std::atomic<bool> cleanup_running{false};
     /**
      * Set when a task could not confirm exit. The context, the peer and the
      * semaphores are then deliberately never freed: the tasks may still be
@@ -538,11 +539,19 @@ void Transport::cleanup(Impl* p)
     if (p == nullptr) {
         return;
     }
-    // Idempotent: Stop() and the destructor both call this, and Start() calls it
-    // on every failure path.
-    if (p->cleaned.exchange(true)) {
-        return;
+    // Idempotent, but the "done" mark is only set once the resources really are
+    // released (at the end of this function). Setting it up front made a timed-out
+    // cleanup permanently un-retryable and permanently un-joinable.
+    if (p->released.load()) {
+        return;   // already fully released
     }
+    if (p->cleanup_running.exchange(true)) {
+        return;   // another caller is inside cleanup
+    }
+    struct RunningGuard {
+        std::atomic<bool>* f;
+        ~RunningGuard() { f->store(false); }
+    } guard{&p->cleanup_running};
 
     // Keep the stop request in force across repeated Stop() calls.
     p->stopping.store(true);
@@ -605,6 +614,9 @@ void Transport::cleanup(Impl* p)
         std::lock_guard<std::mutex> lock(p->mtx);
         p->audio_ready = false;
     }
+    // Only now is the context genuinely released, so only now may a later
+    // Stop()/destructor short-circuit.
+    p->released.store(true);
 }
 
 bool Transport::SendJson(const std::string& json, uint16_t stream_id)

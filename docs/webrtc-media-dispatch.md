@@ -113,3 +113,21 @@ Codex 负责设计与每阶段代码/证据复核及后续派单。
   Codex补充预检并尝试插话；新纠正与两个历史诊断仍在UI显示发送中，不据此宣称全部送达。
   **实际源码已把短诊断移到32KB sender任务**，保持唯一编码所有权；仍未交新HEAD。
   后续以真实诊断、全Review修复及exact-head RQ为准，不重复派发已有执行任务。
+
+## 第三次 M1 代码复核与修复派发
+
+- 第二轮修复的实际交付 HEAD 为 `1cbd79bbe60f53f688cdcf512a0f60ec9cd8f42f`，
+  [REVIEW_REQUEST](https://github.com/MetaAlms/StackChan/pull/1#issuecomment-6045775796)
+  与 PR remote 已核对。原生轨迹确认第69轮只续做前次 unfinished Review；
+  run12 停在 DTLS，后续提交前又改了事件/时钟/最终判据，不能把旧采集覆盖新代码。
+- Codex 已完成 exact-head 审查及两个独立只读复核，提交并 read-back
+  [Review 5447785013](https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5447785013)，
+  `commit_id` 与上述 full SHA 相同，结论 needs fixes。
+  详见 `webrtc-media-m1-review-result-3.md`：实际发送假通过与漏覆盖、
+  item 匹配/VAD门槛、时间范围/分位偏置、必要媒体诊断及剩余生命周期/交付证据。
+- R3-4 的公开符号 DTLS 短诊断方案与 exporter 条件风险证据已落盘。
+  标准栈媒体对照现在执行，不以设备先握手成功为前提；不把未执行设计当实测。
+- Review ID/full SHA/范围/HOLD/verify+push+exact-head RQ+STOP 最小指令已填写到
+  同一原生 `stackchan` composer；发送与执行状态仍待 UI 后续核对，
+  不把 paste 成功或旧排队项的“发送中”当交付证据。
+- 保持 48k PCM 与 esp_peer1.5.5；M1.5/产品接入HOLD，不merge/发布/上游改动。

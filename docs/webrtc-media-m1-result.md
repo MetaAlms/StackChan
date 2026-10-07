@@ -242,3 +242,80 @@ Mbed TLS `-0x6800 MBEDTLS_ERR_SSL_TIMEOUT`），
 **M1 仍未通过。** 已排除：本地静音/无效 Opus（16351 包解码成功、RMS 0.20）、
 SDP 不接受音频（Answer 明确 `a=sendrecv` opus/48000/2）、配置不成立（回显已核验）。
 未完成：设备侧 SRTP/UDP 实际发包计数、VAD/ASR、60 ms 证据、隔离重建逐条记录。
+
+---
+
+# 复核修复轮 3（R3-1 ～ R3-5）
+
+修复对象：Review 5447785013，reviewed exact HEAD `1cbd79b`。
+
+## R3-1 发送判据与记录语义
+
+| 项 | 处置 |
+|---|---|
+| `send_ok` 只看"发生过调用" | 收紧为：`protect_ok>0`、`protect_fail==0`、`packets_written>0`、无短写、无负返回、无长度不符、无"保护成功但未写出"、无观察丢失 |
+| protect-failed 记录可被当成健康包 | 仍参与匹配（因为"保护失败后仍调用 UDP"正是要诊断的真实路径），但**记入 `wrote_after_protect_fail`**，且**不产生成功计数** |
+| UDP 整长即计成功 | 成功**必须**来自保护成功的记录，**且写入长度与该记录的 `srtp_len` 一致**；不一致记 `length_mismatch` |
+| `kProtected` 被当正常完成静默退休 | 保护成功但从未写出者计入 **`protected_unwritten`**；pending 退休计入观察丢失 |
+
+## R3-2 验收必须逐条含 VAD
+
+`clips_ok` 现在要求该 clip **同时**满足：`speech_started && speech_stopped`、
+所属 item 的 completed、关键词全中。VERDICT 另打印 `3 clips with valid VAD: n/3`，
+并在未达标时分别指出 VAD 只括住了几条。
+
+**未完成**：VAD/committed 事件的实际 item_id 绑定（`speech_started` 仍只设 flag），
+以及"成功后迟到重复 completed 不得进入下一条"的完整处理。评审要求的轻量事件测试
+（正确 item、重复旧完成、错误 item、旧 failed、缺字段、验收冻结后事件）**本轮未做**。
+
+## R3-3 时间范围与统计无偏
+
+| 项 | 处置 |
+|---|---|
+| 分位混用"前 4096 逐帧 + 之后每 4 帧" | 改为**从第一次调用起固定 1/4 速率**采样：速率恒定即无偏，且无需再加权。评审给出的反例（快值 p95 被慢值污染）在恒定速率下不再成立 |
+| 分位覆盖窗口不明 | 报告显式打印采样率与样本数，并在 `LatencyLog` 内记录 `dropped`，不再把不等权集合标为整个 loop 分位 |
+
+**未完成**：`wall_us` 仍只累计 clip，而 `frames_media` 含诊断/静音/等待/持续 loop；
+真实 `loop_start/loop_end/elapsed` 仍未独立保存。评审要求的纯逻辑时间/统计检查**本轮未做**。
+
+## R3-5 生命周期剩余项
+
+`cleaned` 改为 **`released`，且只在资源真正释放完成后置位**；
+清理进行中用 `cleanup_running` 防重入，超时后**不再永久不可重试**。
+
+**未完成**：M1 sender join 信号量在 task 创建失败与 join 成功后的释放；
+评审要求的退出路径验证矩阵（正常 Stop、SDP 等待中 Stop、部分创建失败、
+受控退出超时、重复 Stop）**本轮未执行**。
+
+## R3-4 未完成（本轮最大的缺口）
+
+评审要求**并行推进**两项，**两项都未完成**：
+
+1. **标准栈媒体正对照（host）**：**未执行**。
+   `docs/webrtc-media-m1-standard-control.md` 与 `webrtc-media-m1-host-encoding.md`
+   指明了路径（node-datachannel 0.33.4 + libopus 1.5.2 ctypes + ffmpeg 重采样），
+   本轮**未实现、未运行**。
+2. **设备短 DTLS/发送观测**：**未取到**。
+   `docs/webrtc-media-m1-dtls-short-probe.md` 给出的公开符号方案
+   （`--wrap=mbedtls_ssl_handshake`、`lwip_recvfrom`、公开 getter 报告选中 profile）
+   **未实现**。
+
+本轮设备尝试仍停在 **DTLS 握手超时**
+（`stage=server answer received(4)`、`peer_state=6 CONNECTING`、`MBEDTLS_ERR_SSL_TIMEOUT`），
+`srtp_protect` / `lwip_sendto` 的实际计数**没有取得**。
+**未预设根因、未升级 1.5.6、未盲改 cipher。**
+
+## 当前状态（取代上文各轮的"当前"表述）
+
+**M1 仍未通过。**
+
+已排除（有证据）：本地静音/无效 Opus（16351 包解码成功、RMS 0.20）、
+SDP 不接受音频（Answer `a=sendrecv` opus/48000/2）、配置不成立（回显已核验）。
+
+未完成：标准栈媒体对照、设备 SRTP/UDP 实际计数、DTLS 失败阶段元数据、
+VAD/ASR item 绑定与轻量事件测试、时间范围统一与真实 loop 起止、
+退出路径验证矩阵、60 ms 证据、M0 真实握手回归、正常 WS 回归、隔离重建逐条记录。
+
+> 说明：本节之前的各轮"当前状态"记录为**历史**，保留以供追溯；
+> 以本节为准。此前"5 次尝试中 4 次失败"与随后"唯一连通的两次"表述不一致，
+> 应读作：**5 次尝试，1 次连通到配置核验但未跑到短诊断输出，4 次停在 DTLS 超时。**

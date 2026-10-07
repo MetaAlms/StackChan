@@ -53,6 +53,15 @@ struct Report {
     uint32_t retired_pending = 0;
     uint32_t overflow_pending = 0;
 
+    // R3-1: a "send succeeded" claim needs these distinctions, not just counts
+    // of calls that happened.
+    /** Protect succeeded but no matching write was ever observed. */
+    uint32_t protected_unwritten = 0;
+    /** A write whose length disagreed with that record's SRTP output length. */
+    uint32_t length_mismatch = 0;
+    /** A write followed a protect failure - the real path to diagnose. */
+    uint32_t wrote_after_protect_fail = 0;
+
     // First packet observed, for the RTP header sanity check.
     bool have_first = false;
     uint16_t first_seq = 0;
