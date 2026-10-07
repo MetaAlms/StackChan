@@ -207,9 +207,38 @@ abort() was called
 不是客户端创建的 `oai-events` / stream 0。
 
 **状态**：已在 `firmware/main/idf_component.yml` 精确锁定 1.5.5
-（非 `^` 范围），并注明解除条件。上游已有同症状
-[issue #208](https://github.com/espressif/esp-webrtc-solution/issues/208)，
-2026-10-07 查验仍为 open；建议补充证据，本轮未发布。
+（非 `^` 范围），并注明解除条件。
+
+**已向既有 issue 补充证据，未另建同症状 issue**：
+[issue #208](https://github.com/espressif/esp-webrtc-solution/issues/208)
+（2026-09-30，ESP32-S3 + LiveKit Cloud，仍 open）
+→ [issuecomment-6041819735](https://github.com/espressif/esp-webrtc-solution/issues/208#issuecomment-6041819735)
+（2026-10-07，账号 MetaAlms，评论数 3 → 4）。
+
+补充内容为本项目独有、其余报告未提供的三项：
+
+1. **二进制层根因**——两版发布库反汇编对比，确认
+   `agent_bind_mapped_matches_local` 为 1.5.6 新增
+   （1.5.5 库中该符号与 `skip nominate` 字符串均为 0 次），
+   而 `agent_pair_candidate` 的类型筛选 1.5.5 已存在。
+   现有报告均为行为层推断，无代码路径。
+2. **严格单变量 A/B**——并写明"删除整个 `dependencies.lock` 会重解析
+   约 21 个无关组件而使对照失效"这一方法陷阱。
+3. **第三个独立端点**——阿里云 Realtime WebRTC，非 LiveKit、无 TURN，
+   且为**端口改写型 NAT**（59813 → 13174），区别于原报告的端口保持型。
+
+另提出与已有评论的**冲突点**并请其澄清：zigit 称 1.5.2 亦失败故非回归，
+而我们受控实测 1.5.5 成功，回归窗口应为 1.5.5 → 1.5.6
+（其 1.5.2 或为 `third_party` vendored 版本）。
+
+并给出修复方向（依 RFC 8445 §7.2.5.3.1/2：拒绝前先查本地候选表复用，
+或按 `mapped_addr` 建 prflx 并提名，须保留既有 STUN 校验），
+说明无法提 PR 的原因（`agent.c`/`ice.c` 不在公开仓库，
+仅存在于 7 个预编译 `libpeer_default.a` 中），
+以及愿意在 ESP32-S3 上实测修复库。
+
+草稿与发布记录见 [upstream-issue-208-comment.md](upstream-issue-208-comment.md)。
+
 未获得的证据：媒体链路（AEC / 双向语音 / 打断）在 M0 中未验证。
 
 **⚠️ 锁定 1.5.5 的已知代价**（回退时一并放弃了 v1.5.6 的 6 项修复）：
