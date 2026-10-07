@@ -698,7 +698,21 @@ AFE 因此组成 MR，但设备 AEC 关闭，第二路仍是麦克风，未混�
 不改变已冻结 SPEC 或 M1.5 HOLD，后续需要具体设计复核与真实同步/双讲实验。
 完整路径与边界见 [条件预研](webrtc-software-reference-feasibility.md)。
 
-### B20. `--wrap` 无法截获 Mbed TLS 的 inline getter，且本机构建无公开 profile/role getter
+### B20. 【已订正｜原结论错误】本机 Mbed TLS 公开 role/profile 接口
+
+**订正（2026-10-08，Review 5448554040）**：本条原称"本机没有公开的 role/profile
+getter、`chosen_dtls_srtp_profile` 是 MBEDTLS_PRIVATE 故不可读"，**该结论错误**。
+实测本机 Mbed TLS 3.6.5 存在 `mbedtls_ssl_conf_get_endpoint`（ssl.h:2124）、
+`mbedtls_ssl_context_get_config`（:2298）、
+`mbedtls_ssl_get_dtls_srtp_negotiation_result`（:4383，公开 void，
+填充公开类型 `mbedtls_dtls_srtp_info`）、`mbedtls_ssl_is_handshake_over`（:5114）。
+读取该公开返回类型的 `chosen_dtls_srtp_profile` 字段是**使用公开契约**，
+不是猜内存偏移。
+
+**教训**：把"字段带 `MBEDTLS_PRIVATE` 宏"等同于"不可用"是错的 ——
+判据应是**该类型的获取函数是否为公开 API**。
+
+### B20b. 【历史】原（错误）结论
 
 **证据**（2026-10-08，D1-1 实现）：本机 Mbed TLS 3.6.5
 （`~/esp/esp-idf-5.5/components/mbedtls/mbedtls/include/mbedtls/ssl.h`）中
@@ -720,11 +734,63 @@ endpoint role 或 selected SRTP profile getter；`chosen_dtls_srtp_profile`
 **处置**：`__wrap_lwip_sendto` 只保留一处（`dtls_short_probe.cc`），
 RTP 侧改为导出 `rtp_probe::ObserveSendto()`，由该唯一包装转发。
 
-### B22. 设备侧 SSRC 异常小（待验证）
+### B22. 设备侧固定 SSRC 与 SDP 的关联（待验证）
 
 **证据**（2026-10-08，D1-2 短诊断）：`first: pt=111 seq=0 ts=0 ssrc=0x00000006`。
 
-**状态**：**仅记录，未定位、未验证**。host 标准栈使用会话内随机非零 SSRC 并通过
-`addSSRC()` 在 SDP 中宣告；设备侧该数值可疑，是下一轮的首要核对项。
-不得在未做单变量验证前当作根因。
+**订正（Review 5448554040）**：该 SSRC **已在同次 Offer 中宣告为 `a=ssrc:6`**，
+与探针观测一致。RFC 3550 §5.1/§8 的随机性要求用于避免**会话内碰撞**，
+**小数值本身不是非法条件**，不能当作"设备未在 SDP 声明 SSRC"或根因。
+保留为"固定 SSRC / SDP 关联待验证"。
 
+### B23. 设备 DTLS 握手完成但 SRTP profile 为 UNSET
+
+**证据**（2026-10-08，D2-1 短诊断，`docs/device_diag_evidence/run_d2_profile_unset.log`）：
+
+```
+setups=2 (datagram=1 stream=1) | hs calls=7 dtls=1 ok=1 fail=0 stream_excluded=6
+last_ret=0 last=288ms over=1 role=0
+cipher=TLS-ECDHE-RSA-WITH-AES-128-GCM-SHA256
+profile=0 UNSET
+```
+
+**要点**：
+1. DTLS 握手**成功完成**（`is_handshake_over=1`，ret 0），
+   推翻了"DTLS 握手超时"作为本阶段失败的解释。
+2. `mbedtls_ssl_get_dtls_srtp_negotiation_result` 返回的
+   `chosen_dtls_srtp_profile` 为 **0（MBEDTLS_TLS_SRTP_UNSET）**，
+   即 **SRTP 保护 profile 未协商**。
+3. 失败点因此位于 **DTLS 之后**（SRTP/DataChannel 建立阶段），
+   与 `peer_state=6 CONNECTING`、`stage=server answer received(4)` 一致。
+
+**状态**：**实测条件，未做单变量验证，不宣称根因**；
+未据此盲改 cipher/profile，也未升级 1.5.6。
+
+### B23. D1 短诊断结论修正：公开 getter 存在，100 包仅覆盖前置静音
+
+**证据**（2026-10-08，复核 exact HEAD
+`a3a7b9f4ccf7aeb7a25f75cc39c1010262edf570`）：本机 Mbed TLS 3.6.5
+`ssl.h:2124/2298/4383/5114` 分别提供公开 endpoint/config/profile/completion
+接口。用 `firmware/build/compile_commands.json` 中 `webrtc_transport.cc` 的
+同一编译器、选项及工作目录编译最小调用片段，退出码0；目标对象引用真实
+`mbedtls_ssl_get_dtls_srtp_negotiation_result`。材料保留在
+`/tmp/stackchan-public-dtls-getters.cc` 与 `.o`。公开 getter 输出的
+`info.MBEDTLS_PRIVATE(chosen_dtls_srtp_profile)` 可以按官方声明读取枚举，
+不等于猜测 SSL 内部布局；不读取或记录 MKI。
+本页第二个 B20 的“公开 getter 不存在”及其不可行结论**已被此证据推翻**。
+
+`/tmp/m1-dtls.log:289` 的 protect100/UDP100 汇总发生在`:292` 的 zh_1
+开始之前，首包 RTP15/SRTP25 对应3字节静音 payload。因此仅证明前置静音的
+本地保护和整长写入；不能证明语音 fixture 的同等路径，更不证明远端解密。
+实际 `dtls_common.h:179–206` 的 client/server key/salt 分配正确；反向 wildcard
+标签在本机 libsrtp3首次 protect 克隆时会设 sender，不足以单独定位此次失败。
+profile 列表支持多个值而 policy 固定默认80位认证仍是条件风险，需先量实际协商值。
+只读证据：`/tmp/stackchan-srtp-role-policy-review-c865084/findings.md`。
+
+**状态**：M1 未通过，继续修同一 D1 诊断。不能据前置静音100包排除设备编码或
+SRTP互通，不能把 SSRC6 的数值小当根因；
+[RFC3550 §5.1/§8](https://www.rfc-editor.org/rfc/rfc3550.html#section-8)
+要求随机选择以避免会话内碰撞，没有“小值非法”的门槛。
+同次日志`:216–217`的Offer已宣告`a=ssrc:6`，与探针值一致；
+不能直接认定设备缺少SSRC声明。
+保留设备参数，先测同一 DTLS context 的 role/profile 和实际语音 fixture 写出。

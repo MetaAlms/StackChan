@@ -202,3 +202,33 @@ Codex 负责设计与每阶段代码/证据复核及后续派单。
   实际投递状态随后核对，不切换实现者或复制会话。
 - 最小Review ID/full SHA/H7-D1唯一范围/验证flash+push+exact-head RQ+STOP草稿
   已完整回读并点击发送一次；等待原生新轮次/实际源码证据确认执行。
+- 后续原生第74轮（1178步）确认用户指令出现一次（轨迹row158），
+  DSH回应并核对完整SHA/读取Review（row164/171），实际设备源码修改已出现。
+  `/tmp/m1-dtls.log` ELF7fb588264实测配置通过，2秒有100次protect成功与
+  对应UDP整长；VAD/ASR仍0。当前DTLS钩子混HTTPS且role/profile缺失，
+  [在途预检](webrtc-media-m1-device-diag-preflight.md)记录公开接口/解析边界纠正。
+  尚未交新HEAD，不以WIP摘要当完整D1通过，也不重复派发原任务。
+
+### D1 新交付后的公开接口与区间修正
+
+- 已交并推送 `a3a7b9f4ccf7aeb7a25f75cc39c1010262edf570`，
+  [RQ6046920386](https://github.com/MetaAlms/StackChan/pull/1#issuecomment-6046920386)；
+  本地HEAD、PR及远端branch API核对一致。SSH只读ls-remote公钥不可用，
+  以GitHub API交叉核对，不改远端/密钥/会话。
+- 21项host离线测试重跑通过，不再重开host正对照。前置静音100protect/100UDP
+  实测保留，但仅覆盖zh_1之前；语音写出与远端解密尚未验证。
+- 当前固件参数编译公开DTLS getters片段退出0，RQ的“接口不可用”结论被推翻；
+  公开输出类型的PRIVATE宏不等于猜SSL内部布局。证据已记findings B23。
+- [Review5448554040](https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5448554040)
+  已提交并read-back核对exact a3a7b9f full SHA；
+  [正文](webrtc-media-m1-device-diagnostic-review-2.md)续修D1映射/profile/record、
+  RTP真实重试状态和短语音区间证据，仍不放行M1.5/产品/300秒完整验收。
+- 新指令替换尚未发送的旧HEAD在途草稿，通过同一原生stackchan派发，
+  待完整回读/一次发送/真实投递核对，不重复发送。
+- 新Review全文/完整a3a7b9f/SHA/D2-1..4/HOLD/验证+push+RQ+STOP指令
+  已在原生composer完整回读，点击发送一次。旧草稿未发送；
+  仍待原生新轮次/完整用户消息与实际源码确认投递，禁止因UI延迟重发。
+- 原生第75轮（1189步）已出现且composer清空，实际DTLS代码持续修改；
+  已确认开始D2修复，不再重派该任务。独立ASan/UBSan probe状态反例确认评审。
+  WIP将DATAGRAM/STREAM数字写反及free符号/transport返回型错误，
+  同Review的签名预检已追加到preflight，准备必要在途纠正，非新阶段。

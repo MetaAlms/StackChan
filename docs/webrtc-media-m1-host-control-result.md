@@ -179,3 +179,98 @@ esp_peer 是否在 SDP 中宣告了一致的 SSRC。
 而非本地编码、SRTP 或 socket 写入。
 
 **这不构成根因结论**——SSRC 只是待验证的首要假设，本轮未做单变量验证。
+
+---
+
+# D2-1～D2-4：设备短诊断（第二次，含真实 profile）
+
+被复核 HEAD：`a3a7b9f`（Review 5448554040）。
+
+## 先更正一个事实错误
+
+上一轮我（及 findings B20）宣称"本机没有公开的 role/profile 接口"——**这是错的**。
+本机 Mbed TLS 3.6.5 中四个公开接口**都存在**：
+
+| 接口 | 位置 |
+|---|---|
+| `mbedtls_ssl_conf_get_endpoint` | `ssl.h:2124`（inline，直接调用） |
+| `mbedtls_ssl_context_get_config` | `ssl.h:2298`（inline） |
+| `mbedtls_ssl_get_dtls_srtp_negotiation_result` | `ssl.h:4383`（公开 void，填充 `mbedtls_dtls_srtp_info`） |
+| `mbedtls_ssl_is_handshake_over` | `ssl.h:5114`（inline） |
+
+读取该**公开返回类型**的 `chosen_dtls_srtp_profile` 字段是使用公开契约，
+**不是**猜内存偏移。已按此实现，B20 已订正。
+
+## D2-1 实现与实测
+
+- DTLS/STREAM **按 setup 身份分流**（`config_defaults`/`conf_transport` 固定表，
+  `conf_free` 清身份，表溢出显式计数），只把 DATAGRAM context 计入 DTLS
+- 独立**单调 generation**（不再每次回到 1）
+- 每 context 记录 role / ret / 单调耗时 / `is_handshake_over`
+- `errno` 在真实调用后**立即**保存，再读 timer/getter
+- 摘要含 transport poll 进出耗时字段（本轮未接线，见"未完成"）
+
+实测（`run_d2_profile_unset.log`）：
+
+```
+gen=1 | setups=2 (datagram=1 stream=1 overflow=0)
+hs calls=7 dtls=1 ok=1 fail=0 stream_excluded=6 unknown_transport=0
+last_ret=0 last=288ms over=1 role=0 | cipher=TLS-ECDHE-RSA-WITH-AES-128-GCM-SHA256
+profile=0 UNSET
+DTLS TX records=31 in_dgrams=31 unparsable=3 truncated=0 short_write=0 failed=0
+     epoch_changes=11 first_type=22 last_type=22 epoch=1 seq=0:5 len=48
+DTLS RX records=35 unparsable=31 truncated=0 epoch_changes=0
+     first_type=22 last_type=20 epoch=0 seq=0:29 len=1
+socket assoc=unknown (dtls_fd=-1 rtp_fd=-1)
+```
+
+**四项重要结论：**
+
+1. **分流生效**：上一轮把 7 次握手全算作 DTLS 成功；实际只有 **1** 次是 DTLS，
+   6 次是 HTTPS 的 STREAM 握手。
+2. **DTLS 握手本身成功了**：`ok=1 fail=0 last_ret=0 over=1 role=0`（client）。
+   这**推翻了**"DTLS 握手超时"作为本阶段失败的解释——至少这一次它完成了。
+3. **🚨 `profile=0 UNSET`**：**SRTP 保护 profile 未被协商**。
+   这正是 Review 在 D2-4 中预判的"协商 profile 非 1"条件分支；
+   本次观测到的是比 1 更严重的 **UNSET**。
+4. **DTLS 之后仍失败**：握手完成但最终仍是
+   `stage=server answer received(4)`、`peer_state=6 CONNECTING`，
+   所以失败点在 **DTLS 完成之后**（SRTP/DataChannel 建立阶段），
+   与 `profile=0 UNSET` 一致。
+
+## D2-2 解析器
+
+- 校验 record 层版本（DTLS 1.0 `FEFD` / 1.2 `FEFF`）与 `declared_len <= 剩余-13`
+- **有界遍历 datagram 内全部 record**（不再只取首条）
+- 保存 `seq` 的 **high16 + low32**、epoch/type/len
+- TX **仅在真实调用整长写出时**计 record；短写/失败分别计数
+- RX 受 `min(rc, len)` 约束
+- 区分 unparsable / truncated / short_write / failed
+- **无 socket/context 关联时不作"对端从未回应"的结论**（本次 `assoc=unknown`，
+  故摘要只给数字不下结论）
+
+## D2-3 RTP 探针状态
+
+- `protect_ok` 改用记录自身的标志，不再从可变 `state` 推导
+  （短写/负返回曾把同一条成功保护的记录标成 protect-failed，
+  导致后续整长重试丢掉了保护成功的事实）
+- 写失败**不抹掉**保护结果，记录仍可被后续整长重试匹配
+- 首次整长写计 `packets_written`，重试/重复不重计
+- `Acquire` **优先释放已完成记录**；只能丢掉活动记录时按覆盖缺失计数，不记为 protect 失败
+- `Snapshot` **改为非破坏读取**；窗口结算拆成显式 `SettleWindow()`，
+  应在 sender 停止并 join 之后调用
+
+## D2-4 未完成
+
+**本轮未取得语音区间（zh_1）的单独 protect/UDP 输出** —— 设备在 DTLS 完成、
+配置门控之前就失败了（`session_created=0`），因此**没有进入媒体发送阶段**。
+`ssrc=0x00000006` 的说明已按 Review 订正：该值**已在 Offer 中宣告**
+（`a=ssrc:6`），小值本身不是非法条件，不构成根因。
+
+**未完成**：socket 关联实测（`NoteDtlsSocket`/`NoteRtpSocket` 已实现但未接线）、
+transport poll 耗时接线、BIO 观测、语音区间单独统计。
+
+## 本轮不下的结论
+
+`profile=0 UNSET` 是**实测到的条件**，与"DTLS 后失败"一致，
+但本轮**未做单变量验证**，**不宣称它是根因**，也**未盲改 cipher/profile/版本**。

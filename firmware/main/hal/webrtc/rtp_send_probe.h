@@ -93,6 +93,9 @@ std::string Format(const Report& r);
  * @param rc          the real call's return value
  * @param saved_errno errno immediately after the real call
  */
+/** Settle the window; call only after the sender has stopped and joined. */
+void SettleWindow();
+
 void ObserveSendto(const void* dataptr, size_t size, ssize_t rc, int saved_errno);
 
 }  // namespace rtp_probe

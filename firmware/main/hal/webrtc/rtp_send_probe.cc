@@ -133,7 +133,11 @@ void RetireLocked(Record& r)
             ++g_rep.retired_pending;        // never saw a protect result
             break;
         case Slot::kProtected:
-            ++g_rep.protected_unwritten;    // protected, no write ever observed
+            // Protected and never seen written. Only a record with no successful
+            // write at all counts here; one that was written keeps that fact.
+            if (!r.any_success) {
+                ++g_rep.protected_unwritten;
+            }
             break;
         default:
             break;
@@ -147,6 +151,7 @@ void ExpireLocked(int64_t now)
 {
     for (size_t i = 0; i < kRing; ++i) {
         Record& r = g_ring[i];
+        // Only genuinely expired records are retired here.
         if (r.state != Slot::kFree && (now - r.t_us) > kRecordTtlUs) {
             RetireLocked(r);
         }
@@ -166,15 +171,32 @@ Record* AcquireLocked(int64_t now)
     // Reuse the oldest completed slot; recycling a *pending* one means a real
     // observation was lost, which is what overflow must count. Normal traffic
     // recycling a completed slot is not overflow.
+    // D2-3: prefer a completed record so an in-flight observation is not taken.
+    Record* victim = nullptr;
+    for (size_t i = 0; i < kRing; ++i) {
+        Record& r = g_ring[i];
+        const bool completed = (r.state == Slot::kWritten ||
+                                r.state == Slot::kWriteFailed ||
+                                r.state == Slot::kProtectFailed);
+        if (!completed) {
+            continue;
+        }
+        if (victim == nullptr || r.t_us < victim->t_us) {
+            victim = &r;
+        }
+    }
+    if (victim != nullptr) {
+        RetireLocked(*victim);
+        return victim;
+    }
+    // Nothing completed: an active observation has to be lost. That is coverage
+    // loss, not a protect failure, and is reported as such.
     Record* oldest = &g_ring[0];
     for (size_t i = 0; i < kRing; ++i) {
         if (g_ring[i].t_us < oldest->t_us) {
             oldest = &g_ring[i];
         }
     }
-    // Reusing the slot loses whatever it held, so classify it the same way a
-    // retirement would be classified, and count it as overflow only when the
-    // lost observation was still pending.
     const bool was_pending = (oldest->state == Slot::kPending);
     RetireLocked(*oldest);
     if (was_pending) {
@@ -218,17 +240,31 @@ void Arm()
     g_rep.generation = g_generation;
 }
 
+/**
+ * @brief Non-destructive read.
+ *
+ * The previous version retired every slot, which fabricated retired_pending /
+ * protected_unwritten for records whose real protect or send call was still in
+ * flight, and made an already-recorded success unfindable. Snapshot now only
+ * reads; window settlement is a separate, explicit call made after the sender
+ * has stopped and joined.
+ */
 Report Snapshot()
 {
     std::lock_guard<std::mutex> lock(g_mtx);
-    // Settle the window: everything still pending or protected-but-unwritten is
-    // classified now, so a short run cannot claim coverage it never had.
+    return g_rep;
+}
+
+/** Settle the window. Call only after the sender has stopped and been joined. */
+void SettleWindow()
+{
+    std::lock_guard<std::mutex> lock(g_mtx);
     for (size_t i = 0; i < kRing; ++i) {
         if (g_ring[i].state != Slot::kFree) {
             RetireLocked(g_ring[i]);
         }
     }
-    return g_rep;
+
 }
 
 std::string Format(const Report& r)
@@ -406,8 +442,10 @@ void ObserveSendto(const void* dataptr, size_t size, ssize_t rc, int saved_errno
 
     // A success needs all three: protect succeeded, the UDP request length
     // equals that record's SRTP output length, and the call wrote it all.
-    const bool protect_ok = (hit->state == Slot::kProtected ||
-                             hit->state == Slot::kWritten);
+    // D2-3: use the record's own protect result. Deriving it from `state` meant a
+    // short or failed write set kWriteFailed and a later full retry of the *same*
+    // successfully protected packet looked like a protect failure.
+    const bool protect_ok = hit->protect_ok;
     const bool length_ok = (hit->srtp_len >= 0 &&
                             (ssize_t)hit->srtp_len == (ssize_t)size);
     if (!protect_ok) {
@@ -418,22 +456,26 @@ void ObserveSendto(const void* dataptr, size_t size, ssize_t rc, int saved_errno
     }
 
     if (protect_ok && length_ok && rc == (ssize_t)size) {
-        if (!hit->any_success) {          // retries must not double-count
+        // First full write of a correctly protected packet counts once; retries
+        // and duplicates do not count again. The protect fact is preserved.
+        if (!hit->any_success) {
             hit->any_success = true;
             ++g_rep.packets_written;
         }
         hit->state = Slot::kWritten;
     } else if (rc >= 0 && rc < (ssize_t)size) {
         ++g_rep.write_incomplete;
+        // A failed write must NOT destroy the protect result: the record stays
+        // eligible for a later full retry of the same protected packet.
         if (!hit->any_success) {
-            hit->state = Slot::kWriteFailed;
+            hit->state = protect_ok ? Slot::kProtected : Slot::kProtectFailed;
         }
     } else if (rc < 0) {
         ++g_rep.write_failed;
         g_rep.last_rc = (int)rc;
         g_rep.last_errno = saved_errno;
         if (!hit->any_success) {
-            hit->state = Slot::kWriteFailed;
+            hit->state = protect_ok ? Slot::kProtected : Slot::kProtectFailed;
         }
     }
     hit->last_rc = (int)rc;
