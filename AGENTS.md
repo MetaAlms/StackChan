@@ -31,6 +31,7 @@ origin  git@github.com:MetaAlms/StackChan.git     ← 我们的 fork
 | 原厂/上游缺陷、硬件陷阱、自己踩的坑 | [docs/firmware-findings.md](docs/firmware-findings.md) |
 | 硬件型号、引脚、采样率链路等稳定事实 | [docs/stackchan-hardware.md](docs/stackchan-hardware.md) |
 | 方案与阶段计划 | [docs/aliyun-omni-v2v-plan.md](docs/aliyun-omni-v2v-plan.md) |
+| 能力边界与已知不可为 | [docs/aec-limitation.md](docs/aec-limitation.md) |
 
 每条发现要带**证据**（日志、代码位置、实测数据）与**当前状态**。
 
@@ -50,8 +51,12 @@ origin  git@github.com:MetaAlms/StackChan.git     ← 我们的 fork
 1. **`firmware/main/Kconfig.projbuild` 才是生效的 Kconfig**，
    `firmware/xiaozhi-esp32/main/Kconfig.projbuild` **从不被读取**（xiaozhi 源码是编进 main 组件的）
 2. **ES7210 增益上限 37.5dB**，`input_gain_` 写超过的值会被静默钳位
-3. **本硬件没有扬声器回采参考通道**（官方文档：双麦克风），
-   开启设备侧 AEC 会把用户语音一起消掉
+3. **本方案无法支持语音打断**：阿里 WebSocket 协议官方规格为
+   「回声消除/降噪：无，需客户端自行处理」，而 ESP32 只能用 WebSocket
+   （AOQ 仅限 Android/iOS/HarmonyOS）。设备侧补 AEC 又因
+   `esp_codec_dev` 最多 2 通道而拿不到第 3 路回采参考。
+   **这是规格限制，不要再当作 bug 去修。** 详见
+   [docs/aec-limitation.md](docs/aec-limitation.md)
 
 ## 构建
 

@@ -26,6 +26,7 @@
 |---|---|
 | [stackchan-hardware.md](stackchan-hardware.md) | 硬件清单、引脚、采样率链路、硬件陷阱 |
 | [firmware-findings.md](firmware-findings.md) | 开发中发现的原厂缺陷与我方踩坑记录 |
+| [aec-limitation.md](aec-limitation.md) | **为何不支持语音打断**：官方规格、硬件限制、影响清单与可选路径 |
 | [aliyun-credentials.md](aliyun-credentials.md) | 凭据配置与刷机 |
 
 ### 阿里协议选型结论

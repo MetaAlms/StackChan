@@ -457,6 +457,16 @@ public:
     int speech_frames = 0;
 #endif
 
+    // A turn that ended while the model was still speaking.
+    //
+    // Ending a turn during playback has to wait: committing would cancel the
+    // answer mid-sentence, and the local VAD hears the speaker anyway. But the
+    // turn must not simply be dropped either - the user has already stopped
+    // talking, so no further VAD event will arrive to replace it and their words
+    // would be lost until they spoke again. Remember it and commit as soon as
+    // playback finishes.
+    bool pending_turn_end = false;
+
     // Arrival-rate instrumentation: packets decoded for the current response.
     int packets_this_response = 0;
     int64_t response_started_us = 0;
@@ -960,7 +970,17 @@ bool AliyunOmniProtocol::SendAudio(std::unique_ptr<AudioStreamPacket> packet)
     // is the behaviour that actually matters here.
     if (IsModelSpeaking() ||
         Application::GetInstance().GetDeviceState() == kDeviceStateSpeaking) {
+        // Uplink is suppressed while the model talks, so the local VAD is
+        // hearing the speaker rather than the user. Nothing to do here.
         return true;  // dropped on purpose, not an error
+    }
+
+    // Playback has finished. If a turn ended while it was still running, submit
+    // it now - otherwise those words would never reach the server.
+    if (_impl->pending_turn_end) {
+        _impl->pending_turn_end = false;
+        ESP_LOGI(TAG, "flushing the turn that ended during playback");
+        NotifyLocalSpeechEnded();
     }
 
     // Energy VAD: decide turn boundaries from frame loudness alone.
@@ -1112,7 +1132,8 @@ void AliyunOmniProtocol::NotifyLocalSpeechEnded()
     // the model has genuinely finished - no response in flight and the playback
     // queue drained.
     if (IsModelSpeaking()) {
-        ESP_LOGI(TAG, "ignoring turn end: response_active=%d, %d ms still queued",
+        _impl->pending_turn_end = true;
+        ESP_LOGI(TAG, "deferring turn end: response_active=%d, %d ms still queued",
                  _impl->response_active ? 1 : 0, queuedAudioMs());
         return;
     }

@@ -366,6 +366,9 @@ server_vad + Ogg 输入  → heard=None spoken=None
 
 ### B12. 打断（barge-in）需要 AEC，而阿里不提供——这是架构限制
 
+> 完整分析（官方规格引用、影响清单、可选路径）见
+> [aec-limitation.md](aec-limitation.md)，本节仅记结论。
+
 **现象**：想让设备"讲个故事，中途打断让它数数"，设备不理，且反应很慢。
 
 **参考实现怎么做的**（`xiaozhi-esp32/main/application.cc`）：
