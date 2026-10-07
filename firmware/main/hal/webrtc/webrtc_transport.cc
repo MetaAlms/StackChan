@@ -102,6 +102,12 @@ struct Transport::Impl {
     std::atomic<bool> loop_confirmed_exit{false};
     std::atomic<bool> sig_confirmed_exit{false};
     std::atomic<bool> cleaned{false};
+    /**
+     * Set when a task could not confirm exit. The context, the peer and the
+     * semaphores are then deliberately never freed: the tasks may still be
+     * dereferencing them, and a leak is strictly safer than a use-after-free.
+     */
+    std::atomic<bool> leaked{false};
     /** Furthest stage reached, so a failure can name the real stage (M1-6). */
     std::atomic<int> stage{0};
 
@@ -152,6 +158,38 @@ esp_err_t http_event_handler(esp_http_client_event_t* evt)
     return ESP_OK;
 }
 
+/**
+ * @brief Log the media-relevant SDP lines only.
+ *
+ * Whitelist: m-line, direction, rtpmap/fmtp, mid, ssrc. Never ICE credentials,
+ * fingerprints, Authorization or the whole SDP. Whether the server actually
+ * accepts the audio m-line is the first thing to establish when no media is
+ * recognised.
+ */
+void LogSdpMedia(const char* which, const std::string& sdp)
+{
+    ESP_LOGW(TAG, "----- %s media lines -----", which);
+    size_t pos = 0;
+    while (pos <= sdp.size()) {
+        const size_t nl = sdp.find('\n', pos);
+        const std::string line =
+            sdp.substr(pos, nl == std::string::npos ? std::string::npos : nl - pos);
+        const bool keep = line.rfind("m=", 0) == 0 || line.rfind("a=sendrecv", 0) == 0 ||
+                          line.rfind("a=sendonly", 0) == 0 || line.rfind("a=recvonly", 0) == 0 ||
+                          line.rfind("a=inactive", 0) == 0 || line.rfind("a=rtpmap", 0) == 0 ||
+                          line.rfind("a=fmtp", 0) == 0 || line.rfind("a=mid", 0) == 0 ||
+                          line.rfind("a=ssrc", 0) == 0 || line.rfind("a=rtcp-mux", 0) == 0;
+        if (keep && !line.empty()) {
+            ESP_LOGW(TAG, "  %s", line.c_str());
+        }
+        if (nl == std::string::npos) {
+            break;
+        }
+        pos = nl + 1;
+    }
+    ESP_LOGW(TAG, "--------------------------");
+}
+
 bool post_sdp(const std::string& offer, std::string& answer, std::string* err)
 {
     char host[160];
@@ -162,6 +200,7 @@ bool post_sdp(const std::string& offer, std::string& answer, std::string* err)
     // Deliberately not logging the URL's workspace id or any header value.
     ESP_LOGI(TAG, "POST realtime WebRTC SDP endpoint");
     ESP_LOGI(TAG, "offer is %d bytes", (int)offer.size());
+    LogSdpMedia("OFFER", offer);
 
     answer.clear();
     esp_http_client_config_t cfg = {};
@@ -192,6 +231,9 @@ bool post_sdp(const std::string& offer, std::string& answer, std::string* err)
 
     const bool ok = (rc == ESP_OK && status == 200 && !answer.empty());
     ESP_LOGI(TAG, "response body is %d bytes", (int)answer.size());
+    if (!answer.empty()) {
+        LogSdpMedia("ANSWER", answer);
+    }
     if (!ok) {
         *err = "SDP exchange failed (http ";
         *err += std::to_string(status);
@@ -385,7 +427,14 @@ void signal_task(void* arg)
 Transport::~Transport()
 {
     Stop();
-    delete impl_;
+    // Only free the context when every task confirmed exit. If cleanup had to
+    // leak it (a task could not be joined), deleting here would hand a live
+    // task a dangling pointer - the leak is the safe outcome.
+    if (impl_ != nullptr && !impl_->leaked.load()) {
+        delete impl_;
+    } else if (impl_ != nullptr) {
+        ESP_LOGE(TAG, "context intentionally retained: a task did not confirm exit");
+    }
     impl_ = nullptr;
 }
 
@@ -495,6 +544,7 @@ void Transport::cleanup(Impl* p)
         return;
     }
 
+    // Keep the stop request in force across repeated Stop() calls.
     p->stopping.store(true);
 
     // Wake a signaling task that is blocked on the local SDP so it can observe
@@ -519,13 +569,17 @@ void Transport::cleanup(Impl* p)
 
     if (!loop_exited || !sig_exited) {
         // A task may still be inside an HTTP request, a DNS lookup or a peer
-        // poll. Freeing the peer and the semaphores underneath it would be a
-        // use-after-free, so keep them alive and report the failure instead.
+        // poll. Freeing the peer, the semaphores *or the Impl itself* underneath
+        // it would be a use-after-free, so keep everything alive, keep the stop
+        // request in force, and mark the Impl as never-releasable.
         ESP_LOGE(TAG,
                  "tasks did not confirm exit (loop=%d sig=%d) within %d ms; "
-                 "NOT releasing the peer or the semaphores - they may still be in use",
+                 "keeping the peer, the semaphores AND the context alive - a task "
+                 "may still be dereferencing them",
                  (int)loop_exited, (int)sig_exited, kTaskExitWaitMs);
-        p->stopping.store(false);   // leave the tasks able to finish normally
+        // Do NOT clear stopping: the request must stay in force so the tasks
+        // head for their own exit instead of continuing to run.
+        p->leaked = true;
         return;
     }
 

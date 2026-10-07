@@ -85,3 +85,31 @@ Codex 负责设计与每阶段代码/证据复核及后续派单。
   后续1065步可见一次`Read PR #1 ... Review 5446817816`用户消息与DSH对该轮的回应。
   run8再次在DTLS阶段停住，现已正确报告transport失败，任务确认退出后才释放。
   **仍为修复中，未交新HEAD复审。** M1.5、产品下行/AudioService/UI继续HOLD。
+
+### M1 第二次正式复核
+
+- 第65轮已交付并STOP：HEAD `9e45e63d9ce9083959a50e4420220b26a31da05e`，
+  [REVIEW_REQUEST](https://github.com/MetaAlms/StackChan/pull/1#issuecomment-6044837128)。
+- Codex [Review 5447065335](https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5447065335)
+  已回读核对 `commit_id` 与该HEAD、远端PR HEAD一致；
+  [复核正文](webrtc-media-m1-review-result-2.md)记录R2-1～R2-5。
+  run9完成持续loop且本地Opus全可解码、有语音能量，但无服务端VAD/ASR，M1未通过。
+- 撤回前次M1-7对合法patch上下文空行的清理要求；源码空白与patch应用分别核验。
+- 补充[标准栈媒体对照设计](webrtc-media-m1-standard-control.md)与
+  [host编码设计](webrtc-media-m1-host-encoding.md)，状态均为**只读核查、待实施**。
+  成功只能收窄设备媒体链，不能单独归因esp_peer；同源fixture不代表派生PCM/包逐字节相同。
+- 同一原生`stackchan`的第65轮STOP已在UI确认。Review ID/full SHA最小指令已填写、
+  完整草稿核对后发送。新第66轮（1078步）可见一次
+  `Read MetaAlms/StackChan PR #1 Review 5447065335`消息及DSH的补丁恢复回应，
+  媒体SDP白名单日志已出现WIP修改；**送达与继续实现已确认，尚无新HEAD交付**。
+  授权本Review必要诊断、修复和验证；M1.5及产品下行/AudioService/UI继续HOLD。
+- 第66轮在生成目录补丁恢复前暂停，没有commit/push或新REVIEW_REQUEST。
+  追加[实际发包观测设计](webrtc-media-m1-send-observation.md)，仅为既有R2-4的实现参考，
+  以公开SRTP/UDP函数的linker wrapper避免猜测内部对象布局。
+  同一会话已发送一次续接剩余工作的指令，第67轮（1084步）显示进行中；
+  不将此续接视为新的正式评审或新产品阶段。
+- 第68轮（1097步）继续同一Review的R2-4预检与诊断；ring/SRTP记录绑定/重试计数已出现WIP修正。
+  run10在DTLS层失败；run11在配置通过后因短诊断于8KB main编码而实测栈溢出，不能作为发包证据。
+  Codex补充预检并尝试插话；新纠正与两个历史诊断仍在UI显示发送中，不据此宣称全部送达。
+  **实际源码已把短诊断移到32KB sender任务**，保持唯一编码所有权；仍未交新HEAD。
+  后续以真实诊断、全Review修复及exact-head RQ为准，不重复派发已有执行任务。

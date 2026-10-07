@@ -25,6 +25,7 @@
 
 #include "decoder/impl/esp_opus_dec.h"
 #include "encoder/impl/esp_opus_enc.h"
+#include "rtp_send_probe.h"
 #include "webrtc_transport.h"
 
 #define TAG "M1"
@@ -144,6 +145,8 @@ struct Observed {
     int asr_completed = 0;
     int asr_failed = 0;
     int server_errors = 0;
+    /** Events that arrived without the fields needed to attribute them. */
+    uint32_t malformed_events = 0;
     std::string last_transcript;
     std::string last_item_id;
     std::string last_error;
@@ -253,20 +256,39 @@ public:
     class LatencyLog {
     public:
         static constexpr size_t kCap = 4096;
+        /**
+         * @brief Strided sampling so the percentiles describe the whole run.
+         *
+         * Keeping only the first N samples made the report describe the first
+         * 81 s of a 20 ms run, which is not the sustained loop. This keeps at
+         * most kCap samples but spreads them across every call.
+         */
         void Add(int32_t us)
         {
+            ++seen_;
             if (n_ < kCap) {
                 v_[n_++] = us;
+                return;
+            }
+            // Reservoir-style stride: replace an existing slot occasionally so
+            // later samples are represented without unbounded storage.
+            if ((seen_ % kStride) == 0) {
+                v_[next_] = us;
+                next_ = (next_ + 1) % kCap;
             }
         }
         size_t size() const { return n_; }
+        uint64_t seen() const { return seen_; }
         int32_t at(size_t i) const { return v_[i]; }
         /** Copy out for sorting; only called once, off the media path. */
         std::vector<int32_t> Copy() const { return std::vector<int32_t>(v_, v_ + n_); }
 
     private:
+        static constexpr uint64_t kStride = 4;
         int32_t v_[kCap] = {};
         size_t n_ = 0;
+        size_t next_ = 0;
+        uint64_t seen_ = 0;
     };
 
     bool Open(std::string* err)
@@ -718,8 +740,17 @@ void HandleServerEvent(const std::string& json, uint16_t stream_id)
         const cJSON* id = cJSON_GetObjectItemCaseSensitive(root, "item_id");
         std::lock_guard<std::mutex> lock(g_obs.mtx);
         ++g_obs.asr_completed;
-        g_obs.last_transcript = cJSON_IsString(tr) ? tr->valuestring : "";
-        g_obs.last_item_id = cJSON_IsString(id) ? id->valuestring : "";
+        // Required fields: a completed event without a transcript or item_id
+        // cannot be attributed to a clip, so it must not release one.
+        if (!cJSON_IsString(tr) || !cJSON_IsString(id) || id->valuestring[0] == '\0') {
+            g_obs.malformed_events++;
+            ESP_LOGW(TAG, "[asr] completed event missing transcript/item_id; not "
+                          "attributed to any clip");
+            cJSON_Delete(root);
+            return;
+        }
+        g_obs.last_transcript = tr->valuestring;
+        g_obs.last_item_id = id->valuestring;
         g_obs.turn_completed = true;
         g_obs.turn_transcript = g_obs.last_transcript;
         g_obs.turn_item_id = g_obs.last_item_id;
@@ -880,7 +911,9 @@ bool StreamClip(const Clip& clip)
 {
     const int in_bytes = (kFixtureRate * kFrameMs / 1000) * (int)sizeof(int16_t);
     g_sender.ResetCarry();
-    g_clock.Arm();
+    // The deadline is NOT re-armed here: one continuous pacing timeline covers
+    // clips, silence and waits, so boundary cost and accumulated drift show up
+    // instead of being reset away.
     const int64_t start_us = esp_timer_get_time();
 
     for (size_t off = 0; off < clip.size + (size_t)in_bytes; off += (size_t)in_bytes) {
@@ -903,7 +936,7 @@ bool StreamClip(const Clip& clip)
 /** Keep the media clock running by sending silence for `ms`. */
 bool StreamSilence(int ms)
 {
-    g_clock.Arm();
+    // Same continuous timeline as StreamClip: no re-arm.
     for (int elapsed = 0; elapsed < ms; elapsed += kFrameMs) {
         if (!SendOneFrame(nullptr, 0, 0)) {
             return false;
@@ -1054,6 +1087,34 @@ bool g_acceptance_incomplete = false;
 
 void sender_task(void*)
 {
+    // R2-4 first observation, on the task that owns the codec stack. Running it
+    // on the main task overflowed main's 8 KB stack: the codec needs this task.
+    {
+        ESP_LOGW(TAG, "[diag] short send-path observation starting (2 s of frames)");
+        g_clock.Arm();
+        for (int i = 0; i < 100; ++i) {   // 100 x 20 ms
+            if (!SendOneFrame(nullptr, 0, 0)) {
+                ESP_LOGW(TAG, "[diag] link dropped after %d frames", i);
+                break;
+            }
+        }
+        const rtp_probe::Report r = rtp_probe::Snapshot();
+        ESP_LOGW(TAG, "---------- SEND PATH OBSERVATION (short diag) ----------");
+        ESP_LOGW(TAG, "  %s", rtp_probe::Format(r).c_str());
+        if (r.protect_calls == 0) {
+            ESP_LOGE(TAG, "  media never reached the SRTP boundary");
+        } else if (r.udp_attempts == 0) {
+            ESP_LOGE(TAG, "  SRTP ran but no matching UDP write was seen");
+        } else if (r.write_failed > 0) {
+            ESP_LOGE(TAG, "  %u UDP write attempts failed (last rc=%d errno=%d)",
+                     (unsigned)r.write_failed, r.last_rc, r.last_errno);
+        } else {
+            ESP_LOGW(TAG, "  %u packets fully written in %u UDP attempts",
+                     (unsigned)r.packets_written, (unsigned)r.udp_attempts);
+        }
+        ESP_LOGW(TAG, "-------------------------------------------------------");
+    }
+
     // Three clips, each attributed to its own turn.
     for (int i = 0; i < kClipCount && !g_stop.load(); ++i) {
         ClipResult r;
@@ -1092,10 +1153,10 @@ void sender_task(void*)
                  r.keywords_hit.c_str(), r.transcript.c_str());
         g_results.push_back(r);
 
-        // Minimum safe attribution: once a clip has no result, later clips must
-        // not start, because a late completion from this one would land in the
-        // next clip's slot and be scored as its transcript.
-        if (!got) {
+        // Minimum safe attribution: a clip that timed out OR failed ends the
+        // acceptance sequence, because its late result would otherwise land in
+        // the next clip's slot and be scored as that clip's transcript.
+        if (!got || r.failed) {
             ESP_LOGW(TAG, "[asr] stopping the acceptance sequence after %s: a late "
                           "result must not be credited to a later clip", r.id);
             g_acceptance_incomplete = true;
@@ -1283,6 +1344,9 @@ void WebRtcM1Run()
     }
     ESP_LOGW(TAG, "[cfg] gate passed: %s", gate_detail.c_str());
 
+    // R2-4: fresh observation generation before any media is sent.
+    rtp_probe::Arm();
+
     // ---- media runs on its own task ----
     g_sender_done = xSemaphoreCreateBinary();
     if (g_sender_done == nullptr) {
@@ -1385,6 +1449,94 @@ void WebRtcM1Run()
         ESP_LOGW(TAG, "  interpretation     : resampler RMS ~0 means silence was "
                        "produced; decode failures mean the payload is not valid Opus");
         ESP_LOGW(TAG, "------------------------------------------------");
+    }
+
+    // ---- R2-4: what actually crossed SRTP and the UDP socket ----
+    {
+        const rtp_probe::Report r = rtp_probe::Snapshot();
+        const std::string line = rtp_probe::Format(r);
+        ESP_LOGW(TAG, "---------- SEND PATH OBSERVATION (full run) ----------");
+        ESP_LOGW(TAG, "  %s", line.c_str());
+        if (r.protect_calls == 0) {
+            ESP_LOGE(TAG, "  no srtp_protect call was observed: media never reached "
+                          "the SRTP boundary");
+        } else if (r.udp_attempts == 0) {
+            ESP_LOGE(TAG, "  SRTP ran but no matching UDP write was observed");
+        } else if (r.write_failed > 0) {
+            ESP_LOGE(TAG, "  %u UDP write attempts failed (last rc=%d errno=%d)",
+                     (unsigned)r.write_failed, r.last_rc, r.last_errno);
+        } else {
+            ESP_LOGW(TAG, "  %u packets fully written in %u UDP attempts",
+                     (unsigned)r.packets_written, (unsigned)r.udp_attempts);
+        }
+        if (r.overflow_pending > 0 || r.retired_pending > 0) {
+            ESP_LOGW(TAG, "  observation coverage incomplete: %u pending recycled, "
+                          "%u pending retired", (unsigned)r.overflow_pending,
+                     (unsigned)r.retired_pending);
+        }
+        ESP_LOGW(TAG, "-------------------------------------------");
+    }
+
+    // ---- R2-5: VERDICT computed from the real acceptance conditions ----
+    {
+        const rtp_probe::Report sp = rtp_probe::Snapshot();
+        int clips_ok = 0;
+        bool any_failed = false;
+        for (const auto& r : g_results) {
+            if (r.completed && !r.failed && r.hits == r.total && r.total > 0) {
+                ++clips_ok;
+            }
+            if (r.failed) {
+                any_failed = true;
+            }
+        }
+        const bool cfg_ok = g_obs.config_ok;
+        const bool three_ok = (clips_ok == kClipCount);
+        const bool no_codec_err = (g_sender.encode_fail() == 0 &&
+                                   g_sender.resample_fail() == 0 &&
+                                   g_metrics.oversize == 0);
+        const bool send_ok = (sp.protect_calls > 0 && sp.udp_attempts > 0 &&
+                              sp.write_failed == 0);
+
+        ESP_LOGW(TAG, "==================== FINAL VERDICT ====================");
+        ESP_LOGW(TAG, "  config verified        : %s", cfg_ok ? "yes" : "NO");
+        ESP_LOGW(TAG, "  3 clips with keywords  : %d/%d", clips_ok, kClipCount);
+        ESP_LOGW(TAG, "  any clip failed        : %s", any_failed ? "yes" : "no");
+        ESP_LOGW(TAG, "  zero codec/oversize    : %s", no_codec_err ? "yes" : "NO");
+        ESP_LOGW(TAG, "  send path observed     : %s (protect=%u udp=%u failed=%u)",
+                 send_ok ? "yes" : "NO", (unsigned)sp.protect_calls,
+                 (unsigned)sp.udp_attempts, (unsigned)sp.write_failed);
+        ESP_LOGW(TAG, "  sustained loop         : %s",
+                 g_loop_complete ? "COMPLETE" : "INTERRUPTED");
+        ESP_LOGW(TAG, "  acceptance incomplete  : %s",
+                 g_acceptance_incomplete ? "yes" : "no");
+
+        // A pass requires every acceptance condition, not merely a completed
+        // capture. Diagnostics that ran are not acceptance.
+        if (cfg_ok && three_ok && no_codec_err && send_ok && g_loop_complete &&
+            !any_failed) {
+            ESP_LOGW(TAG, "  VERDICT: PASS");
+        } else {
+            ESP_LOGE(TAG, "  VERDICT: FAIL");
+            if (!cfg_ok) {
+                ESP_LOGE(TAG, "    - configuration was not verified");
+            }
+            if (!three_ok) {
+                ESP_LOGE(TAG, "    - only %d/%d clips produced a complete keyword-matching "
+                              "transcription", clips_ok, kClipCount);
+            }
+            if (!no_codec_err) {
+                ESP_LOGE(TAG, "    - codec/oversize errors present");
+            }
+            if (!send_ok) {
+                ESP_LOGE(TAG, "    - no confirmed SRTP+UDP send, or writes failed");
+            }
+            if (!g_loop_complete) {
+                ESP_LOGE(TAG, "    - the sustained loop did not complete");
+            }
+            ESP_LOGE(TAG, "    (a completed capture or a passing diagnostic is not a pass)");
+        }
+        ESP_LOGW(TAG, "=======================================================");
     }
 
     g_transport.Stop();

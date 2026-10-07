@@ -148,3 +148,37 @@ run4/run5的`-0x6800`为本机Mbed TLS3.6.5的`MBEDTLS_ERR_SSL_TIMEOUT`。
 run1/2/3的后续重启也有相同timeout，因此不是32KB sender引入的回归。
 HELLO缓存是1.5.6的已知修复，但尚无报文到达/丢弃证据证明本次命中；
 不得据此升级1.5.6、改SDP、降48k或宣称已定根因。
+# Review 5447065335 修复中：发包观测预检（非正式复核）
+
+第67轮新增 `rtp_send_probe.cc` 的WIP需要先保证观测本身可信：
+
+- 环形槽位的 `used` 未释放、没有expiry，而 `g_generation` 未用于匹配。
+  第65个包后覆盖已完成发送的旧记录也被计为overflow，不能据此报告真实覆盖缺失。
+  需区分pending、已匹配成功、失败/重试和过期，按设计保留短寿命记录并核验generation。
+- SRTP返回后要把status和仅成功时有效的output length更新到本次record，
+  UDP匹配须按同一record报告保护结果，不能只凭tuple计成功。
+  区分write attempts与packet-with-success，保留真实失败status和缺失写入计数。
+- `std::string dummy` 无用途；前置观测也须保持调用前errno不变。
+  报告当前把header length硬写0，需报告真正解析值。
+- 本机组件目录名为 `espressif__esp_libsrtp`，不能把CMake target写成
+  `idf::esp_libsrtp`；使用实际alias或查询 `COMPONENT_LIB`，并验证隔离重建。
+- 先短时输出新观测并核对链接callsite覆盖。当前仍把观测汇总放300秒循环之后，
+  不应重复已完成的持续本地编码来取得第一次发包证据。
+
+以上是实现参考[实际发包观测设计](webrtc-media-m1-send-observation.md)的具体落实，
+属于既有R2-4，不是新正式Review或阶段放行。观察到UDP成功仍不证明云端接收。
+
+### 刷机前：短时诊断不能重新在8KB main上编码
+
+新WIP把100次 `SendOneFrame` 直接插在 `WebRtcM1Run` 中、sender任务创建之前。
+这是main的8KB栈路径，会重现本轮已实测定位的Opus栈溢出；
+不能因只有2秒就认为栈预算不同。诊断和正式发送必须由同一个32KB sender执行。
+同样保持唯一codec/sender所有权和样本时间轴，不从main调用编码/重采样。
+先输出短诊断，再决定是否继续验收；本条属于既有M1任务栈契约与R2-4。
+
+run11现已实测重现：ELF `85c5b00dc`，配置回显通过，
+`[diag] short send-path observation starting` → first-frame-before →
+`A stack overflow in task main has been detected`，随后重复重启。
+其他回溯发生在栈损坏后的重启，不作为新的独立根因。
+这是无效诊断；Codex尝试查找匹配run11的串口采集Python进程，但检查时未发现匹配目标，
+未发送终止信号。原日志保留，既有修复需求继续。不得用增大main栈替代唯一sender所有权。

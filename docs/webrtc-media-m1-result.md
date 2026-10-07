@@ -169,3 +169,76 @@ RTP PT/seq/ts/SSRC/发送长度与实际写入结果才能继续。
 在剩余验证预算内无法完成"清理 + 完整可应用性验证"两件事，
 故**按正确性优先回退清理**，该 P2 项**未完成**，如实记录。
 建议在下一轮与隔离重建验证一并处理。
+
+---
+
+# 复核修复轮 2（R2-1 ～ R2-5）
+
+修复对象：Review 5447065335，reviewed exact HEAD `9e45e63`。
+
+## R2-4 已完成的实际发包诊断
+
+### 1. SDP 媒体参数（白名单输出，无 ICE 密码/Authorization/完整 SDP）
+
+```
+OFFER : m=audio 9    UDP/TLS/RTP/SAVPF 111 | a=rtpmap:111 opus/48000/2 | a=sendrecv
+ANSWER: m=audio 3478 UDP/TLS/RTP/SAVPF 111 | a=sendrecv | a=rtpmap:111 opus/48000/2
+        a=fmtp:111 minptime=20
+```
+
+**服务端接受音频 m-line**（PT 111、opus/48000/2、`a=sendrecv`）。
+故"服务端不接受音频"这一假设**已排除**。
+
+### 2. 实际 SRTP / UDP 发包观测（链接器包装）
+
+新增 `main/hal/webrtc/rtp_send_probe.{h,cc}`，以 `-Wl,--wrap=srtp_protect`
+与 `-Wl,--wrap=lwip_sendto` 观测两个真实边界（两者在 S3 目标文件中均为未解析外部符号，
+因此可用 GNU ld wrap 重定向，无需改动 managed 源码或猜测不透明对象布局）。
+仅观测：所有调用原样转发，包括返回值与 errno。
+
+按预检要求修正的观测逻辑本身：
+
+| 问题 | 处置 |
+|---|---|
+| 记录从不退休，第 65 包被误报为 overflow | 记录有 pending/protected/written/failed 状态与 TTL；**回收已完成记录不算 overflow**，只有回收或退休 **pending** 记录才计入丢失 |
+| SRTP 状态未绑定到对应记录 | 保护结果写回**本次插入的那条记录**，`*srtp_len` 仅在成功时解释 |
+| attempts 被当成成功包数 | `udp_attempts`（写入尝试）与 `packets_written`（至少一次完整写入的包）**分开计数** |
+| 多余的 `std::string dummy`、header 长度硬写 0 | 已删除；报告真实解析的 `hdr_len` |
+| 调用前 errno 被扰动 | 前置快照与后置更新**都**保持 errno |
+| CMake 写成 `idf::esp_libsrtp` | 改为按 `espressif__esp_libsrtp` 组件查询实际 target |
+| 观测汇总放在 300 秒循环之后 | 短诊断前移到 **sender 任务内**、任何长跑之前 |
+
+### 3. 短诊断的栈归属（预检最终条）
+
+短诊断最初插在 `WebRtcM1Run` 中、sender 任务创建之前，**在 main 的 8 KB 栈上编码**，
+run11 实测重现了 Opus 栈溢出（ELF `85c5b00dc`：
+`[diag] short send-path observation starting` → first-frame-before →
+`A stack overflow in task main has been detected`）。
+已移入**同一个 32768 字节 sender 任务**；不再从 main 调用编码/重采样。
+
+## 未完成：设备侧发包观测未取到
+
+本轮 5 次尝试中 4 次停在 **DTLS 握手超时**
+（`stage=server answer received(4)`、`peer_state=6 CONNECTING`、
+Mbed TLS `-0x6800 MBEDTLS_ERR_SSL_TIMEOUT`），
+唯一连通的两次也都未跑到短诊断输出。
+
+**因此 `srtp_protect` / `lwip_sendto` 的实际计数本轮没有取得。**
+评审已指出该握手超时需用非敏感 datagram/handshake 元数据定位，
+本轮**未能完成**这一项；也未预设根因、未升级 1.5.6。
+
+## R2-1 ～ R2-3、R2-5 的代码处置
+
+| # | 处置 |
+|---|---|
+| **R2-1** | 退出未确认时**保持停止请求有效**（不再撤销）；新增 `leaked` 标志，此时**连 Impl 本身也不释放**；析构检查 `leaked`，宁可泄漏也不用悬垂指针；重复 Stop 沿同一规则 |
+| **R2-2** | `completed` 必须具备 `transcript` 与 `item_id`，否则计入 `malformed_events` 且**不释放任何 clip**；`failed` 与 timeout 一样**终止验收序列** |
+| **R2-3** | 移除 StreamClip/StreamSilence 的逐段 `Arm()`，改为**单一连续 pacing 期限**，边界开销与漂移不再被重置掩盖；`LatencyLog` 改为跨调用的**跨步采样**，分位覆盖整个循环而非前 4096 帧 |
+| **R2-5** | 新增**由真实条件计算**的 `FINAL VERDICT`：配置核验、3 条关键词全中、无 codec/超限错误、SRTP+UDP 实际发送成功、持续 loop 完整，全部满足才 PASS；并明确打印"完成的采集或通过的诊断不等于通过" |
+| **R2-5 撤回项** | 评审已**撤回**前次关于 patch 上下文空行的空白要求，本轮不再改动该文件 |
+
+## 当前状态
+
+**M1 仍未通过。** 已排除：本地静音/无效 Opus（16351 包解码成功、RMS 0.20）、
+SDP 不接受音频（Answer 明确 `a=sendrecv` opus/48000/2）、配置不成立（回显已核验）。
+未完成：设备侧 SRTP/UDP 实际发包计数、VAD/ASR、60 ms 证据、隔离重建逐条记录。
