@@ -66,7 +66,35 @@ dependencies:
   espressif/adc_battery_estimation: ^0.2.0
   espressif/esp_new_jpeg: ^0.6.1
 
-  # WebRTC（M0 互通性验证）。ICE + DTLS + SRTP + SCTP + DataChannel + OPUS。
+  # WebRTC。ICE + DTLS + SRTP + SCTP + DataChannel + OPUS。
+  #
+  # 精确锁定 1.5.5，不要升到 1.5.6。
+  #
+  # 1.5.6 新增了一条 NAT 响应拒绝路径，使 controlling agent 永不提名，
+  # ICE 永远 CONNECT_FAILED。严格单变量 A/B 可复现：
+  #
+  #   1.5.6 → "XOR-MAPPED ... is not local candidate, skip nominate" 刷屏
+  #           → CONNECT_FAILED
+  #   1.5.5 → "Select pair" → "Connection OK" → PAIRED → CONNECTED
+  #           → DATA_CHANNEL_OPENED → session.created + session.updated
+  #
+  # 严格性：两臂同一份 M0 代码、同一依赖集合（锁文件仅 esp_peer 条目不同）、
+  # 同一 ESP-IDF/sdkconfig、同一 STUN 配置与网络。
+  #
+  # ⚠️ 因果归属：agent_pair_candidate 的"候选类型必须相同才成对"限制
+  # 1.5.5 就已存在（已反汇编确认），而 1.5.5 能跑通，故它不是根因。
+  # 真正新增的回归是 agent_bind_mapped_matches_local：只把 XOR-MAPPED 与
+  # 当前候选对的 local 地址比较，不查已收集的 srflx、也不建 prflx
+  # （RFC 8445 §7.2.5.3.1/2 要求后者）。
+  #
+  # ⚠️ 回退代价：同时放弃 1.5.6 其他 5 项修复，最相关的是"DTLS 建连窗口内
+  # 早到报文被丢弃"（该缓存为 1.5.6 新增）。影响面限于建连/重连时序，
+  # 不随会话时长增长；发生率未测。定位失败时应先确认阶段（ICE/DTLS/应用）。
+  #
+  # 上游已有同症状 issue（仍开放）：
+  # https://github.com/espressif/esp-webrtc-solution/issues/208
+  #
+  # 待上游修复后可移除该锁定。
   espressif/esp_peer:
     version: 1.5.5
     rules:

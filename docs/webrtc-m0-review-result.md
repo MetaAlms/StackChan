@@ -2,6 +2,9 @@
 
 复核日期：2026-10-07。对应请求：[webrtc-m0-review-request.md](webrtc-m0-review-request.md)。
 
+后续版本比较与推断修正见 [第二轮结果](webrtc-m0-review-result-2.md)；
+下文第 1 节保留第一轮当时的证据边界，第 10 节为后来实测及修正。
+
 ## 1. 判定与边界
 
 **成立：本次使用的 esp_peer v1.5.6 / ESP32-S3 静态库确有 ICE 实现缺陷，
@@ -68,6 +71,9 @@ DWARF 明确 `ice_candidate_t.type` 偏移为 16，枚举 HOST=1、SRFLX=2、PRF
 按媒体流、component 和地址族形成候选对，不要求 host/srflx/relay 类型相同。
 [§6.1.2.4](https://www.rfc-editor.org/rfc/rfc8445.html#section-6.1.2.4)
 另规定本地 reflexive 候选替换为 base 后去重；这不等同于按类型丢弃组合。
+第二轮确认该类型筛选在 1.5.5 已存在；本次 srflx/host 组合也可能在换 base 后
+合法去重，因此它没进入 checklist 本身不能独立证明本次根因。
+确定的响应处理错误见第 4 节及 [第二轮结果](webrtc-m0-review-result-2.md)。
 
 ## 4. 第二处问题：拒绝当前 host 对的正常 NAT 映射
 
@@ -240,12 +246,19 @@ agent_process_stun_response；用 DWARF 核验成员偏移、枚举值和源行�
 
 ---
 
-## 10. A/B 实测结果（2026-10-07，复核之后补做）
+## 10. 历史版本对照结果（2026-10-07，复核之后补做）
 
-复核指出"尚未证明 v1.5.6 首次引入回归，需要同设备 A/B"。该 A/B 已完成。
+> **后续**：严格单变量 A/B 已补做（同一依赖集合下仅切 esp_peer，
+> 锁文件只差 esp_peer 的 `component_hash` 与 `version` 两行）：
+> 1.5.6 → `CONNECT_FAILED`；1.5.5 → `Connection OK` 且收到
+> `session.created` + `session.updated`。详见
+> [firmware-findings.md](firmware-findings.md) A8。
 
-变量控制：同一台设备、同一份 M0 代码、同一网络、同一端点，
-**唯一差异是 `espressif/esp_peer` 的版本**。
+复核指出"尚未证明 v1.5.6 首次引入回归，需要同设备 A/B"。已补做版本对照；
+第二轮发现它不满足严格单变量控制，以下保留实测结果并纠正归因表述。
+
+条件：同一台设备、同一网络、同一端点；同时改变了 esp_peer、M0 代码和另外
+21 个组件版本（`git diff 2f5df7b 4ba415f`），不能称为唯一差异是组件版本。
 
 | 版本 | 组件 commit | 库 SHA-256（前 16） | 结果 |
 |---|---|---|---|
@@ -286,10 +299,10 @@ W WebRTC-M0: >>> session.updated received
 
 ### 由此确立的结论
 
-1. **是 v1.5.6 引入的回归。** 1.5.5 在同条件下成功，
-   且全程不出现 `XOR-MAPPED ... is not local candidate, skip nominate`。
-   第 3、4 节从二进制恢复的两处分支，与"v1.5.6 收紧提名条件"一致。
-2. **ESP32-S3 与阿里 WebRTC 端点完全互通**：SDP 交换、ICE、DTLS、
+1. **两版库比较确认 v1.5.6 新增错误 mapped-address 拒绝。** 类型筛选在 1.5.5
+   已存在，不能把两处分支都称为新增。1.5.5 当前配置成功且全程不出现该警告，
+   与二进制证据一致；历史实测有混淆，严格单变量 A/B 尚未补做。
+2. **本次 ESP32-S3 与阿里端点的信令和传输握手互通**：SDP 交换、ICE、DTLS、
    SCTP DataChannel、`session.created` / `session.updated` 全部打通。
 3. **服务端事件的通道是 `txt`、stream 为 1**，而非客户端创建的
    `oai-events`、stream 0。第 6 节指出的 M0 缺陷 2 由此得到实证。

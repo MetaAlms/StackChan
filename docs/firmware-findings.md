@@ -166,51 +166,79 @@ abort() was called
   `6b2f3856b9a1639b0480c011688c070c132b6399e9863a74d20d20a271dc7da3`。
 - 反汇编及 DWARF 证实 `agent_pair_candidate`（原源 `agent.c:642`）
   跳过类型不同的候选，local srflx 不与 remote host 成对。
+  第二轮比较确认该筛选在 **1.5.5 已存在**；且此组合也可能按标准换 base 后
+  合法去重，不能单凭未保留 srflx/host 检查对证明本次根因。
 - `agent_bind_mapped_matches_local`（原源 `agent.c:1417`）在 controlling、
   非 relay、mapped port 非零时，只比较 XOR-MAPPED 与当前 pair.local 地址，
   不查找已有 srflx。`agent_process_stun_response:1621–1629` 失败时直接返回。
 - 本次 host 为 `192.168.1.7:59813`，映射为 `124.126.137.141:13174`，
   上述条件必然拒绝；未执行 RFC 8445 §7.2.5.3.1/2 要求的映射 valid-pair 处理。
 
-**A/B 实测（2026-10-07，同设备、同 M0 代码，唯一变量为组件版本）**：
+**历史版本对照（2026-10-07，同设备/网络/端点，非严格单变量 A/B）**：
 
 | 版本 | 结果 |
 |---|---|
 | 1.5.6 | `skip nominate` 刷屏 → `CONNECT_FAILED` |
 | **1.5.5** | `Select pair` → `Connection OK` → PAIRED → CONNECTED → DATA_CHANNEL_OPENED → **`session.created` + `session.updated` 均收到** |
 
-**是 v1.5.6 引入的回归。** 1.5.5 全程不出现该警告，且端到端跑通。
+**v1.5.6 新增了上述错误响应处理。** 两版库比较确认 1.5.5 没有 mapped-address
+拒绝分支；当前 1.5.5 全程不出现该警告，且完成信令与传输握手。
+历史对照同时修改 M0 并改变另外 21 个依赖版本，不能称为只切组件版本的实验。
+
+**严格单变量 A/B 已补做（2026-10-07，第二轮复核之后）**：
+
+| Arm | 依赖集合 | esp_peer | 库 SHA-256（前 16） | 结果 |
+|---|---|---|---|---|
+| A | **原始集合** | 1.5.6 | `6b2f3856b9a1639b` | `skip nominate` 刷屏 → `CONNECT_FAILED` |
+| B | **同一原始集合** | 1.5.5 | `25a338fc6b05f702` | `Connection OK` → **`session.created` + `session.updated`** |
+
+两臂同一份 M0 代码、同一 ESP-IDF/sdkconfig、同一 STUN 配置与网络；
+锁文件**仅 esp_peer 的 `component_hash` 与 `version` 两行不同**，
+构建后已复核未被重解析。
+
+**方法教训（重要）**：切版本时**不要删除整个 `dependencies.lock`**——
+那会触发整体重解析，连带改动其他 21 个组件（含 Wi-Fi）。
+正确做法是直接替换锁文件中目标组件的条目，使清单与锁一致；
+构建后必须复核锁文件差异，确认只动了目标组件。
+
+**结论：是 v1.5.6 引入的回归，干扰变量已排除。**
 
 附带实证：服务端事件的通道是 `txt`、stream 为 **1**，
 不是客户端创建的 `oai-events` / stream 0。
 
 **状态**：已在 `firmware/main/idf_component.yml` 精确锁定 1.5.5
-（非 `^` 范围），并注明解除条件。上游 issue 待提交。
+（非 `^` 范围），并注明解除条件。上游已有同症状
+[issue #208](https://github.com/espressif/esp-webrtc-solution/issues/208)，
+2026-10-07 查验仍为 open；建议补充证据，本轮未发布。
 未获得的证据：媒体链路（AEC / 双向语音 / 打断）在 M0 中未验证。
 
 **⚠️ 锁定 1.5.5 的已知代价**（回退时一并放弃了 v1.5.6 的 6 项修复）：
 
 | v1.5.6 修复项 | 对我们的影响 |
 |---|---|
-| TCP/UDP 同 IP 端口候选映射错误 | 🟢 低——阿里 Answer 只给 UDP 候选 |
-| **DTLS/SCTP HELLO 早到被丢弃（增加缓存）** | 🟡 **中——竞态修复，回退后该竞态重新存在。M0 只握手一次未暴露，长连接语音可能偶发失败** |
-| ICE-lite 属性处理 | 🟢 低——阿里 Answer 无 `a=ice-lite` |
+| TCP/UDP 同 IP 端口候选映射错误 | 当前 Offer/Answer 使用 UDP，未见触发条件 |
+| **DTLS HELLO 早到被丢弃（增加缓存）** | 保留建连时序缺陷；当前设备为 DTLS client，与已报告的 DTLS server 场景不同，发生率未测 |
+| ICE-lite 属性处理 | 当前阿里 Answer 无 `a=ice-lite`，节点行为改变后需重评 |
 | **ICE 提名条件（本条即导致失败者）** | 🔴 回退的理由 |
 | SDP/候选字符串注释整理 | 🟢 无 |
 | H264 profile | 🟢 无（不用视频） |
 
-**6 项中只有 HELLO 缓存一项构成真实风险。** 若后续出现偶发握手失败，
-应首先怀疑此处。取舍是否最优已提交第二轮复核
-（[webrtc-m0-review-request-2.md](webrtc-m0-review-request-2.md)）。
+HELLO 缓存的二进制位置为 `agent_recv_one_packet`（原源 `agent.c:1872–1885`），
+在 ICE pairing 期间保存一个最多 1400 字节的 non-STUN 数据报，随后交给 DTLS。
+[上游 #205](https://github.com/espressif/esp-webrtc-solution/issues/205)
+报告早到 ClientHello 丢失后重传恢复，表现为握手延迟。
+当前 Answer `setup:passive`，设备为 DTLS client，典型触发条件适用性较低。
+应验证重复建连/重连；没有证据表明已连接的语音会话仅因持续更久而触发此窗口。
+不能断言“只有此项真实风险”或直接评为中风险；偶发失败先按 ICE/DTLS/应用阶段定位。
+1.5.5 作为临时基线合理，持续媒体和重连稳定性未验证。
 
-**触发条件可能有限定**：阿里把接入节点标为
-`a=candidate:... typ host`（公网地址 + host 类型，不常见）。
-第一轮复核发现的"候选类型必须相同才成对"分支，
-**仅在对端以 `typ host` 暴露公网地址时才会触发**。
-故"v1.5.6 有 ICE 缺陷"宜表述为
-"当对端以 host 类型提供公网候选时，v1.5.6 无法完成提名"。
-另据 RFC 8445 §6.1.2.2，候选配对本就不要求类型相同，
-因此按类型过滤本身即为缺陷，与该限定无关。
+**准确触发条件**：响应通过检查并找到 pair 后，controlling、pair 非 relay、
+mapped port 非零、mapped 地址与原 pair.local 不同，会被新增分支拒绝。
+是否最终连接失败还取决于其他路径；不是“所有 NAT”或“阿里公网 host 特有”。
+公网 `typ host` 符合 RFC 8445 §5.1.1.1/Appendix A，不能据云 IP、3478 端口、
+地址轮换推定其为 TURN relay。既有的类型筛选还影响其他跨类型组合；
+本次确定的回归应聚焦错误拒绝 NAT 响应，而不是声称必须额外保留 srflx/host 检查对。
+详见 [第二轮复核结果](webrtc-m0-review-result-2.md)。
 
 ---
 
@@ -501,7 +529,7 @@ ES7210 侧已经支持（TDM 槽位掩码为 `SLOT0|1|2|3`）。
 
 ### B14. WebRTC M0 的状态与 DataChannel 判据可能误报
 
-**证据**（2026-10-07 静态复核）：
+**证据**（2026-10-07 静态复核，以下为 `2f5df7b` 的修复前实现）：
 
 - `firmware/main/hal/webrtc/webrtc_m0.cc:308` 用 `peer_state >= CONNECTED` 判定
   传输建立；组件 API 的 CONNECTED=7、CONNECT_FAILED=8，故失败会误报 PARTIAL。
@@ -511,5 +539,22 @@ ES7210 侧已经支持（TDM 槽位掩码为 `SLOT0|1|2|3`）。
 - `/tmp/wrtc-test/test.js` 实际在 txt 上回复 session.created，且对照实验远端 IP
   与设备不同，不能将其判词“成功即设备库有错”作为独立证明。
 
-**状态**：已记录，未改代码。这些问题不解释 A8 的 ICE 拒绝，但会影响后续成功判定。
+**状态**：已在 `4ba415f` 修复状态判据、记录服务端 channel/stream 并按发送结果
+更新标志；`60796e0` 记录 stream 1 收到 session.created/session.updated。
+这些问题不解释 A8 的 ICE 拒绝，但会影响成功判定。
 详见 [webrtc-m0-review-result.md](webrtc-m0-review-result.md)。
+
+### B15. 删除锁文件后切组件版本，改变了其他 21 个依赖
+
+**证据**（2026-10-07 第二轮复核）：
+`git diff 2f5df7b 4ba415f -- firmware/dependencies.lock` 显示 22 个组件版本变化，
+除 esp_peer 外还有 21 个，包括 Wi-Fi 3.1.2 → 3.1.5、esp_codec_dev 1.5.11 → 1.5.4、
+esp_mmap_assets 1.4.0 → 2.0.1。M0 改动也发生在同一对照中。
+`main.cpp:40` 的 StartNetwork 实际调用该 Wi-Fi 组件；M0 前还运行 HAL 初始化，
+不能把其余组件全部视为对网络、内存、任务时序无影响。
+
+**状态**：已纠正文档的“严格单变量 A/B”主张，未改依赖或补做设备测试。
+后续固定 M0、SDK/sdkconfig 及其他依赖版本/hash，仅切 esp_peer，检查最终锁文件
+差异并保留固件/库 hash 和 SDP。删除整个锁文件不适合作为严格 A/B 的步骤。
+历史对照的混淆不否定当前 1.5.5 成功或 A8 中确定的二进制错误分支。
+详见 [webrtc-m0-review-result-2.md](webrtc-m0-review-result-2.md)。

@@ -211,7 +211,13 @@ int on_msg(esp_peer_msg_t* info, void* /*ctx*/)
     return 0;
 }
 
-/** Send session.update on `stream_id`, retrying until it is accepted. */
+/**
+ * @brief Send session.update on `stream_id`.
+ *
+ * Not an automatic retry loop: if the send fails this only becomes eligible
+ * again on a later session/channel event. "Allows another attempt", not
+ * "keeps retrying".
+ */
 void send_session_update(uint16_t stream_id)
 {
     if (g.update_sent) {
