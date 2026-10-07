@@ -123,6 +123,9 @@ private:
     /** Dispatch one parsed server event. Runs on the main task. */
     void HandleServerEvent(const std::string& raw);
 
+    /** True while the model is speaking, including the playback drain tail. */
+    bool IsModelSpeaking() const;
+
     /** Feed a transcript delta through the tag scanner and emit the results. */
     void HandleTranscriptDelta(const char* delta);
 

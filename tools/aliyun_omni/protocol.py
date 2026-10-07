@@ -73,26 +73,11 @@ DEFAULT_VOICE = "Tina"
 DEFAULT_URL = "wss://dashscope.aliyuncs.com/api-ws/v1/realtime"
 
 # A complete tag: "[happy]", "[ happy ]".
-_TAG_RE = re.compile(r"\[\s*([A-Za-z_]{2,20})\s*\]")
-
-# Longest plausible "[" + tag body + "]" sequence. Bounds how long an
-# unterminated "[" can suppress output; past this we assume it is literal text.
-_MAX_TAG_LEN = 22
-
-# ------------------------------------------------------------------- emotions
-
 # These are EXACTLY the strings StackChanAvatarDisplay::SetEmotion() accepts.
 #   firmware/main/hal/board/stackchan_display.cc:321
-# The firmware therefore needs no translation table: whatever this module
-# emits can be handed straight to the `llm` event's `emotion` field, which
-# Application routes to display->SetEmotion() and on to the avatar:
-#
-#   happy / laughing -> avatar::Emotion::Happy
-#   angry            -> Angry
-#   sad / crying     -> Sad
-#   sleepy           -> Sleepy  (also plays "Zzz..." and stops idle motion)
-#   doubtful         -> Doubt
-#   neutral          -> Neutral
+# The firmware therefore needs no translation table: whatever this module emits
+# can be handed straight to the `llm` event's `emotion` field, which
+# Application routes to display->SetEmotion() and on to the avatar.
 SUPPORTED_EMOTIONS = (
     "neutral",
     "happy",
@@ -104,76 +89,63 @@ SUPPORTED_EMOTIONS = (
     "doubtful",
 )
 
-# The model will not reliably emit our exact identifiers, so accept common
-# synonyms and map them onto the six firmware emotions. A tag that matches
-# nothing is left alone rather than guessed at.
+# Kept for the legacy bracket-tag form and for any text the model writes in
+# words. The live path uses emoji; see _EMOJI_TABLE.
 EMOTION_ALIASES = {
-    # neutral
-    "neutral": "neutral",
-    "calm": "neutral",
-    "normal": "neutral",
-    # happy family
-    "happy": "happy",
-    "joy": "happy",
-    "joyful": "happy",
-    "smile": "happy",
-    "smiling": "happy",
-    "glad": "happy",
-    "cheerful": "happy",
-    "excited": "happy",
-    "love": "happy",
-    # laughing family (distinct on the device: bigger eye curve)
-    "laughing": "laughing",
-    "laugh": "laughing",
-    "lol": "laughing",
-    "giggle": "laughing",
-    "amused": "laughing",
-    # angry
-    "angry": "angry",
-    "anger": "angry",
-    "mad": "angry",
-    "annoyed": "angry",
-    "furious": "angry",
-    # sad family
-    "sad": "sad",
-    "sadness": "sad",
-    "unhappy": "sad",
-    "down": "sad",
-    "disappointed": "sad",
-    # crying family (distinct on the device: tears decorator)
-    "crying": "crying",
-    "cry": "crying",
-    "tears": "crying",
-    "sobbing": "crying",
-    # doubtful is the string the display matches; "doubt" alone would fall
-    # through to its unknown-emotion branch and reset to neutral.
-    "doubtful": "doubtful",
-    "doubt": "doubtful",
-    "confused": "doubtful",
-    "puzzled": "doubtful",
-    "thinking": "doubtful",
-    "curious": "doubtful",
-    # sleepy
-    "sleepy": "sleepy",
-    "tired": "sleepy",
-    "sleep": "sleepy",
-    "bored": "sleepy",
-    "yawn": "sleepy",
+    "neutral": "neutral", "calm": "neutral", "normal": "neutral",
+    "happy": "happy", "joy": "happy", "smile": "happy", "glad": "happy",
+    "laughing": "laughing", "laugh": "laughing", "lol": "laughing",
+    "angry": "angry", "anger": "angry", "mad": "angry",
+    "sad": "sad", "unhappy": "sad", "down": "sad",
+    "crying": "crying", "cry": "crying", "tears": "crying",
+    "doubtful": "doubtful", "doubt": "doubtful", "confused": "doubtful",
+    "sleepy": "sleepy", "tired": "sleepy", "sleep": "sleepy",
 }
 
-EMOTION_SYSTEM_PROMPT = (
-    "你是一个桌面机器人 StackChan，用简短口语化的中文回应。"
-    "说话时请在句首插入一个情绪标记来驱动你的表情，"
-    "格式为方括号包住的英文单词，只能从以下八选一："
-    "[neutral] [happy] [laughing] [angry] [sad] [crying] [sleepy] [doubtful]。"
-    "例如：\"[happy] 好呀，我很乐意！\"。"
-    "每句话最多一个标记，不要在标记里加其他文字。"
+# Emotion is signalled with a leading emoji, not a bracket tag.
+#
+# Measured: feeding the generated reply audio back through the API's own ASR
+# showed that "[happy] 你好" is *spoken* as "Happy, 你好", while "😊 你好" is
+# spoken as just "你好". The bracket form leaks into the audio; the emoji does
+# not. So the emoji is the tag.
+_EMOJI_TABLE = (
+    ("\U0001F600", "happy"),      # 😀
+    ("\U0001F60A", "happy"),      # 😊
+    ("\U0001F642", "happy"),      # 🙂
+    ("\U0001F604", "laughing"),   # 😄
+    ("\U0001F606", "laughing"),   # 😆
+    ("\U0001F602", "laughing"),   # 😂
+    ("\U0001F620", "angry"),      # 😠
+    ("\U0001F621", "angry"),      # 😡
+    ("\U0001F622", "crying"),     # 😢
+    ("\U0001F62D", "crying"),     # 😭
+    ("\U0001F614", "sad"),        # 😔
+    ("\U0001F61E", "sad"),        # 😞
+    ("\U0001F634", "sleepy"),     # 😴
+    ("\U0001F62A", "sleepy"),     # 😪
+    ("\U0001F914", "doubtful"),   # 🤔
+    ("\U0001F615", "doubtful"),   # 😕
+    ("\U0001F610", "neutral"),    # 😐
 )
 
 
-def emotion_for(tag: str) -> Optional[str]:
-    """Map an arbitrary tag to one of SUPPORTED_EMOTIONS, or None."""
-    return EMOTION_ALIASES.get(tag.strip().lower())
+def emoji_emotion(ch: str):
+    """Map one emoji character to an emotion, or None."""
+    for glyph, emotion in _EMOJI_TABLE:
+        if ch == glyph:
+            return emotion
+    return None
+
+
+def emotion_for(tag: str) -> "str | None":
+    """Compatibility shim: accept an emoji or a legacy bracket-tag word."""
+    tag = tag.strip()
+    if not tag:
+        return None
+    direct = emoji_emotion(tag)
+    if direct:
+        return direct
+    return EMOTION_ALIASES.get(tag.lower())
 
 
 # ------------------------------------------------------------------ segments
@@ -199,40 +171,51 @@ class Segment:
         return self.value if self.kind == "emotion" else None
 
 
-def _deferrable_tail(s: str, start: int) -> bool:
-    """Could the tail `s[start:]` still grow into a complete tag?"""
-    inner = s[start + 1:]
-    if "]" in inner or len(inner) > _MAX_TAG_LEN:
+# --------------------------------------------------------------- scanning
+
+def _emoji_at(s: str, i: int) -> int:
+    """Length in characters of the known emoji starting at s[i], else 0."""
+    for glyph, _emotion in _EMOJI_TABLE:
+        if s.startswith(glyph, i):
+            return len(glyph)
+    return 0
+
+
+def _is_emoji_prefix(s: str, i: int) -> bool:
+    """True when s[i:] is an incomplete prefix of some known emoji.
+
+    A transcript delta can be cut mid-emoji. Python gives us whole code points,
+    but a 4-byte UTF-8 emoji may still be split across deltas at the byte level,
+    arriving as a lone surrogate-ish fragment; holding it back avoids printing a
+    broken glyph on screen.
+    """
+    tail = s[i:]
+    if not tail:
         return False
-    # Tags never contain whitespace, so a space disqualifies the fragment:
-    # "[hello wor" can no longer become a tag and must be shown as text.
-    # An empty inner is kept: a bare "[" is genuinely ambiguous, and holding
-    # it for one delta costs a literal bracket a few milliseconds of delay
-    # while a real tag start never flashes on screen.
-    return all(ch.isalnum() or ch == "_" for ch in inner)
-
-
-def _match_tags(s: str):
-    """Tag matches whose text maps to a known emotion."""
-    return [m for m in _TAG_RE.finditer(s) if emotion_for(m.group(1)) is not None]
+    return any(glyph.startswith(tail) for glyph, _ in _EMOJI_TABLE)
 
 
 def scan_complete(s: str) -> List[Segment]:
-    """Parse a *settled* string. Nothing is deferred.
+    """Parse a settled string. Nothing is deferred.
 
-    Use this for whole strings that will not grow (a finished transcript, a
-    log line). An unterminated "[" is emitted as literal text, because in a
-    settled string it can never become a tag.
+    For whole strings that will not grow (a finished transcript, a log line).
     """
     segments: List[Segment] = []
+    text_start = 0
     pos = 0
-    for m in _match_tags(s):
-        if m.start() > pos:
-            segments.append(Segment("text", s[pos:m.start()]))
-        segments.append(Segment("emotion", emotion_for(m.group(1)) or ""))
-        pos = m.end()
-    if pos < len(s):
-        segments.append(Segment("text", s[pos:]))
+    while pos < len(s):
+        if ord(s[pos]) >= 0x80:
+            n = _emoji_at(s, pos)
+            if n:
+                if pos > text_start:
+                    segments.append(Segment("text", s[text_start:pos]))
+                segments.append(Segment("emotion", emoji_emotion(s[pos:pos + n]) or ""))
+                pos += n
+                text_start = pos
+                continue
+        pos += 1
+    if text_start < len(s):
+        segments.append(Segment("text", s[text_start:]))
     return segments
 
 
@@ -242,7 +225,7 @@ def parse_segments(s: str) -> List[Segment]:
 
 
 def clean_text(s: str) -> str:
-    """Visible text with recognised emotion tags removed."""
+    """Visible text with recognised emotion emoji removed."""
     return "".join(seg.value for seg in scan_complete(s) if seg.kind == "text")
 
 
@@ -250,22 +233,29 @@ def clean_text(s: str) -> str:
 strip_emotion_tags = clean_text
 
 
-def _deferrable_tail(s: str, start: int) -> bool:
-    """Could the tail `s[start:]` still grow into a complete tag?
-
-    Only true while the fragment is still plausible: no closing bracket yet,
-    only tag characters so far, and short enough. A space disqualifies it,
-    which is what stops "[hello wor" from being held back forever.
-    """
-    inner = s[start + 1:]
-    if "]" in inner or len(inner) > _MAX_TAG_LEN:
-        return False
-    # Tags never contain whitespace, so a space disqualifies the fragment:
-    # "[hello wor" can no longer become a tag and must be shown as text.
-    # An empty inner is kept: a bare "[" is genuinely ambiguous, and holding
-    # it for one delta costs a literal bracket a few milliseconds of delay
-    # while a real tag start never flashes on screen.
-    return all(ch.isalnum() or ch == "_" for ch in inner)
+def _scan_streaming(s: str) -> Tuple[List[Segment], str]:
+    """Scan `s`, deferring a trailing fragment that may become an emoji."""
+    segments: List[Segment] = []
+    text_start = 0
+    pos = 0
+    while pos < len(s):
+        if ord(s[pos]) >= 0x80:
+            n = _emoji_at(s, pos)
+            if n:
+                if pos > text_start:
+                    segments.append(Segment("text", s[text_start:pos]))
+                segments.append(Segment("emotion", emoji_emotion(s[pos:pos + n]) or ""))
+                pos += n
+                text_start = pos
+                continue
+            if _is_emoji_prefix(s, pos):
+                if pos > text_start:
+                    segments.append(Segment("text", s[text_start:pos]))
+                return segments, s[pos:]
+        pos += 1
+    if text_start < len(s):
+        segments.append(Segment("text", s[text_start:]))
+    return segments, ""
 
 
 # ------------------------------------------------------- streaming accumulator
@@ -284,26 +274,21 @@ class _StreamState:
     """Accumulator for one response's transcript.
 
     The firmware mirrors this: keep the full raw transcript, re-parse it on
-    every delta, and act only on what has not been emitted yet. At a handful
-    of deltas per turn the cost is irrelevant, and it removes all cross-delta
-    bookkeeping from the C++ side.
-
-    Deferral lives here and only here. A trailing "[" is withheld until a
-    later delta either completes it into a tag or disqualifies it into text.
+    every delta, and act only on what has not been emitted yet. Re-parsing
+    avoids all cross-delta bookkeeping: a later delta can re-split the final text
+    segment, so offsets into it are not stable, but comparing the settled text
+    against what was already sent is.
     """
 
     __slots__ = ("raw", "sent_text", "fired")
 
     def __init__(self) -> None:
         self.raw = ""
-        # The visible text already returned to the caller. New output is
-        # whatever extends this string, which sidesteps the fact that a later
-        # delta can re-split or extend the last text segment.
         self.sent_text = ""
-        self.fired = 0  # how many emotion segments have fired
+        self.fired = 0
 
     def cleaned_text(self) -> str:
-        """Visible transcript so far, with recognised tags removed."""
+        """Visible transcript so far, with recognised emoji removed."""
         return "".join(seg.value for seg in _scan_streaming(self.raw)[0] if seg.kind == "text")
 
 
@@ -312,40 +297,11 @@ def new_stream_state() -> _StreamState:
     return _StreamState()
 
 
-def _scan_streaming(s: str) -> Tuple[List[Segment], str]:
-    """Scan `s`, deferring a trailing fragment that may still become a tag."""
-    segments: List[Segment] = []
-    pos = 0
-
-    for m in _match_tags(s):
-        if m.start() > pos:
-            segments.append(Segment("text", s[pos:m.start()]))
-        segments.append(Segment("emotion", emotion_for(m.group(1)) or ""))
-        pos = m.end()
-
-    bracket = s.find("[", pos)
-    if bracket >= 0 and _deferrable_tail(s, bracket):
-        if bracket > pos:
-            segments.append(Segment("text", s[pos:bracket]))
-        # Everything from the candidate tag onwards stays deferred.
-        return segments, s[bracket:]
-
-    if pos < len(s):
-        segments.append(Segment("text", s[pos:]))
-    return segments, ""
-
-
 def advance_emotion_events(state: _StreamState, delta: str) -> Tuple[List[EmotionEvent], str]:
     """Feed one transcript delta; return (emotion events, newly visible text).
 
-    The returned text is an increment: only characters that were not returned
-    before, so a caller can print it directly without de-duplicating.
-
-    Safe when `delta` ends mid-tag. Each tag fires exactly once. Both
-    guarantees rest on comparing the settled visible text against what was
-    already sent, rather than on character offsets: re-parsing the whole
-    transcript after every delta can re-split the final text segment, and
-    offsets into it are therefore not stable.
+    The returned text is an increment: only characters not returned before.
+    Each emoji fires exactly once. Safe when `delta` ends mid-emoji.
     """
     state.raw += delta
     segments, _deferred = _scan_streaming(state.raw)
@@ -370,13 +326,15 @@ def advance_emotion_events(state: _StreamState, delta: str) -> Tuple[List[Emotio
                     )
                 )
 
-    # Re-parsing the whole transcript means the settled text usually extends
-    # what was already sent, but it can also *shrink back*: a lone "[" is
-    # emitted as text, then absorbed into a tag one delta later. So emit
-    # everything after the common prefix and never more than that. A visual
-    # reflow at worst; never a duplicate or a leaked tag fragment.
+    # Emit everything after the common prefix with what was already sent. The
+    # settled text can also shrink back when a held-back fragment is released,
+    # so a plain "append the new tail" would duplicate output.
     settled = "".join(text_segments)
-    common = len(os.path.commonprefix([state.sent_text, settled]))
+    common = 0
+    for a, b in zip(state.sent_text, settled):
+        if a != b:
+            break
+        common += 1
     new_text = settled[common:]
 
     state.sent_text = settled

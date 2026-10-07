@@ -285,6 +285,85 @@ protocol_->OnIncomingAudio([this](std::unique_ptr<AudioStreamPacket> packet) {
 **教训**：多层 `Schedule` 嵌套时，事件的实际处理顺序与直觉相反。凡"生产者按状态门控
 消费者"的设计，都要确认状态变更事件排在被消费的数据之前。
 
+### B9. 情绪标记被朗读出来（TTS 念出 "Happy"）
+
+**现象**：每次回答的开头都会听到英文单词 "Happy" / "Neutral"。
+
+**根因**：我用"在文本里插 `[happy]` 标记"驱动表情，而**这个标记同时位于语音合成的
+文本中**，于是 TTS 把它念了出来。阿里的 API 只有文本与音频两个通道，没有表情侧信道。
+
+**定位方法**（可复用）：把生成的回复音频**回灌给服务端自己的 ASR**，看它实际"听到"什么：
+
+| 标记格式 | 服务端实际听到 |
+|---|---|
+| `[happy]` 方括号 | `'Happy，我是Stack Chen，一个能陪你聊天、帮你解决问题的桌面机器人。'` |
+| `😊` emoji | `'我是Stack Chen，你的桌面机器人伙伴。'` |
+
+**结论**：方括号标记会被朗读，**emoji 不会**。改用 emoji 作为情绪标记。
+
+**影响面**：`tools/aliyun_omni/protocol.py`、探针自测、固件的扫描器与系统提示词全部
+改为 emoji。C++ 侧扫描器要按**字节**匹配 4 字节 UTF-8，并处理跨 delta 的半个 emoji
+（Python 侧字符串按码点索引，emoji 是原子的，无此问题）。
+
+### B10. 长回答播放一顿一顿——服务端推送速率远高于播放速率
+
+**现象**：让 AI 讲长故事时播放明显跳字、断断续续。
+
+**证据**（固件实测到达速率）：
+
+```
+[rate]  88 packets =   5280 ms audio arrived over  1378 ms wall (3.83x realtime)
+[rate] 292 packets =  17520 ms audio arrived over  3251 ms wall (5.39x realtime)
+[rate] 3556 packets = 213360 ms audio over        63213 ms wall (3.38x realtime)
+```
+
+**服务端以 2.9~5.4 倍速推送音频**，而解码队列上限只有 `2400ms / 60ms = 40` 包。
+
+**根因**：队列满时 `PushPacketToDecodeQueue(packet, wait=false)` **直接丢弃**。
+按 3.4 倍速计算，每播放 1 包就丢弃约 2.4 包——**约 70% 音频被丢掉**，
+所以听起来是跳字而非卡住。
+
+**为什么不能简单加大缓冲**：
+
+```
+free sram: 21971 minimal sram: 19271      ← 内部 RAM 只剩约 20KB
+CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=512   ← 小于 512B 的分配强制进内部 RAM
+```
+
+音频包约 150 字节，全部落在内部 RAM。要装下 213 秒需要约 3000 包 ≈ 375KB，
+必然 OOM。**8MB PSRAM 帮不上忙**，因为分配粒度太小。
+
+**解法：背压**。让服务端等设备播完，而不是设备丢音频：
+
+1. `response.audio.delta` 改为**在网络任务内联处理**
+   （`is_audio_payload()`）——阻塞主任务没用，网络任务会继续读并堆积；
+   阻塞读 socket 的那个任务才会让 TCP 窗口关闭，服务端自然被限速
+2. `PushPacketToDecodeQueue(packet, /*wait=*/true)` —— 改为阻塞式推入
+3. 队列上限降到 8 秒（`8000 / OPUS_FRAME_DURATION_MS`），
+   因为只需吸收抖动，不再需要装下整个回答
+4. 溢出时打**错误级**日志（原先静默丢弃）
+
+**验证**：溢出丢包 0 条，队列深度稳定在 8~51。
+
+**教训**：面对"生产者比消费者快"的流，正确做法是背压而非扩缓冲；
+但背压必须施加在**真正读取数据源的那个任务**上，否则只是把数据挪到另一个队列。
+
+### B11. 服务端 VAD 的参数名是 `server_vad`，不是 `semantic_vad`
+
+派生于 OpenAI API 的命名习惯，我写成了 `semantic_vad`。阿里文档明确：
+
+> 将 `session.turn_detection.type` 设为 **`"server_vad"`** 以启用 VAD 模式
+
+**但改成正确名称后实测仍不触发**（同样的音频，手动 commit 能正确识别）：
+
+```
+server_vad + Ogg 输入  → heard=None spoken=None
+手动 commit + 同音频   → heard='你好，请用一句话介绍你自己。'
+```
+
+**结论**：服务端 VAD 对本项目的 Ogg 封装 Opus 输入不工作，**必须用本地 VAD 驱动轮次**。
+两件事都要做：参数名写对（避免被服务端判为非法配置），同时不依赖服务端 VAD。
+
 ### B7. CMake `GLOB_RECURSE` 不重新扫描新增文件
 
 新增 `ogg_opus_muxer.cc` 后链接报 `undefined reference`，因为 `file(GLOB_RECURSE ...)`

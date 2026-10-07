@@ -152,105 +152,63 @@ def run_self_test() -> int:
         if got != want:
             failures.append(f"{name}\n     got:  {got!r}\n     want: {want!r}")
 
-    # --- tag recognition -----------------------------------------------
-    check("simple", protocol.clean_text("[happy] hello"), " hello")
-    check("uppercase", protocol.clean_text("[HAPPY] hi"), " hi")
-    check("padded", protocol.clean_text("[ happy ] hi"), " hi")
-    check("alias joy", protocol.clean_text("[joy] hi"), " hi")
-    check("alias confused", protocol.clean_text("[confused] hi"), " hi")
-    check("unknown kept", protocol.clean_text("[banana] hi"), "[banana] hi")
-    check("not a tag", protocol.clean_text("[hello world] hi"), "[hello world] hi")
-    check("empty tag", protocol.clean_text("[] hi"), "[] hi")
-    check("mid sentence", protocol.clean_text("a [sad] b"), "a  b")
-    check("multiple", protocol.clean_text("[happy] a [sad] b"), " a  b")
-    check("no tags", protocol.clean_text("plain text"), "plain text")
-    check("brackets unbalanced", protocol.clean_text("[oops hi"), "[oops hi")
+    # --- emoji recognition -----------------------------------------------
+    check("happy", protocol.clean_text("😊 你好"), " 你好")
+    check("laughing", protocol.clean_text("😄 哈哈"), " 哈哈")
+    check("angry", protocol.clean_text("😠 不行"), " 不行")
+    check("sad", protocol.clean_text("😔 算了"), " 算了")
+    check("crying", protocol.clean_text("😭 呜呜"), " 呜呜")
+    check("sleepy", protocol.clean_text("😴 困了"), " 困了")
+    check("doubtful", protocol.clean_text("🤔 是吗"), " 是吗")
+    check("neutral", protocol.clean_text("😐 好的"), " 好的")
+    check("no emoji", protocol.clean_text("普通文字"), "普通文字")
+    check("brackets are literal now", protocol.clean_text("[happy] 你好"), "[happy] 你好")
+    check("emoji mid sentence", protocol.clean_text("a 😊 b"), "a  b")
+    check("two emoji", protocol.clean_text("😊 a 😠 b"), " a  b")
 
     # --- segment shape --------------------------------------------------
-    segs = protocol.parse_segments("[happy] hi [sad] bye")
-    check("segment kinds", [s.kind for s in segs], ["emotion", "text", "emotion", "text"])
-    check("segment values", [s.value for s in segs], ["happy", " hi ", "sad", " bye"])
+    segs = protocol.parse_segments("😊 你好呀")
+    check("segment kinds", [x.kind for x in segs], ["emotion", "text"])
+    check("segment value", segs[1].value, " 你好呀")
 
-    # --- the regression this test was written to catch ------------------
-    # A delta cut mid-tag must not leak "[hap" into visible text.
+    # --- streaming: emoji arriving in its own delta ---------------------
+    # Note: byte-level splitting of a 4-byte UTF-8 emoji can only happen in the
+    # C++ scanner, which walks std::string byte by byte. In Python 3 a str is a
+    # sequence of code points, so an emoji is atomic here; the equivalent guard
+    # is exercised by the C++ side (see _is_emoji_prefix and its twin).
     state = protocol.new_stream_state()
-    events, text = protocol.advance_emotion_events(state, "[hap")
-    check("partial tag: no event", events, [])
-    check("partial tag: no leak", text, "")
-
-    events, text = protocol.advance_emotion_events(state, "py] Hel")
-    check("completed tag fires", [e.emotion for e in events], ["happy"])
-    check("completed tag text", text, " Hel")
-
-    events, text = protocol.advance_emotion_events(state, "lo!")
+    events, text = protocol.advance_emotion_events(state, "\U0001F60A")
+    check("emoji alone fires once", [e.emotion for e in events], ["happy"])
+    check("emoji alone emits no text", text, "")
+    events, text = protocol.advance_emotion_events(state, " 你好")
+    check("emoji not re-fired", events, [])
+    check("emoji text follows", text, " 你好")
+    events, text = protocol.advance_emotion_events(state, "！")
     check("no duplicate event", events, [])
-    check("trailing text", text, "lo!")
-    check("clean transcript", state.cleaned_text(), " Hello!")
+    check("trailing text", text, "！")
+    check("clean transcript", state.cleaned_text(), " 你好！")
 
-    # A bracketed non-tag must not be held back once it is disqualified.
-    state2 = protocol.new_stream_state()
-    _events, text = protocol.advance_emotion_events(state2, "[hello wor")
-    check("non-tag not deferred", text, "[hello wor")
+    # --- streaming: text then emoji then text ---------------------------
+    st2 = protocol.new_stream_state()
+    _e, t = protocol.advance_emotion_events(st2, "好的")
+    check("text first", t, "好的")
+    e, t = protocol.advance_emotion_events(st2, "😠")
+    check("later emoji fires", [x.emotion for x in e], ["angry"])
+    check("no text with emoji", t, "")
+    _e, t = protocol.advance_emotion_events(st2, " 不行")
+    check("text after emoji", t, " 不行")
 
-    # Second tag fires once, and text between tags is not duplicated.
-    state3 = protocol.new_stream_state()
-    protocol.advance_emotion_events(state3, "[happy] a")
-    events, text = protocol.advance_emotion_events(state3, "[sad] b")
-    check("second tag fires", [e.emotion for e in events], ["sad"])
-    check("second tag text", text, " b")
-
-    # --- settled-string parsing must never swallow text -----------------
-    check("settled unterminated", protocol.clean_text("[oops hi"), "[oops hi")
-    check("settled lone bracket", protocol.clean_text("hi ["), "hi [")
-    check("settled trailing tag", protocol.clean_text("ok [happy]"), "ok ")
-    check("settled tag then bracket", protocol.clean_text("[happy] ok ["), " ok [")
-
-    # --- streaming: a disqualified fragment is released, not lost --------
-    state4 = protocol.new_stream_state()
-    _events, text = protocol.advance_emotion_events(state4, "[hello wor")
-    check("disqualified released", text, "[hello wor")
-    _events, text = protocol.advance_emotion_events(state4, "ld] hi")
-    check("disqualified stays text", text, "ld] hi")
-
-    # --- streaming: no duplication across many small deltas -------------
-    # Every character arrives alone. A lone "[" is held back for one delta,
-    # so the visible text only appears once the tag resolves.
-    state5 = protocol.new_stream_state()
-    collected = ""
-    emotions = []
-    for piece in ["[", "h", "a", "p", "p", "y", "]", " H", "i", "!"]:
-        events, text = protocol.advance_emotion_events(state5, piece)
-        collected += text
-        emotions.extend(e.emotion for e in events)
-    check("char-by-char text", collected, " Hi!")
-    check("char-by-char emotions", emotions, ["happy"])
-    check("char-by-char no leak", "[" not in collected, True)
-
-    # --- streaming: a bracket that never becomes a tag is released -------
-    state7 = protocol.new_stream_state()
-    out = ""
-    for piece in ["[", "s", "e", "e", " ", "t", "h", "i", "s"]:
-        _events, text = protocol.advance_emotion_events(state7, piece)
-        out += text
-    check("literal bracket released", out, "[see this")
-    check("literal bracket no emotion", state7.fired, 0)
-
-    # --- streaming: emission is never duplicated ------------------------
-    state8 = protocol.new_stream_state()
-    transcript = "[happy] Hello there, friend!"
+    # --- streaming: char-by-char, no duplication or loss ----------------
+    st3 = protocol.new_stream_state()
+    transcript = "😊 你好，世界！"
     emitted = ""
-    for i in range(1, len(transcript) + 1):
-        _events, text = protocol.advance_emotion_events(state8, transcript[i - 1:i])
-        emitted += text
-    check("no duplication", emitted, " Hello there, friend!")
-    check("full transcript", state8.cleaned_text(), " Hello there, friend!")
-
-    # --- streaming: tag then text then tag ------------------------------
-    state6 = protocol.new_stream_state()
-    protocol.advance_emotion_events(state6, "[happy] a")
-    events, text = protocol.advance_emotion_events(state6, " b [sad]")
-    check("mid tag then text", text, " b ")
-    check("mid tag fires", [e.emotion for e in events], ["sad"])
+    fired = []
+    for i in range(len(transcript)):
+        e, t = protocol.advance_emotion_events(st3, transcript[i])
+        emitted += t
+        fired.extend(x.emotion for x in e)
+    check("char-by-char text", emitted, " 你好，世界！")
+    check("char-by-char emotion", fired, ["happy"])
 
     # --- vocabulary must match the firmware's display mapping ------------
     # Ground truth: StackChanAvatarDisplay::SetEmotion() in

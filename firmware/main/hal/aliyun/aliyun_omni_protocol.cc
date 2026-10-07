@@ -56,44 +56,95 @@ constexpr EventBits_t kBitSessionReady = BIT0;
 // which is already done by then.
 constexpr int kSessionReadyTimeoutMs = 40000;
 
+// How long playback may still be running after the last audio packet arrived.
+// The decode queue holds up to 2.4 s (40 packets of 60 ms), plus one packet
+// already in the playback queue.
+constexpr int kDrainGuardMs = 2600;
+
 /* ------------------------------------------------------------- emotion tags */
 
 // Mirrors tools/aliyun_omni/protocol.py, which asserts these strings against
 // StackChanAvatarDisplay::SetEmotion(). "doubtful" not "doubt": the display's
 // unknown-emotion branch would silently reset the face to neutral.
-struct EmotionAlias {
-    const char* tag;
+// Emotion is signalled by a leading emoji, not a bracket tag.
+//
+// Measured against the live endpoint: feeding a generated reply back through the
+// API's own ASR showed "[happy] 你好" is *spoken* as "Happy, 你好", while
+// "😊 你好" is spoken as just "你好". The bracket form leaks into the audio; the
+// emoji does not. So emoji are the tag.
+//
+// The emotion strings must match StackChanAvatarDisplay::SetEmotion() exactly
+// (main/hal/board/stackchan_display.cc); the self-test in
+// tools/aliyun_omni_probe.py asserts that they do.
+struct EmotionEmoji {
+    const char* utf8;  // 4-byte UTF-8 sequence
     const char* emotion;
 };
 
-const EmotionAlias kEmotionAliases[] = {
-    {"neutral", "neutral"},   {"calm", "neutral"},        {"normal", "neutral"},
-    {"happy", "happy"},       {"joy", "happy"},           {"joyful", "happy"},
-    {"smile", "happy"},       {"smiling", "happy"},       {"glad", "happy"},
-    {"cheerful", "happy"},    {"excited", "happy"},       {"love", "happy"},
-    {"laughing", "laughing"}, {"laugh", "laughing"},      {"lol", "laughing"},
-    {"giggle", "laughing"},   {"amused", "laughing"},     {"angry", "angry"},
-    {"anger", "angry"},       {"mad", "angry"},           {"annoyed", "angry"},
-    {"furious", "angry"},     {"sad", "sad"},             {"sadness", "sad"},
-    {"unhappy", "sad"},       {"down", "sad"},            {"disappointed", "sad"},
-    {"crying", "crying"},     {"cry", "crying"},          {"tears", "crying"},
-    {"sobbing", "crying"},    {"doubtful", "doubtful"},   {"doubt", "doubtful"},
-    {"confused", "doubtful"}, {"puzzled", "doubtful"},    {"thinking", "doubtful"},
-    {"curious", "doubtful"},  {"sleepy", "sleepy"},       {"tired", "sleepy"},
-    {"sleep", "sleepy"},      {"bored", "sleepy"},        {"yawn", "sleepy"},
+const EmotionEmoji kEmotionEmoji[] = {
+    {"\xF0\x9F\x98\x80", "happy"},      // 😀
+    {"\xF0\x9F\x98\x8A", "happy"},      // 😊
+    {"\xF0\x9F\x99\x82", "happy"},      // 🙂
+    {"\xF0\x9F\x98\x84", "laughing"},   // 😄
+    {"\xF0\x9F\x98\x86", "laughing"},   // 😆
+    {"\xF0\x9F\x98\x82", "laughing"},   // 😂
+    {"\xF0\x9F\x98\xA0", "angry"},      // 😠
+    {"\xF0\x9F\x98\xA1", "angry"},      // 😡
+    {"\xF0\x9F\x98\xA2", "crying"},     // 😢
+    {"\xF0\x9F\x98\xAD", "crying"},     // 😭
+    {"\xF0\x9F\x98\x94", "sad"},        // 😔
+    {"\xF0\x9F\x98\x9E", "sad"},        // 😞
+    {"\xF0\x9F\x98\xB4", "sleepy"},     // 😴
+    {"\xF0\x9F\x98\xAA", "sleepy"},     // 😪
+    {"\xF0\x9F\xA4\x94", "doubtful"},   // 🤔
+    {"\xF0\x9F\x98\x95", "doubtful"},   // 😕
+    {"\xF0\x9F\x98\x90", "neutral"},    // 😐
 };
 
-constexpr size_t kMaxTagBody = 20;    // longest single-word tag we accept
-constexpr size_t kMaxTagLen = kMaxTagBody + 2;  // "[" + body + "]"
+constexpr size_t kEmojiBytes = 4;
 
-const char* emotion_for_tag(const std::string& tag)
+/** Length in bytes of the known emoji at `p`, or 0. */
+size_t emoji_at(const char* p, size_t remaining)
 {
-    for (const auto& alias : kEmotionAliases) {
-        if (tag == alias.tag) {
-            return alias.emotion;
+    if (remaining < kEmojiBytes) {
+        return 0;
+    }
+    for (const auto& entry : kEmotionEmoji) {
+        if (memcmp(p, entry.utf8, kEmojiBytes) == 0) {
+            return kEmojiBytes;
+        }
+    }
+    return 0;
+}
+
+/** Emotion for the emoji at `p`, or nullptr. */
+const char* emotion_at(const char* p, size_t remaining)
+{
+    if (remaining < kEmojiBytes) {
+        return nullptr;
+    }
+    for (const auto& entry : kEmotionEmoji) {
+        if (memcmp(p, entry.utf8, kEmojiBytes) == 0) {
+            return entry.emotion;
         }
     }
     return nullptr;
+}
+
+/**
+ * @brief True when the bytes at `p` are an incomplete prefix of a known emoji.
+ *
+ * Deltas arrive cut at arbitrary byte offsets, so a UTF-8 emoji can straddle
+ * two of them. Holding the fragment back avoids rendering a broken glyph.
+ */
+bool is_emoji_prefix(const char* p, size_t remaining)
+{
+    for (const auto& entry : kEmotionEmoji) {
+        if (remaining <= kEmojiBytes && memcmp(p, entry.utf8, remaining) == 0) {
+            return true;
+        }
+    }
+    return false;
 }
 
 bool is_tag_char(char c)
@@ -153,77 +204,66 @@ struct TranscriptScanner {
     {
         raw += delta;
 
+        // Walk the accumulated transcript byte by byte, splitting it into text
+        // and emotion segments. Re-parsing from the start on every delta is
+        // deliberate: a later delta can re-split the final text segment, so
+        // byte offsets into it are not stable, but the settled text is.
         std::string text_segments;
         size_t emotion_count = 0;
 
-        // `emit_end` is exclusive: text before it is settled and safe to show.
-        // Advance it only at points that can never be re-interpreted later.
+        // `emit_end` is exclusive: everything before it is settled.
         size_t emit_end = 0;
+        size_t pos = 0;
 
-        while (true) {
-            const size_t open = raw.find('[', emit_end);
-            if (open == std::string::npos) {
-                text_segments.append(raw, emit_end, std::string::npos);
-                emit_end = raw.size();
+        while (pos < raw.size()) {
+            const unsigned char c = static_cast<unsigned char>(raw[pos]);
+
+            if (c < 0x80) {  // ASCII text
+                ++pos;
+                continue;
+            }
+
+            const size_t remaining = raw.size() - pos;
+            const char* emotion = emotion_at(raw.data() + pos, remaining);
+            if (emotion != nullptr) {
+                text_segments.append(raw, emit_end, pos - emit_end);
+                emit_end = pos + kEmojiBytes;
+                pos = emit_end;
+                ++emotion_count;
+                if (emotion_count > fired) {
+                    fired_emotions.emplace_back(emotion);
+                }
+                continue;
+            }
+
+            if (is_emoji_prefix(raw.data() + pos, remaining)) {
+                // Incomplete emoji at the tail: hold everything from here back
+                // until a later delta completes it.
+                text_segments.append(raw, emit_end, pos - emit_end);
+                emit_end = pos;
                 break;
             }
 
-            const size_t close = raw.find(']', open + 1);
-            if (close == std::string::npos) {
-                const std::string inner = raw.substr(open + 1);
-
-                // Tags never contain whitespace, so a space disqualifies the
-                // fragment and it becomes ordinary text again.
-                bool candidate = inner.size() <= kMaxTagBody;
-                for (char c : inner) {
-                    if (!is_tag_char(c)) {
-                        candidate = false;
-                        break;
-                    }
-                }
-                if (candidate) {
-                    // Hold back from THIS bracket, even if an earlier one was
-                    // already disqualified, so a bracket can never flash on
-                    // screen. Matches _scan_streaming() in tools/aliyun_omni.
-                    text_segments.append(raw, emit_end, open - emit_end);
-                    emit_end = open;
-                    break;
-                }
-
-                // Disqualified: the "[" can never become a tag now, so show it
-                // and resume scanning after it.
-                text_segments.append(raw, emit_end, open - emit_end + 1);
-                emit_end = open + 1;
-                continue;
-            }
-
-            const std::string body = raw.substr(open + 1, close - open - 1);
-            const char* emotion = body.empty() ? nullptr : emotion_for_tag(normalise_tag(body));
-
-            if (emotion == nullptr) {
-                // Not an emotion we know: leave it visible, keep scanning after it.
-                text_segments.append(raw, emit_end, close - emit_end + 1);
-                emit_end = close + 1;
-                continue;
-            }
-
-            text_segments.append(raw, emit_end, open - emit_end);
-            emit_end = close + 1;
-            ++emotion_count;
-            if (emotion_count > fired) {
-                fired_emotions.emplace_back(emotion);
-            }
+            // Some other multi-byte character (Chinese text, punctuation):
+            // advance one byte at a time so we never misinterpret a continuation
+            // byte as the start of a sequence.
+            ++pos;
         }
 
-        std::string new_text;
-        if (text_segments.compare(0, sent_text.size(), sent_text) == 0) {
-            new_text = text_segments.substr(sent_text.size());
-        } else {
-            // A held-back fragment was released, so settled text is no longer an
-            // extension of what was sent. Emit it whole rather than appending
-            // blindly, which would duplicate the already-visible prefix.
-            new_text = text_segments;
+        if (emit_end < raw.size() && pos >= raw.size()) {
+            text_segments.append(raw, emit_end, std::string::npos);
+            emit_end = raw.size();
         }
+
+        // Emit everything after the common prefix with what was already sent.
+        // The settled text can also shrink back when a held-back fragment is
+        // released, so appending a naive tail would duplicate output.
+        size_t common = 0;
+        while (common < sent_text.size() && common < text_segments.size() &&
+               sent_text[common] == text_segments[common]) {
+            ++common;
+        }
+        const std::string new_text = text_segments.substr(common);
 
         sent_text = text_segments;
         fired = emotion_count;
@@ -297,6 +337,21 @@ bool must_precede_audio(const std::string& payload)
            payload.find("\"response.done\"") != std::string::npos;
 }
 
+/**
+ * @brief True for events that apply backpressure and so must run on the network task.
+ *
+ * The server pushes audio far faster than realtime, so something has to slow it
+ * down. Blocking the main task would not: the network task would keep reading
+ * and simply queue more work. Blocking the task that reads the socket does -
+ * the WebSocket reader stalls, the TCP window closes and the server throttles
+ * itself to playback speed. Audio is therefore dispatched inline here, and
+ * Application pushes it to the decoder with wait=true.
+ */
+bool is_audio_payload(const std::string& payload)
+{
+    return payload.find("\"response.audio.delta\"") != std::string::npos;
+}
+
 std::string get_setting(const char* key, const char* fallback)
 {
     Settings settings(kSettingsNamespace, false);
@@ -365,6 +420,19 @@ public:
     // granule position) that spans the whole session.
     OggOpusMuxer muxer;
     bool ogg_headers_sent = false;
+
+    // True between response.created and response.done.
+    bool response_active = false;
+
+    // When the last downlink audio packet arrived. The decode queue can hold up
+    // to 2.4 s, so playback continues well after response.done; both the uplink
+    // gate and the turn-end gate have to cover that tail or the device hears its
+    // own trailing speech and interrupts itself.
+    int64_t last_audio_us = 0;
+
+    // Arrival-rate instrumentation: packets decoded for the current response.
+    int packets_this_response = 0;
+    int64_t response_started_us = 0;
 
     // The session this protocol last saw, so a reconnect can tell the server to
     // drop the previous context instead of accumulating it.
@@ -623,7 +691,7 @@ bool AliyunOmniProtocol::OpenAudioChannel()
         // for it, so a deferred dispatch would be waiting on the very task that
         // is waiting for it. That deadlock cost a 40 second timeout on every
         // connection, with the frame itself arriving in 10 ms.
-        if (is_handshake_critical(payload) || must_precede_audio(payload)) {
+        if (is_handshake_critical(payload) || must_precede_audio(payload) || is_audio_payload(payload)) {
             HandleServerEvent(payload);
             return;
         }
@@ -692,6 +760,9 @@ bool AliyunOmniProtocol::OpenAudioChannel()
 
     _impl->demuxer = std::make_unique<OggDemuxer>();
     _impl->demuxer->OnDemuxerFinished([this](const uint8_t* data, int /*sample_rate*/, size_t size) {
+        // Count decoded packets so the arrival rate can be compared with the
+        // audio duration they represent (each packet is kOpusFrameMs).
+        ++_impl->packets_this_response;
         // The demuxer reports 48 kHz for Opus, which is the codec's internal
         // rate. The session asked for 24 kHz output, which is what the speaker
         // path and the decoder are configured for.
@@ -769,10 +840,12 @@ bool AliyunOmniProtocol::SendSessionUpdate()
     // Drives the on-device emotion bridge; see the class comment.
     cJSON_AddStringToObject(session, "instructions",
                             "你是一个桌面机器人 StackChan，用简短口语化的中文回应。"
-                            "说话时请在句首插入一个情绪标记来驱动你的表情，"
-                            "格式为方括号包住的英文单词，只能从以下八选一："
-                            "[neutral] [happy] [laughing] [angry] [sad] [crying] [sleepy] [doubtful]。"
-                            "每句话最多一个标记，不要在标记里加其他文字。");
+                            "请在每次回答的最前面加一个表情符号来表示你的情绪，"
+                            "只能从以下八个里选一个："
+                            "😐（平静）、😊（开心）、😄（大笑）、😠（生气）、😔（难过）、"
+                            "😭（哭泣）、😴（困倦）、🤔（疑惑）。"
+                            "例如：\"😊 好呀，我很乐意！\"。"
+                            "只加一个表情符号，不要输出其他符号或英文单词。");
 
     cJSON* transcription = cJSON_CreateObject();
     cJSON_AddStringToObject(transcription, "model", "qwen3-asr-flash-realtime");
@@ -857,7 +930,8 @@ bool AliyunOmniProtocol::SendAudio(std::unique_ptr<AudioStreamPacket> packet)
     // barge-in - interrupting the model mid-sentence - does not work; the gain
     // is that the device no longer interrupts itself with its own speaker, which
     // is the behaviour that actually matters here.
-    if (Application::GetInstance().GetDeviceState() == kDeviceStateSpeaking) {
+    if (IsModelSpeaking() ||
+        Application::GetInstance().GetDeviceState() == kDeviceStateSpeaking) {
         return true;  // dropped on purpose, not an error
     }
 
@@ -899,9 +973,34 @@ bool AliyunOmniProtocol::SendAudio(std::unique_ptr<AudioStreamPacket> packet)
     return SendAudioBuffer(page.data(), page.size());
 }
 
+bool AliyunOmniProtocol::IsModelSpeaking() const
+{
+    if (_impl->response_active) {
+        return true;
+    }
+    // Drain tail: audio already queued but not yet played.
+    if (_impl->last_audio_us == 0) {
+        return false;
+    }
+    const int64_t since_us = esp_timer_get_time() - _impl->last_audio_us;
+    return since_us < static_cast<int64_t>(kDrainGuardMs) * 1000;
+}
+
 void AliyunOmniProtocol::NotifyLocalSpeechEnded()
 {
     if (!IsAudioChannelOpened()) {
+        return;
+    }
+
+    // This is the gate that actually stops self-interruption.
+    //
+    // Dropping uplink audio is not enough: the local VAD still hears the speaker
+    // through the microphone, reports end-of-speech, and committing here would
+    // cancel the answer that is still being spoken. So a turn is only ended once
+    // the model has genuinely finished - no response in flight and the playback
+    // queue drained.
+    if (IsModelSpeaking()) {
+        ESP_LOGI(TAG, "ignoring turn end: model audio still in flight or draining");
         return;
     }
     // Manual mode: the buffer has to be committed explicitly, then a response
@@ -975,6 +1074,9 @@ void AliyunOmniProtocol::HandleServerEvent(const std::string& raw)
         EmitStt(text);
 
     } else if (type == "response.created") {
+        _impl->response_active = true;
+        _impl->packets_this_response = 0;
+        _impl->response_started_us = esp_timer_get_time();
         // Each response is its own Ogg logical stream.
         if (_impl->demuxer) {
             _impl->demuxer->Reset();
@@ -993,7 +1095,8 @@ void AliyunOmniProtocol::HandleServerEvent(const std::string& raw)
         const cJSON* delta = cJSON_GetObjectItem(root, "delta");
         if (cJSON_IsString(delta)) {
             std::vector<uint8_t> ogg;
-            if (base64_decode(delta->valuestring, ogg) && !ogg.empty() && _impl->demuxer) {
+            _impl->last_audio_us = esp_timer_get_time();
+        if (base64_decode(delta->valuestring, ogg) && !ogg.empty() && _impl->demuxer) {
                 // Yields zero or more Opus packets via the demuxer callback.
                 _impl->demuxer->Process(ogg.data(), ogg.size());
             }
@@ -1003,6 +1106,20 @@ void AliyunOmniProtocol::HandleServerEvent(const std::string& raw)
         ESP_LOGD(TAG, "response.audio.done");
 
     } else if (type == "response.done") {
+        if (_impl->response_started_us != 0) {
+            const int64_t wall_ms = (esp_timer_get_time() - _impl->response_started_us) / 1000;
+            const int64_t audio_ms = static_cast<int64_t>(_impl->packets_this_response) * kOpusFrameMs;
+            if (wall_ms > 0) {
+                ESP_LOGW(TAG, "[rate] %d packets = %d ms audio arrived over %d ms wall (%.2fx realtime)",
+                         _impl->packets_this_response, (int)audio_ms, (int)wall_ms,
+                         (double)audio_ms / (double)wall_ms);
+            }
+        }
+        _impl->response_active = false;
+        // Note: audio for this response may still be draining from the decode
+        // queue; IsModelSpeaking() keeps gating for kDrainGuardMs after the last
+        // packet, which is what stops the tail from being mistaken for a new
+        // user turn.
         EmitTtsState("stop");
 
     } else if (type == "input_audio_buffer.committed") {
