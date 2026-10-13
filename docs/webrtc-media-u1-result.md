@@ -218,9 +218,11 @@ map 中的 wrapper 引用两臂均保留（未被内联或绕过）。
 
 ```bash
 cd <archive>/<arm>/bin
-esptool.py --chip esp32s3 -p /dev/cu.usbmodemXXXX \
-  --flash_mode dio --flash_freq 80m --flash_size 16MB write_flash @flash_args
+esptool.py --chip esp32s3 -p /dev/cu.usbmodemXXXX write_flash @flash_args
 ```
+
+`flash_args` 已包含 flash_mode/freq/size；本机 esptool 4.12 将这些参数定义在
+`write_flash` 子命令下，不能放在该子命令之前。Codex 复核时已修正命令示例。
 
 ## 归档修复（Review5498605495 A1 / A2）
 
