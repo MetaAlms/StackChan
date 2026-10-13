@@ -46,26 +46,31 @@ static_assert(MBEDTLS_TLS_SRTP_AES128_CM_HMAC_SHA1_80 == 1,
 static_assert(MBEDTLS_TLS_SRTP_UNSET == 0,
               "UNSET must be the real Mbed TLS sentinel");
 
-// The real API returns void for conf_transport; a conflicting declaration in the
-// probe would be rejected here.
+// F3: each `__real_*` declaration is compared **directly with the actual public
+// Mbed TLS API**, not with a hand-written function type. If upstream changes any
+// of these six signatures, this translation unit stops compiling - the
+// declaration in dtls_probe_core.h and the real header must agree by
+// construction, so a wrong `int` return for the void conf_transport cannot
+// survive. (`__real_*` carry C language linkage, so their address type is the
+// plain function-pointer type of the real symbol.)
 static_assert(std::is_same<decltype(&__real_mbedtls_ssl_conf_transport),
-                           void (*)(mbedtls_ssl_config*, int)>::value,
-              "mbedtls_ssl_conf_transport really returns void (ssl.h:2143)");
+                           decltype(&mbedtls_ssl_conf_transport)>::value,
+              "declaration must match the real mbedtls_ssl_conf_transport (ssl.h:2143)");
 static_assert(std::is_same<decltype(&__real_mbedtls_ssl_config_free),
-                           void (*)(mbedtls_ssl_config*)>::value,
-              "release symbol is mbedtls_ssl_config_free (ssl.h:5741)");
+                           decltype(&mbedtls_ssl_config_free)>::value,
+              "declaration must match the real mbedtls_ssl_config_free (ssl.h:5741)");
 static_assert(std::is_same<decltype(&__real_mbedtls_ssl_free),
-                           void (*)(mbedtls_ssl_context*)>::value,
-              "context release is mbedtls_ssl_free (ssl.h:5569)");
+                           decltype(&mbedtls_ssl_free)>::value,
+              "declaration must match the real mbedtls_ssl_free (ssl.h:5569)");
 static_assert(std::is_same<decltype(&__real_mbedtls_ssl_setup),
-                           int (*)(mbedtls_ssl_context*, const mbedtls_ssl_config*)>::value,
-              "mbedtls_ssl_setup returns int");
+                           decltype(&mbedtls_ssl_setup)>::value,
+              "declaration must match the real mbedtls_ssl_setup");
 static_assert(std::is_same<decltype(&__real_mbedtls_ssl_config_defaults),
-                           int (*)(mbedtls_ssl_config*, int, int, int)>::value,
-              "mbedtls_ssl_config_defaults returns int");
+                           decltype(&mbedtls_ssl_config_defaults)>::value,
+              "declaration must match the real mbedtls_ssl_config_defaults");
 static_assert(std::is_same<decltype(&__real_mbedtls_ssl_handshake),
-                           int (*)(mbedtls_ssl_context*)>::value,
-              "mbedtls_ssl_handshake returns int");
+                           decltype(&mbedtls_ssl_handshake)>::value,
+              "declaration must match the real mbedtls_ssl_handshake");
 
 // ---------------------------------------------------------------------------
 // Stubs. These stand in for the real Mbed TLS calls that --wrap redirects on the
@@ -79,6 +84,8 @@ struct Stub {
     // Controlled outcomes.
     int handshake_rc = 0;
     int handshake_errno = 0;
+    /** When false the real call leaves the incoming errno untouched. */
+    bool handshake_sets_errno = true;
     int conf_transport_errno = 0;
     int config_defaults_rc = 0;
     int config_defaults_errno = 0;
@@ -90,7 +97,14 @@ struct Stub {
     int srtp_profile = MBEDTLS_TLS_SRTP_UNSET;
     const char* ciphersuite = "TLS-ECDHE-RSA-WITH-AES-128-GCM-SHA256";
 
-    // Reached counters.
+    // F1 hooks: reset the observation window from inside an observation point.
+    // These only call Arm(); they never touch real SSL/config state.
+    bool arm_inside_real = false;
+    bool arm_inside_over_getter = false;
+    // F2 hook: a getter that clobbers errno after the real call has returned.
+    bool getter_pollutes_errno = false;
+
+    // Reached / observed counters.
     int conf_transport_reached = 0;
     int config_defaults_reached = 0;
     int setup_reached = 0;
@@ -100,6 +114,8 @@ struct Stub {
     int over_getter_calls = 0;
     int cipher_getter_calls = 0;
     int profile_getter_calls = 0;
+    /** The errno the real handshake actually received at its entry (F2). */
+    int handshake_entry_errno_seen = -1;
 };
 
 Stub g_stub;
@@ -112,18 +128,30 @@ void ResetStub()
 bool GetHandshakeOver(mbedtls_ssl_context*)
 {
     ++g_stub.over_getter_calls;
+    if (g_stub.arm_inside_over_getter) {
+        dtls_probe::Arm();
+    }
+    if (g_stub.getter_pollutes_errno) {
+        errno = EIO;                       // observer noise, must not escape
+    }
     return g_stub.handshake_over;
 }
 
 const char* GetCiphersuite(mbedtls_ssl_context*)
 {
     ++g_stub.cipher_getter_calls;
+    if (g_stub.getter_pollutes_errno) {
+        errno = EIO;                       // observer noise, must not escape
+    }
     return g_stub.ciphersuite;
 }
 
 int GetSrtpProfile(mbedtls_ssl_context*)
 {
     ++g_stub.profile_getter_calls;
+    if (g_stub.getter_pollutes_errno) {
+        errno = EIO;                       // observer noise, must not escape
+    }
     return g_stub.srtp_profile;
 }
 
@@ -135,6 +163,14 @@ int64_t g_fake_now_us = 0;
 int64_t NowUs()
 {
     g_fake_now_us += 5000;   // deterministic 5 ms per call
+    return g_fake_now_us;
+}
+
+/** F2: a timing function that deliberately clobbers errno while measuring. */
+int64_t NowUsPolluting()
+{
+    g_fake_now_us += 5000;
+    errno = EINTR;
     return g_fake_now_us;
 }
 
@@ -231,7 +267,15 @@ int __real_mbedtls_ssl_handshake(mbedtls_ssl_context* ssl)
 {
     (void)ssl;
     ++g_stub.handshake_reached;
-    errno = g_stub.handshake_errno;
+    // F2: record what the wrapper actually handed us at entry, before touching
+    // errno ourselves.
+    g_stub.handshake_entry_errno_seen = errno;
+    if (g_stub.arm_inside_real) {
+        dtls_probe::Arm();     // F1 hook: resets the observation window only
+    }
+    if (g_stub.handshake_sets_errno) {
+        errno = g_stub.handshake_errno;
+    }
     return g_stub.handshake_rc;
 }
 
@@ -624,6 +668,170 @@ static void ScenarioTableOverflow()
     CHECK(r.ctx_overflow > 0);
 }
 
+/**
+ * 9. F1: a handshake that outlives an Arm() must not write into the new report.
+ *
+ * The hooks are deterministic: Arm() is called from inside the real handshake,
+ * and from inside the completion getter. They only reset the observation window;
+ * they never touch real SSL/config state.
+ */
+static void ScenarioArmDuringHandshake()
+{
+    std::printf("[9] F1: stale handshake cannot write into a new Arm report\n");
+
+    // (a) Arm() inside the real call: nothing of this call may appear anywhere.
+    ResetStub();
+    dtls_probe::Arm();
+    SetupPair(0, 0, MBEDTLS_SSL_TRANSPORT_DATAGRAM);
+    const uint32_t gen_before = dtls_probe::Snapshot().generation;
+
+    g_stub.arm_inside_real = true;
+    g_stub.handshake_rc = 0;
+    g_stub.handshake_over = true;
+    g_stub.srtp_profile = MBEDTLS_TLS_SRTP_AES128_CM_HMAC_SHA1_80;
+    g_stub.handshake_errno = EACCES;
+    errno = ENOENT;
+    CHECK_EQ(dtls_probe::WrapHandshake(Ctx(0), Conf(0), kGetters, &NowUs), 0);
+    // The real call and its return/errno passthrough are unaffected.
+    CHECK_EQ(g_stub.handshake_reached, 1);
+    CHECK_EQ(errno, EACCES);
+
+    dtls_probe::Report r = dtls_probe::Snapshot();
+    CHECK_EQ(r.generation, gen_before + 1);        // Arm really happened
+    CHECK_EQ(r.hs_calls, 0);                       // ...and nothing was recorded
+    CHECK_EQ(r.dtls_hs_calls, 0);
+    CHECK_EQ(r.hs_ok, 0);
+    CHECK_EQ(r.hs_fail, 0);
+    CHECK_EQ(r.unknown_ctx, 0);
+    CHECK_EQ(r.unknown_transport, 0);
+    CHECK_EQ(r.stream_hs_excluded, 0);
+    CHECK_EQ(r.profile_reads, 0);
+    CHECK_EQ(r.profile_skipped, 0);
+    CHECK(!r.have_profile);
+    CHECK(!r.handshake_over);
+    CHECK(!r.have_cipher);
+    CHECK(!r.have_role);
+    CHECK_EQ(r.last_identity, -1);
+    // The getters are not even consulted once the call is known to be stale.
+    CHECK_EQ(g_stub.over_getter_calls, 0);
+    CHECK_EQ(g_stub.profile_getter_calls, 0);
+
+    // (b) Arm() inside the completion getter: still no completion/profile and no
+    // call counts in the new report, and the profile is never read.
+    ResetStub();
+    dtls_probe::Arm();
+    SetupPair(1, 1, MBEDTLS_SSL_TRANSPORT_DATAGRAM);
+    const uint32_t gen_before_b = dtls_probe::Snapshot().generation;
+
+    g_stub.arm_inside_over_getter = true;
+    g_stub.handshake_rc = 0;
+    g_stub.handshake_over = true;
+    g_stub.srtp_profile = MBEDTLS_TLS_SRTP_AES128_CM_HMAC_SHA1_80;
+    g_stub.handshake_errno = EACCES;
+    errno = ENOENT;
+    CHECK_EQ(dtls_probe::WrapHandshake(Ctx(1), Conf(1), kGetters, &NowUs), 0);
+    CHECK_EQ(g_stub.handshake_reached, 1);
+    CHECK_EQ(errno, EACCES);
+    CHECK_EQ(g_stub.over_getter_calls, 1);         // the hook ran here
+    CHECK_EQ(g_stub.profile_getter_calls, 0);      // re-checked before the read
+
+    r = dtls_probe::Snapshot();
+    CHECK_EQ(r.generation, gen_before_b + 1);
+    CHECK_EQ(r.hs_calls, 0);
+    CHECK_EQ(r.dtls_hs_calls, 0);
+    CHECK_EQ(r.hs_ok, 0);
+    CHECK_EQ(r.profile_reads, 0);
+    CHECK_EQ(r.profile_skipped, 0);
+    CHECK(!r.have_profile);
+    CHECK(!r.handshake_over);
+    CHECK(!r.have_cipher);
+
+    // (c) A live call still records normally afterwards: the generation guard
+    // rejects only the stale call, not the diagnostic itself.
+    ResetStub();
+    dtls_probe::Arm();
+    SetupPair(2, 2, MBEDTLS_SSL_TRANSPORT_DATAGRAM);
+    g_stub.handshake_rc = 0;
+    g_stub.handshake_over = true;
+    g_stub.srtp_profile = MBEDTLS_TLS_SRTP_AES128_CM_HMAC_SHA1_80;
+    CHECK_EQ(dtls_probe::WrapHandshake(Ctx(2), Conf(2), kGetters, &NowUs), 0);
+    r = dtls_probe::Snapshot();
+    CHECK_EQ(r.hs_calls, 1);
+    CHECK_EQ(r.dtls_hs_calls, 1);
+    CHECK_EQ(r.hs_ok, 1);
+    CHECK_EQ(r.profile_reads, 1);
+    CHECK_EQ(r.profile, 1);
+    CHECK(r.handshake_over);
+}
+
+/**
+ * 10. F2: front-loaded observation must not change the real call's entry errno,
+ * and the exit errno must be exactly what the real call produced.
+ */
+static void ScenarioErrnoPassthrough()
+{
+    std::printf("[10] F2: timing/getter noise never reaches the real call or caller\n");
+
+    // (a) A polluting timing function, real call leaves errno alone: the real
+    // call must still see the caller's entry errno, and the caller must get it
+    // back unchanged.
+    ResetStub();
+    dtls_probe::Arm();
+    SetupPair(0, 0, MBEDTLS_SSL_TRANSPORT_DATAGRAM);
+    g_stub.handshake_rc = 0;
+    g_stub.handshake_sets_errno = false;    // real does not overwrite errno
+    errno = ENOENT;
+    CHECK_EQ(dtls_probe::WrapHandshake(Ctx(0), Conf(0), kGetters, &NowUsPolluting), 0);
+    CHECK_EQ(g_stub.handshake_entry_errno_seen, ENOENT);   // entry passthrough
+    CHECK_EQ(errno, ENOENT);                               // exit passthrough
+
+    // (b) Same, but the real call does set errno: the caller sees exactly that.
+    ResetStub();
+    dtls_probe::Arm();
+    SetupPair(1, 1, MBEDTLS_SSL_TRANSPORT_DATAGRAM);
+    g_stub.handshake_rc = 0;
+    g_stub.handshake_sets_errno = true;
+    g_stub.handshake_errno = EACCES;
+    errno = ENOENT;
+    CHECK_EQ(dtls_probe::WrapHandshake(Ctx(1), Conf(1), kGetters, &NowUsPolluting), 0);
+    CHECK_EQ(g_stub.handshake_entry_errno_seen, ENOENT);
+    CHECK_EQ(errno, EACCES);
+    dtls_probe::Report r = dtls_probe::Snapshot();
+    CHECK_EQ(r.errno_entry_last, ENOENT);
+    CHECK_EQ(r.errno_real_last, EACCES);
+
+    // (c) Getters that clobber errno after the real call must not change what the
+    // caller observes.
+    ResetStub();
+    dtls_probe::Arm();
+    SetupPair(2, 2, MBEDTLS_SSL_TRANSPORT_DATAGRAM);
+    g_stub.handshake_rc = 0;
+    g_stub.handshake_over = true;
+    g_stub.srtp_profile = MBEDTLS_TLS_SRTP_AES128_CM_HMAC_SHA1_80;
+    g_stub.getter_pollutes_errno = true;
+    g_stub.handshake_sets_errno = true;
+    g_stub.handshake_errno = EACCES;
+    errno = ENOENT;
+    CHECK_EQ(dtls_probe::WrapHandshake(Ctx(2), Conf(2), kGetters, &NowUsPolluting), 0);
+    CHECK_EQ(g_stub.handshake_entry_errno_seen, ENOENT);
+    CHECK_EQ(g_stub.profile_getter_calls, 1);   // the getters did run and pollute
+    CHECK_EQ(g_stub.over_getter_calls, 1);
+    CHECK_EQ(errno, EACCES);                    // ...and still did not escape
+
+    // (d) A failing handshake keeps both sides of the passthrough too.
+    ResetStub();
+    dtls_probe::Arm();
+    SetupPair(3, 3, MBEDTLS_SSL_TRANSPORT_DATAGRAM);
+    g_stub.handshake_rc = -0x7780;
+    g_stub.handshake_sets_errno = true;
+    g_stub.handshake_errno = ETIMEDOUT;
+    errno = ENOENT;
+    CHECK_EQ(dtls_probe::WrapHandshake(Ctx(3), Conf(3), kGetters, &NowUsPolluting),
+             -0x7780);
+    CHECK_EQ(g_stub.handshake_entry_errno_seen, ENOENT);
+    CHECK_EQ(errno, ETIMEDOUT);
+}
+
 int main()
 {
     std::printf("DTLS probe core offline check (actual source: dtls_probe_core.h)\n");
@@ -638,6 +846,8 @@ int main()
     ScenarioTransportSwitch();
     ScenarioIdentityEnds();
     ScenarioTableOverflow();
+    ScenarioArmDuringHandshake();
+    ScenarioErrnoPassthrough();
 
     std::printf("checks=%d failures=%d -> %s\n", g_checks, g_failures,
                 g_failures == 0 ? "PASS" : "FAIL");

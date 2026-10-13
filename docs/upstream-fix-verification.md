@@ -6,16 +6,20 @@
 当前状态（2026-10-13核实）：上游1.5.7已发布，issue仍OPEN；
 [维护者发布确认](https://github.com/espressif/esp-webrtc-solution/issues/208#issuecomment-6059327698)、
 [官方changelog](https://components.espressif.com/components/espressif/esp_peer/versions/1.5.7/changelog?language=en)。
-用户已授权将升级并入SPEC/PLAN并安排同一dsh stackchan执行。
+用户已授权将升级并入SPEC/PLAN；现由新原生DSH会话
+**StackChan WebRTC U1 repair session** 执行（2026-10-13授权替代旧stackchan）。
 
 **先决条件**：先修当前 b45aaa7 的 DTLS 探针：DATAGRAM=1/STREAM=0被写反，
 profile0实际取自被误判为DTLS的HTTPS context。不能用该日志证明SRTP未协商，
 更不能据此另报上游。真实conf_transport为void，释放名为config_free。
 按PLAN U1-0修复并经Codex复核后，冻结相同诊断代码，再做1.5.5→1.5.7对照。
 
-**U1-0 修复状态（2026-10-13，[Review5498100335](https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5498100335)）**：
-诊断代码已修，**设备两臂实测未做**（本机无 `/dev/cu.usbmodem*`），故本文件下方
-A 节的两版本对照**仍未开始**，不得把修复当作升级验证结果。已完成的判据：
+**U1-0 修复状态（2026-10-13）**：
+`2403b287` 的分类/API错误已由
+[Review5498100335](https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5498100335) 复核，
+其 [第二次复核](webrtc-media-m1-diagnostic-review-4.md) 指出的 F1/F2/F3 已修（见下述判据）。
+U1-0 仍**待 Codex 放行**：放行后才派 U1-1～3，本文件下方 A 节的两版本对照**仍未开始**。
+**设备两臂实测未做**（本机无 `/dev/cu.usbmodem*`），不得把修复当作升级验证结果。当前判据：
 
 | 项 | 结果 |
 |---|---|
@@ -24,11 +28,12 @@ A 节的两版本对照**仍未开始**，不得把修复当作升级验证结�
 | 未完成/失败的 DATAGRAM 握手不读 profile | 已修，`profile_skipped` 单独计数 |
 | `conf_transport` 真实 void，且更新已登记配置不 early return | 已修 |
 | 释放符号 `mbedtls_ssl_config_free`，并新增 wrap `mbedtls_ssl_free` | 已修（旧 `conf_free` 在 ELF 中无对应函数，属死代码）|
-| 每个 wrapper 保留真实返回、errno 按真实调用保存/恢复 | 已修，离线断言覆盖 |
-| Arm/新代际与 free 终止身份 | 已修 |
-| 空-源码离线检查 | `firmware/tests/run_dtls_probe_offline_check.sh` 120 项断言通过（C++ 编译/运行，控制器覆盖外）|
-| 控制器注册的实际源码检查 | `firmware/tests/check_dtls_probe_actual_source.py` |
-| reconfigure + build（IDF v5.5.4）| 见 D3 RQ 的构建证据 |
+| 每个 wrapper 保留真实返回、errno 按真实调用保存/恢复（**F2**：前置计时/锁/分类后紧邻 real 恢复入口 errno）| 已修，行为场景 10 + 负对照覆盖 |
+| Arm/新代际与 free 终止身份；**F1** 跨 Arm 的在途握手不得写入新报告 | 已修，行为场景 9 + 负对照覆盖 |
+| **F3** 六项 `__real_*` 与真实公开 API 的签名断言 | 已修：`decltype(&__real_X)` 直接对 `decltype(&mbedtls_ssl_X)` |
+| 行为检查（独立编译的二进制）| 经控制器 `u1-d3-probe-behaviour` 运行（cache=never），177 项断言通过 |
+| 控制器注册的实际源码检查 | `firmware/tests/check_dtls_probe_actual_source.py`（`DTLS_PROBE_ACTUAL_SOURCE_PASS`）|
+| 编译/IDF 构建（控制器覆盖外，单独报告）| `run_dtls_probe_offline_check.sh` 编译通过；IDF v5.5.4 build 通过 |
 
 锁文件/依赖**未改**：peer 仍为 1.5.5。1.5.7 的静态指纹见 findings B25。
 

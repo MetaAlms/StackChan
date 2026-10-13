@@ -302,3 +302,28 @@ Review5498100335与本地/PR full b45aaa7 HEAD已重新核对一致。
   `/Users/amtf/.codex/dev-harness/tasks/stackchan-webrtc-media/ledger.sqlite` 运行。
 - 本机仍无 `/dev/cu.usbmodem*`，**未做设备两臂实测**，不得宣告M1通过或编造profile。
   下一步由Codex复核本exact HEAD后再派U1-1～3。
+
+## 2026-10-13：2403b287 复核后小范围返修
+
+- Codex 与只读独立复核绑定完整 HEAD `2403b287faeefe06942ab008513472cadb787c89`，
+  提交 [Review5498323405](https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5498323405)。
+  结论与三项范围见 [本轮复核](webrtc-media-m1-diagnostic-review-4.md)：
+  握手跨 Arm 不能污染新报告、前置计时后恢复入口 errno、真实 API 签名断言与受控行为执行。
+- 不要求活跃 session 修改/释放 config 后继续握手；公开 Mbed TLS API 禁止这种序列，
+  不把它当作本设备阻塞。其他 M1 诊断 TODO 保持原边界，peer 仍 1.5.5。
+- 目标仍为用户授权的新原生会话 **StackChan WebRTC U1 repair session**，
+  同一 worktree/branch；读取 Review→只修 F1–F3→验证→push→exact RQ→STOP。
+  原生 UI 已回读完整指令一次、输入框清空，新第2轮已读取 Review 并确认
+  本地/PR/review 三处 HEAD 一致，返修已开始；通过后另派 U1-1～3。
+- **F1–F3 已修并验证**：入口固定代际 + 三处核对（real 返回后 / 读 profile 前 /
+  提交时再持锁核对），过期调用不写任何字段；前置观察后**紧邻 real** 恢复入口 errno；
+  六项签名断言改为 `decltype(&__real_X)` 直接对 `decltype(&mbedtls_ssl_X)`。
+- **F3 的受控执行已落地**：编译与执行拆开，已编译二进制经原台账注册为
+  `u1-d3-probe-behaviour`（cache=never）运行，**177 项断言通过**；
+  产物置于工作区外（`~/.codex/dev-harness/artifacts/stackchan-webrtc-media/`），
+  因为控制器 sandbox 拒绝读取工作区，区内二进制无法执行。
+  编译与 IDF build 仍在控制器覆盖外，单独报告。
+- **负对照**（临时去掉 F1/F2 修复，仅在 `/tmp` 副本上，未改工作区）分别触发
+  12+ 与 5 项断言失败，证明新增测试确实覆盖这两处缺陷。
+- IDF v5.5.4 build 通过（`stack-chan.bin` 0x3104d0）。**本机仍无串口**，
+  设备两臂实测未做，不宣告 M1 通过。peer 保持 1.5.5，未进入 U1-1～3。

@@ -480,29 +480,59 @@ struct HandshakeGetters {
     int (*srtp_profile)(mbedtls_ssl_context* ssl) = nullptr;
 };
 
+/** True while @p generation is still the live observation generation. */
+inline bool IsCurrentGeneration(uint32_t generation)
+{
+    State& st = Global();
+    std::lock_guard<std::mutex> lock(st.mtx);
+    return st.generation == generation;
+}
+
 /**
  * @brief Observe one `mbedtls_ssl_handshake()` call.
  *
- * Return value and errno are passed through untouched: errno is saved before the
- * real call, saved again immediately after it, and the post-call value is what
- * the caller sees once every getter and counter below has run.
+ * Generation discipline (F1): the generation *and* the identity are pinned under
+ * the lock at entry, and the real call is made with no lock held. The generation
+ * is then re-checked three times - after the real call returns, again before the
+ * SRTP profile is read, and once more under the lock when committing the
+ * observation. A call that outlives an Arm() therefore cannot write anything
+ * into the new report: not a counter, not a completion flag, not a profile. The
+ * real return value and errno are still passed through unchanged.
+ *
+ * errno discipline (F2): the caller's errno is saved at entry, **restored
+ * immediately before the real call** so that no front-loaded observation (lock,
+ * classification, timing) can leak into it, saved again immediately after the
+ * real call, and that post-call value is what the caller finally sees once every
+ * getter and counter has run.
  */
 inline int WrapHandshake(mbedtls_ssl_context* ssl, const mbedtls_ssl_config* conf_now,
                          const HandshakeGetters& get, int64_t (*now_us)())
 {
     const int entry_errno = errno;
-    const int64_t t0 = (now_us != nullptr) ? now_us() : 0;
-    const int rc = __real_mbedtls_ssl_handshake(ssl);
-    const int real_errno = errno;                 // immediately after the real call
-    const int64_t elapsed_ms = ((now_us != nullptr) ? now_us() : 0) - t0;
 
+    // Entry: pin the generation this call belongs to, and the identity as it
+    // stood when the call was made.
+    uint32_t generation = 0;
     Identity id = Identity::UnknownContext;
     int role = kRoleUnknown;
     {
         State& st = Global();
         std::lock_guard<std::mutex> lock(st.mtx);
+        generation = st.generation;
         id = ClassifyLocked(st, ssl, conf_now, &role, nullptr);
     }
+
+    // All front-loaded observation is done. Hand the real call exactly the
+    // errno the caller had at entry.
+    const int64_t t0 = (now_us != nullptr) ? now_us() : 0;
+    errno = entry_errno;
+    const int rc = __real_mbedtls_ssl_handshake(ssl);
+    const int real_errno = errno;                 // immediately after the real call
+    const int64_t elapsed_ms = ((now_us != nullptr) ? now_us() : 0) - t0;
+
+    // The real call may itself have completed an Arm(); if so this observation
+    // belongs to a window that no longer exists.
+    bool fresh = IsCurrentGeneration(generation);
 
     // Public getters, DATAGRAM identities only. Nothing here reads private
     // memory: mbedtls_ssl_is_handshake_over / mbedtls_ssl_get_ciphersuite are
@@ -512,7 +542,7 @@ inline int WrapHandshake(mbedtls_ssl_context* ssl, const mbedtls_ssl_config* con
     bool have_cipher = false;
     char cipher[64] = {0};
     ProfileObservation prof;
-    if (id == Identity::Datagram) {
+    if (fresh && id == Identity::Datagram) {
         if (get.handshake_over != nullptr) {
             over = get.handshake_over(ssl);
         }
@@ -523,14 +553,23 @@ inline int WrapHandshake(mbedtls_ssl_context* ssl, const mbedtls_ssl_config* con
                 strncpy(cipher, cs, sizeof(cipher) - 1);
             }
         }
-        if (ShouldReadProfile(id, rc, over) && get.srtp_profile != nullptr) {
+        // Re-check before reading the profile: a getter may have run Arm().
+        fresh = IsCurrentGeneration(generation);
+        if (fresh && ShouldReadProfile(id, rc, over) && get.srtp_profile != nullptr) {
             prof = DecideProfile(id, rc, over, get.srtp_profile(ssl));
         }
     }
 
-    {
+    // Final commit, re-checked under the lock. A stale call writes nothing at
+    // all: the new report must not show the old call's counts, completion or
+    // profile, so there is deliberately no "discarded" counter here either.
+    if (fresh) {
         State& st = Global();
         std::lock_guard<std::mutex> lock(st.mtx);
+        if (st.generation != generation) {
+            errno = real_errno;
+            return rc;
+        }
         Report& r = st.rep;
         ++r.hs_calls;
         r.last_identity = (int)id;

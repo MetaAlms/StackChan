@@ -76,7 +76,8 @@ STREAM=0 写反，报告的 profile0来自误归类；不能据此认定 SRTP �
 | U1-3 | 相同代码与参数build/flash，短握手与zh_1对照；复核新二进制pts、包容量、wrapper实际callsite契约 | 分别报告ICE/DTLS/SCTP/config/实际SRTP+UDP/VAD/ASR，不以编译或单个profile字段宣告通过 |
 | U1-4 | Codex评审版本取舍，并将采用的精确pin/证据写回清单、锁、SPEC及结果文档 | 同等拓扑无回归才采用；证据不足则继续具体定位，保留1.5.5可回退 |
 
-当前repair STOP/RQ后先由Codex复核U1-0，再向同一stackchan派U1-1～3。
+当前repair STOP/RQ后先由Codex复核U1-0，再向用户授权的新原生DSH会话
+**StackChan WebRTC U1 repair session** 派U1-1～3（替代旧stackchan）。
 这是执行排序，不需要用户重复批准升级。详细契约见
 [upstream-fix-verification.md](upstream-fix-verification.md)。
 两版本只作版本对照，不并改cipher/SSRC/ICE角色/Opus参数，不发新上游issue；

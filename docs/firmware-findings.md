@@ -907,3 +907,39 @@ DATAGRAM，配置单独存在不足以定身份（未知保持未知），Arm/�
 `my_id` 声明未赋值/使用、protect 仍找同 tuple 最新 pending、旧调用跨 Arm 污染
 `g_rep`、`SettleWindow()` 只有声明/定义无调用、`NotePoll/NoteDtlsSocket/
 NoteRtpSocket` 尚未接线（恒零不能当观测）、DTLS record 样本 ring 未做。
+
+### B27. U1-0 第二次复核：跨 Arm 握手、前置 errno、真实签名断言与受控行为执行
+
+**证据**（2026-10-13，[Review5498323405](https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5498323405)
+复核 exact HEAD `2403b287faeefe06942ab008513472cadb787c89`）。三项 F1–F3 均已修：
+
+**F1 —— 跨 Arm 的在途握手不得写入新报告。** 原 `WrapHandshake` 不保存入口代际，
+真实调用返回后才分类，分类与写报告之间还有 getter：Arm 若发生在 real 调用内，
+旧调用计入新报告的 `hs_calls`/`unknown_ctx`；若发生在分类后、写报告前，
+旧 completion/profile 会进入新报告。现改为：**入口下锁固定代际与身份**，real 调用不持锁，
+并在三处核对同一代际 —— real 返回后、**读取 profile 前**、以及最终提交时再持锁核对。
+过期调用**一个字段都不写**（因此也不设"已丢弃"计数器，否则仍是在改新报告），
+真实返回与 errno 照常透传。
+
+**F2 —— 前置观察不得改变 real 的入口 errno。** 原代码保存入口 errno 后先执行计时函数
+再进入 real，没有恢复；计时若污染 errno，real 与调用方都会收到观察器的值。
+现改为所有前置观察（锁/分类/计时）结束后、**紧邻 real 调用**恢复入口 errno。
+
+**F3 —— 编译期签名证明与受控行为执行。** 六项断言原为"与手写函数类型比较"，
+现直接比较 `decltype(&__real_mbedtls_ssl_X)` 与 `decltype(&mbedtls_ssl_X)`，
+上游改签名即编译失败。行为检查拆成两步：编译（控制器覆盖外，单独报告）与
+**执行已编译二进制**（不 fork/不联网），后者经原台账注册为
+`u1-d3-probe-behaviour`（cache=never），构建产物与输入源码共同进入 fingerprint。
+产物置于工作区**之外**（`~/.codex/dev-harness/artifacts/stackchan-webrtc-media/`），
+因为控制器 sandbox 拒绝读取工作区，工作区内的二进制无法执行。
+
+**实测**：行为检查 **177 项断言通过**（含新增场景 9「跨 Arm」与场景 10「errno 透传」），
+经控制器运行输出与本地一致。**负对照**证明测试有效：分别去掉 F1 的代际核对、
+F2 的入口恢复后，场景 9 出现旧 completion/profile/计数泄漏（`hs_calls`/`profile_reads`/
+`have_profile` 等 12+ 项失败），场景 10 出现入口与出口 errno 失败（5 项）。
+IDF v5.5.4 build 通过（`stack-chan.bin` 0x3104d0）。
+
+**状态**：F1–F3 已修并验证；**本机无 `/dev/cu.usbmodem*`，设备两臂实测仍未做**，
+不宣告 M1 通过、不编造设备结果。peer 保持 1.5.5，未改媒体参数，未进入 U1-1～3。
+本 Review 明确**不**要求"活跃 session 修改/释放 config 后继续真实握手"这类
+Mbed TLS 禁止的调用序列（`ssl.h:2065–2072`），也不把它当本设备阻塞。

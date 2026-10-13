@@ -152,6 +152,22 @@ if handshake:
             "WrapHandshake must read the profile only through the gate")
     require("st.ctxs" not in handshake,
             "WrapHandshake must not re-implement classification")
+    # F1: this call's generation is pinned at entry and re-checked before the
+    # profile is read and again at commit, so a call that outlives an Arm()
+    # writes nothing into the new report. (The behavioural proof for this lives
+    # in dtls_probe_offline_check.cc scenario 9, run via the controller.)
+    require("st.generation" in handshake,
+            "WrapHandshake must pin the live generation at entry")
+    require(handshake.count("IsCurrentGeneration(generation)") >= 2,
+            "WrapHandshake must re-check the pinned generation after the real call "
+            "and before reading the profile")
+    require("st.generation != generation" in handshake,
+            "WrapHandshake must re-check the generation again under the lock at commit")
+    # F2: no front-loaded observation may change the real call's entry errno.
+    pre_real = handshake.split("__real_mbedtls_ssl_handshake")[0]
+    require(re.search(r"errno\s*=\s*entry_errno\s*;", pre_real),
+            "WrapHandshake must restore the caller's errno immediately before the "
+            "real call")
 
 require("setup_overflow" in core_code and "ctx_overflow" in core_code,
         "both fixed tables must report overflow explicitly")
