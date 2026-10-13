@@ -1,0 +1,298 @@
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x15 (USB_UART_CHIP_RESET),boot:0x2b (SPI_FAST_FLASH_BOOT)
+Saved PC:0x40056f64
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x1744
+load:0x403c8700,len:0xf40
+load:0x403cb700,len:0x3610
+entry 0x403c89c4
+I (24) boot: ESP-IDF v5.5.4 2nd stage bootloader
+I (24) boot: compile time Oct  6 2026 21:30:34
+I (25) boot: Multicore bootloader
+I (25) boot: chip revision: v0.2
+I (28) boot: efuse block revision: v1.3
+I (31) qio_mode: Enabling default flash chip QIO
+I (36) boot.esp32s3: Boot SPI Speed : 80MHz
+I (39) boot.esp32s3: SPI Mode       : QIO
+I (43) boot.esp32s3: SPI Flash Size : 16MB
+I (47) boot: Enabling RNG early entropy source...
+I (51) boot: Partition Table:
+I (54) boot: ## Label            Usage          Type ST Offset   Length
+I (60) boot:  0 nvs              WiFi data        01 02 00009000 00004000
+I (67) boot:  1 otadata          OTA data         01 00 0000d000 00002000
+I (73) boot:  2 phy_init         RF data          01 01 0000f000 00001000
+I (80) boot:  3 ota_0            OTA app          00 10 00020000 004f0000
+I (86) boot:  4 ota_1            OTA app          00 11 00510000 004f0000
+I (93) boot:  5 assets           Unknown data     01 82 00a00000 00400000
+I (99) boot:  6 coredump         Unknown data     01 03 00e00000 00010000
+I (106) boot: End of partition table
+I (109) boot: No factory image, trying OTA 0
+I (113) esp_image: segment 0: paddr=00020020 vaddr=3c1b0020 size=14b73ch (1357628) map
+I (310) esp_image: segment 1: paddr=0016b764 vaddr=3fca0200 size=048b4h ( 18612) load
+I (313) esp_image: segment 2: paddr=00170020 vaddr=42000020 size=1a4cf8h (1723640) map
+I (553) esp_image: segment 3: paddr=00314d20 vaddr=3fca4ab4 size=0240ch (  9228) load
+I (555) esp_image: segment 4: paddr=00317134 vaddr=40378000 size=18144h ( 98628) load
+I (574) esp_image: segment 5: paddr=0032f280 vaddr=50000000 size=00020h (    32) load
+I (583) boot: Loaded app from partition at offset 0x20000
+I (588) boot: Set actual ota_seq=1 in otadata[0]
+I (588) boot: Disabling RNG early entropy source...
+I (598) esp_psram: Found 8MB PSRAM device
+I (598) esp_psram: Speed: 80MHz
+I (598) cpu_start: Multicore app
+I (608) cpu_start: GPIO 44 and 43 are used as console UART I/O pins
+I (608) cpu_start: Pro cpu start user code
+I (608) cpu_start: cpu freq: 240000000 Hz
+I (610) app_init: Application information:
+I (614) app_init: Project name:     stack-chan
+I (618) app_init: App version:      1.5.1
+I (622) app_init: Compile time:     Oct  8 2026 01:19:26
+I (627) app_init: ELF file SHA256:  7fb588264...
+I (631) app_init: ESP-IDF:          v5.5.4
+I (635) efuse_init: Min chip rev:     v0.0
+I (639) efuse_init: Max chip rev:     v0.99
+I (643) efuse_init: Chip rev:         v0.2
+I (647) heap_init: Initializing. RAM available for dynamic allocation:
+I (653) heap_init: At 3FCB7FC8 len 00031748 (197 KiB): RAM
+I (658) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (663) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (668) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (674) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (681) spi_flash: detected chip: generic
+I (684) spi_flash: flash io: qio
+I (689) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (693) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (708) main_task: Started on CPU0
+I (718) esp_psram: Reserving pool of 64K of internal memory for DMA/internal allocations
+I (718) main_task: Calling app_main()
+[1791407275723] [[32minfo[0m] [HAL] creating hal instance
+[1791407275729] [[32minfo[0m] [HAL] init
+[1791407275746] [[32minfo[0m] [HAL] xiaozhi board init
+I (748) Board: UUID=13d885f2-f0c0-4c7f-b5f9-ad9dd41a8f60 SKU=m5stack-stack-chan
+I (748) M5Stack-StackChan-Board: Init AXP2101
+I (748) M5Stack-StackChan-Board: Set charge current success
+I (758) M5Stack-StackChan-Board: Init power save timer: sleep=300 s, shutdown=600 s, allow_shutdown_when_charging=0
+I (768) M5Stack-StackChan-Board: Init AW9523
+     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
+00: 00 -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+10: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+20: -- 21 -- 23 -- -- -- -- -- -- -- -- -- -- -- --
+30: -- -- -- -- 34 -- 36 -- 38 -- -- -- -- -- -- --
+40: 40 41 -- -- -- -- -- -- -- -- -- -- -- -- -- --
+50: 50 51 -- -- -- -- -- -- 58 -- -- -- -- -- -- --
+60: -- -- -- -- -- -- -- -- 68 69 -- -- -- -- -- 6f
+70: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+I (848) M5Stack-StackChan-Board: Init FT6336
+I (848) M5Stack-StackChan-Board: Init IlI9342
+I (858) ili9341: LCD panel create success, version: 1.2.0
+I (878) M5Stack-StackChan-Board: Reset IlI9342
+I (1008) M5Stack-StackChan-Board: CIPHER:0x64 / FIRMID:0x03 / VENDID:0x01, panel:ILI9342C
+I (1008) Display: Power management not supported
+I (1068) StackChanAvatarDisplay: Turning display on
+I (1068) StackChanAvatarDisplay: Initialize LVGL library
+I (1068) StackChanAvatarDisplay: Use 2MB of PSRAM for image cache
+I (1068) StackChanAvatarDisplay: Initialize LVGL port
+I (1078) StackChanAvatarDisplay: Adding LCD display
+I (1078) LVGL: Starting LVGL task
+I (1088) StackChanAvatarDisplay: Create boot logo label
+I (1128) M5Stack-StackChan-Board: Init Camera
+I (1128) gc0308: Detected Camera sensor PID=0x9b
+I (1208) StackChanCamera: Camera init success
+I (1218) Backlight: Set brightness to 75
+[1791407276215] [[32minfo[0m] [HAL-MCP] init
+[1791407276215] [[32minfo[0m] [HAL-MCP] add robot.get_head_angles tool
+I (1218) MCP: Add tool: self.robot.get_head_angles
+[1791407276225] [[32minfo[0m] [HAL-MCP] add robot.set_head_angles tool
+I (1228) MCP: Add tool: self.robot.set_head_angles
+[1791407276236] [[32minfo[0m] [HAL-MCP] add robot.set_led_color tool
+I (1238) MCP: Add tool: self.robot.set_led_color
+[1791407276246] [[32minfo[0m] [HAL-MCP] add robot.create_reminder tool
+I (1248) MCP: Add tool: self.robot.create_reminder
+[1791407276257] [[32minfo[0m] [HAL-MCP] add robot.get_reminders tool
+I (1258) MCP: Add tool: self.robot.get_reminders
+[1791407276268] [[32minfo[0m] [HAL-MCP] add robot.stop_reminder tool
+I (1278) MCP: Add tool: self.robot.stop_reminder
+[1791407276279] [[32minfo[0m] [HAL-HeadTouch] init
+I (1278) Si12T: Si12T initialized, version: 0.0.2
+I (1298) Si12T: Si12T setup done
+[1791407276299] [1791407276299] [[[32minfo[0m[32minfo[0m] ] [HAL-IOE] init
+[HAL-HeadTouch] start update task
+I (1498) PY32IOExpander: Version: 0x41
+[1791407276950] [[32minfo[0m] [HAL-IOE] init done
+[1791407276950] [[32minfo[0m] [HAL-RTC] init
+[1791407276951] [[32minfo[0m] [HAL-RTC] PCF8563 init ok
+[1791407276953] [[32minfo[0m] [HAL-RTC] load timezone from nvs: GMT0
+[1791407288000] [[32minfo[0m] [HAL-RTC] rtc synced to system (UTC): 2026-10-07 21:08:08
+[1791407288007] [[32minfo[0m] [HAL-IMU] init
+[1791407288309] [[32minfo[0m] [HAL-IMU] BMI270 init ok
+[1791407288309] [[32minfo[0m] [HAL-Servo] init
+I (2268) uart: ESP_INTR_FLAG_IRAM flag not set while CONFIG_UART_ISR_IN_IRAM is enabled, flag updated
+[1791407288317] [[32minfo[0m] [ScsServo] id: 1 get zero pos: 501 from settings
+[1791407288326] [[32minfo[0m] [ScsServo] id: 2 get zero pos: 635 from settings
+[1791407288334] [[32minfo[0m] [HAL] lvgl init
+[1791407288335] [[32minfo[0m] [HAL] create lvgl touchpad indev
+W (2298) M1: starting the network...
+I (2308) WifiManager: Initializing...
+I (2308) pp: pp rom version: e7ae62f
+I (2308) net80211: net80211 rom version: e7ae62f
+I (2328) wifi:wifi driver task: 3fcd8bdc, prio:23, stack:6144, core=0
+I (2328) wifi:wifi firmware version: 0947e8b
+I (2328) wifi:wifi certification version: v7.0
+I (2328) wifi:config NVS flash: disabled
+I (2328) wifi:config nano formatting: enabled
+I (2338) wifi:Init data frame dynamic rx buffer num: 6
+I (2338) wifi:Init dynamic rx mgmt buffer num: 5
+I (2348) wifi:Init management short buffer num: 32
+I (2348) wifi:Init dynamic tx buffer num: 32
+I (2358) wifi:Init static tx FG buffer num: 2
+I (2358) wifi:Init static rx buffer size: 1600
+I (2358) wifi:Init static rx buffer num: 3
+I (2368) wifi:Init dynamic rx buffer num: 6
+I (2368) wifi_init: rx ba win: 3
+I (2368) wifi_init: accept mbox: 6
+I (2378) wifi_init: tcpip mbox: 16
+I (2378) wifi_init: udp mbox: 6
+I (2378) wifi_init: tcp mbox: 6
+I (2388) wifi_init: tcp tx win: 5760
+I (2388) wifi_init: tcp rx win: 5760
+I (2388) wifi_init: tcp mss: 1440
+I (2398) WifiManager: Initialized
+I (2398) WifiBoard: Starting WiFi connection attempt
+I (2398) WifiManager: Starting station
+I (2408) phy_init: phy_version 711,97bcf0a2,Aug 25 2025,19:04:10
+I (2448) wifi:mode : sta (44:1b:f6:e2:83:04)
+I (2448) wifi:enable tsf
+W (2448) M1: waiting for the network before starting the media probe...
+I (2448) WifiBoard: WiFi scanning
+I (4858) WifiStation: Found AP: ChinaNet-PsKJ, BSSID: d8:a8:c8:92:d2:f0, RSSI: -64, Channel: 3, Authmode: 4
+I (4858) WifiBoard: WiFi connecting to ChinaNet-PsKJ
+W (4858) wifi:Password length matches WPA2 standards, authmode threshold changes from OPEN to WPA2
+I (5178) wifi:new:<3,0>, old:<1,0>, ap:<255,255>, sta:<3,0>, prof:1, snd_ch_cfg:0x0
+I (5178) wifi:state: init -> auth (0xb0)
+I (5188) wifi:state: auth -> assoc (0x0)
+I (5188) wifi:state: assoc -> run (0x10)
+I (5288) wifi:[ADDBA]RX DELBA, reason:39, delete tid:0, initiator:1(originator)
+I (5288) wifi:[ADDBA]RX DELBA, reason:39, delete tid:0, initiator:0(recipient)
+I (5298) wifi:[ADDBA]RX DELBA, reason:39, delete tid:5, initiator:1(originator)
+I (5308) wifi:connected with ChinaNet-PsKJ, aid = 2, channel 3, BW20, bssid = d8:a8:c8:92:d2:f0
+I (5308) wifi:security: WPA2-PSK, phy: bgn, rssi: -64, cipher(pairwise:0x3, group:0x1), pmf:0
+I (5318) wifi:pm start, type: 1
+
+I (5318) wifi:dp: 1, bi: 102400, li: 10, scale listen interval from 1024000 us to 1024000 us
+I (5328) wifi:set rx beacon pti, rx_bcn_pti: 14, bcn_timeout: 25000, mt_pti: 14, mt_time: 10000
+I (5418) wifi:AP's beacon interval = 102400 us, DTIM period = 1
+I (6528) esp_netif_handlers: sta ip: 192.168.1.7, mask: 255.255.255.0, gw: 192.168.1.1
+I (6528) WifiStation: Got IP: 192.168.1.7
+I (6528) WifiBoard: Connected to WiFi: ChinaNet-PsKJ
+W (6528) M1: network is up
+W (6528) M1: M1 uplink probe: fixture -> 16->48k -> Opus 48k mono 20 ms -> RTP
+W (6538) M1: payload budget 1352 B (library whole-packet buffer 1428 B, minus header/extension)
+I (6548) M1: [fx] zh_1 "今天我们测试语音连接": 124412 B (62206 samples, 3887 ms) kw=测试
+I (6558) M1: [fx] zh_2 "桌上有一本蓝色的书": 116754 B (58377 samples, 3648 ms) kw=蓝色
+I (6568) M1: [fx] zh_3 "请回答一加一等于几": 118838 B (59419 samples, 3713 ms) kw=一加一
+I (6578) M1: [enc] 48000 Hz 1 ch 20 ms | in_frame=1920 B (960 samples) out_cap=325 B bitrate=90000
+W (6578) M1: [heap:before-buffers] int free=160923 largest=63488 | int+8bit free=160923 largest=63488 | dma free=153135 largest=63488 | psram free=8028792 largest=7995392
+W (6598) M1: [heap:after-buffers] int free=160519 largest=63488 | int+8bit free=160519 largest=63488 | dma free=152731 largest=63488 | psram free=8022896 largest=7995392
+I (6858) WebRTC-TP: pre-generate DTLS cert -> 0
+I (6858) DTLS: Init SRTP OK
+I (6858) DTLS: DTLS cipher pref: auto (mbedtls default order)
+I (6868) WebRTC-TP: esp_peer_open -> 0
+I (6868) WebRTC-TP: peer main loop started
+I (7168) WebRTC-TP: [state] NEW_CONNECTION (2)
+I (7168) WebRTC-TP: esp_peer_new_connection -> 0
+I (7188) WebRTC-TP: [state] CANDIDATE_GATHERING (3)
+I (7188) AGENT: Start agent as Controlling
+I (7198) AGENT: Send STUN binding request
+I (7208) AGENT: 0 Get candidate success user: psw:
+I (7208) WebRTC-TP: [msg] local SDP, 1092 bytes, candidates=YES
+I (7208) WebRTC-TP: POST realtime WebRTC SDP endpoint
+I (7218) WebRTC-TP: offer is 1092 bytes
+W (7218) WebRTC-TP: ----- OFFER media lines -----
+W (7218) WebRTC-TP:   m=audio 9 UDP/TLS/RTP/SAVPF 111
+W (7228) WebRTC-TP:   a=mid:0
+W (7228) WebRTC-TP:   a=rtcp-mux
+W (7228) WebRTC-TP:   a=rtpmap:111 opus/48000/2
+W (7238) WebRTC-TP:   a=ssrc:6 cname:EspSSpbA0
+W (7238) WebRTC-TP:   a=ssrc:6 msid:esp_stream a0
+W (7248) WebRTC-TP:   a=sendrecv
+W (7248) WebRTC-TP:   m=application 50712 UDP/DTLS/SCTP webrtc-datachannel
+W (7258) WebRTC-TP:   a=mid:1
+W (7258) WebRTC-TP: --------------------------
+I (7308) wifi:<ba-add>idx:0 (ifx:0, d8:a8:c8:92:d2:f0), tid:0, ssn:10, winSize:64
+I (7358) esp-x509-crt-bundle: Certificate validated
+I (7648) WebRTC-TP: SDP exchange: err=ESP_OK http=200
+I (7648) WebRTC-TP: response body is 1259 bytes
+W (7648) WebRTC-TP: ----- ANSWER media lines -----
+W (7648) WebRTC-TP:   m=audio 3478 UDP/TLS/RTP/SAVPF 111
+W (7648) WebRTC-TP:   a=mid:0
+W (7658) WebRTC-TP:   a=rtcp-mux
+W (7658) WebRTC-TP:   a=sendrecv
+W (7658) WebRTC-TP:   a=rtpmap:111 opus/48000/2
+W (7668) WebRTC-TP:   a=fmtp:111 minptime=20
+W (7668) WebRTC-TP:   a=ssrc:1000 msid:alibaba-bailian audio-1
+W (7678) WebRTC-TP:   m=application 3478 UDP/DTLS/SCTP webrtc-datachannel
+W (7678) WebRTC-TP:   a=mid:1
+W (7688) WebRTC-TP: --------------------------
+I (7688) PEER_DEF: Get peer role 1
+I (7688) PEER_DEF: Get peer role 1
+I (7698) PEER_DEF: Get peer role 1
+I (7698) PEER_DEF: Extract SDP: stream_count=2, audio_mid=255 (dir=3), video_mid=255 (dir=3), data_mid=255, assrc=1000, vssrc=0, vrtx_ssrc=0, vfmt=0, vrtx_fmt=0
+I (7728) AGENT: 0 Add remote type:1 39.105.176.241:3478
+I (7728) WebRTC-TP: [state] PAIRING (4)
+I (7728) WebRTC-TP: fed answer to peer -> 0
+I (7748) AGENT: 0 0 Send binding request (cand:0) local0:192.168.1.7:59599 remote0:39.105.176.241:3478 id:5851f42d40b18ccf4bb5f646
+I (7778) AGENT: 0 0 LocalBinding resp 5851f42d40b18ccf4bb5f646 local1
+I (7778) AGENT: 0 Select pair39.105.176.241:3478
+I (7778) AGENT: 0 0 Send binding request (cand:1) local0:192.168.1.7:59599 remote0:39.105.176.241:3478 id:4703312930705b0420fd5db4
+I (7788) wifi:<ba-add>idx:1 (ifx:0, d8:a8:c8:92:d2:f0), tid:5, ssn:3, winSize:64
+I (7798) AGENT: 0 0 LocalBinding resp 5851f42d40b18ccf4bb5f646 local1
+I (7808) AGENT: 0 Candidate responded
+I (7808) AGENT: 0 Connection OK 39.105.176.241:3478
+I (7818) WebRTC-TP: [state] PAIRED (5)
+I (7818) PEER_DEF: Start DTLS role as 0
+I (7818) DTLS: DTLS cipher pref: auto (mbedtls default order)
+I (7828) WebRTC-TP: [state] CONNECTING (6)
+W (8078) M5Stack-StackChan-Board: FT6336 read failed (ESP_ERR_TIMEOUT), skipped 1 sample(s)
+I (8308) DTLS: SRTP connected OK
+I (15808) DTLS: Client handshake success
+I (15808) DTLS: Negotiated DTLS ciphersuite: TLS-ECDHE-ECDSA-WITH-AES-256-GCM-SHA384
+I (15808) PEER_DEF: DTLS handshake success
+I (15808) PEER_DEF: Sctp role as 1
+I (15808) WebRTC-TP: [state] CONNECTED (7)
+I (15838) SCTP: 1 state 1
+I (15838) SCTP: Send INIT chunk
+I (15858) SCTP: 1 Receive chunk 2 SCTP_INIT_ACK
+I (15858) SCTP: 1 state 2
+I (15858) SCTP: Send ECHO chunk
+I (15858) SCTP: 1 state 3
+I (15858) SCTP: Send ECHO chunk
+I (15878) SCTP: 1 Receive chunk 11 SCTP_COOKIE_ACK
+I (15878) SCTP: 1 state 5
+I (15878) WebRTC-TP: [state] DATA_CHANNEL_CONNECTED (9)
+I (15878) SCTP: Send DCEP oai-events event:3 type:0 si:2
+I (15878) WebRTC-TP: create data channel 'oai-events' -> 0
+I (15888) SCTP: Get DCEP txt event:3 type:1 si:1 param:10
+I (15888) WebRTC-TP: [channel open] label='txt' stream_id=1
+I (15898) WebRTC-TP: [state] DATA_CHANNEL_OPENED (10)
+I (15908) SCTP: 1 Receive chunk 11 SCTP_COOKIE_ACK
+W (15908) M1: [cfg] session.created on stream 1
+I (15908) M1: [cfg] session.update sent on stream 1
+W (16088) M1: [cfg] session.updated verified: turn_detection=server_vad thr=0.50 silence=800 transcription=qwen3-asr-flash-realtime
+W (16178) M1: [cfg] gate passed: turn_detection=server_vad thr=0.50 silence=800 transcription=qwen3-asr-flash-realtime
+W (16178) DTLS-PROBE: [connected] gen=1 | handshake calls=4 ok=2 fail=2 last_ret=0 last=13ms total=8250ms complete=1 | DTLS TX records=14 unparsable=4 epoch_changes=1 first_type=22 last_type=23 epoch=1 seq_hi=0 len=52 | DTLS RX records=27 unparsable=16 epoch_changes=1 first_type=22 last_type=23 epoch=1 seq_hi=0 len=552 | cipher=TLS-ECDHE-ECDSA-WITH-AES-256-GCM-SHA384 role=n/a profile=n/a | sendto=18 recvfrom=43
+W (16208) M1: [diag] short send-path observation starting (2 s of frames)
+W (16218) M1: [heap:first-frame-before] int free=110151 largest=63488 | int+8bit free=110151 largest=63488 | dma free=102363 largest=63488 | psram free=7945700 largest=7864320
+W (16238) ESP_OPUS_DEC: Frame duration is not set, out pcm buffer size is counted as the length of 60ms.
+W (16248) M1: [heap:first-frame-after] int free=109727 largest=63488 | int+8bit free=109727 largest=63488 | dma free=101939 largest=63488 | psram free=7915352 largest=7864320
+W (18208) M1: ---------- SEND PATH OBSERVATION (short diag) ----------
+W (18208) M1:   gen=2 | srtp_protect calls=100 ok=100 fail=0 unparsable=0 | udp attempts=100 packets_written=100 write_incomplete=0 write_failed=0 unmatched=9 last_rc=0 last_errno=0 | retired=100 retired_pending=0 overflow_pending=0 protected_unwritten=0 length_mismatch=0 wrote_after_protect_fail=0 | first: pt=111 seq=0 ts=0 ssrc=0x00000006 rtp_len=15 hdr_len=12 srtp_cap=1428 srtp_len=25 | last: seq=99 ts=95040 | ssrc_changes=0 pt_changes=0
+W (18238) M1:   100 packets fully written in 100 UDP attempts
+W (18238) M1: -------------------------------------------------------
+W (18248) M1: [play] zh_1 "今天我们测试语音连接" at media t=2000 ms
+W (42948) M1: [asr] no result for zh_1 within 20000 ms
+W (42948) M1: [clip] zh_1 media=2000..26740 ms wait=20019 ms vad=0/0 completed=0 failed=0 kw=0/3 hit=[] transcript=""
+W (42948) M1: [asr] stopping the acceptance sequence after zh_1: a late result must not be credited to a later clip
+I (42958) M1: [res] t=42s | int free=109835 min=108579 largest=63488 | int8 free=109835 min=108579 | dma free=102047 min=100791 largest=63488 | psram free=7915352 min=7905660 largest=7864320 | sender stack free=10116 B
+I (75148) M1: [res] t=74s | int free=109571 min=108571 largest=63488 | int8 free=109571 min=108571 | dma free=101783 min=100783 largest=63488 | psram free=7915352 min=7905660 largest=7864320 | sender stack free=10116 B
+I (107108) M1: [res] t=106s | int free=109511 min=108511 largest=63488 | int8 free=109511 min=108511 | dma free=101723 min=100723 largest=63488 | psram free=7915352 min=7905660 largest=7864320 | sender stack free=10116 B

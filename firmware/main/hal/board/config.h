@@ -5,6 +5,20 @@
 
 #include <driver/gpio.h>
 
+// Original vendor setting, restored after measuring that the alternative broke
+// the uplink audio.
+//
+// Declaring a reference makes the AFE build an "MR" input format (one
+// microphone plus one reference) and leaves the second ES7210 channel unused.
+// The hardware does have two microphones and no speaker loopback, so "MM" with
+// dual-microphone beamforming looked like the correct model - but it routes the
+// AFE through SE(BSS), blind source separation, and the resulting uplink was
+// measurably wrong: the decoded audio peaked at -25 dB with a nearly flat,
+// high-frequency-tilted spectrum, whereas intelligible speech concentrates
+// energy at 80-1000 Hz. The server transcribed it as "mechanical clicking".
+//
+// With "MR" the AFE uses the single primary microphone; the second channel is
+// simply not consumed.
 #define AUDIO_INPUT_REFERENCE    true
 #define AUDIO_INPUT_SAMPLE_RATE  24000
 #define AUDIO_OUTPUT_SAMPLE_RATE 24000

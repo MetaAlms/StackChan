@@ -1,0 +1,413 @@
+# WebRTC 媒体移植调度记录
+
+## 授权与范围
+
+2026-10-08，用户授权 Codex 接管完整 WebRTC 媒体移植，按
+`blue-pr-review-fix-loop` 调度现有 DSH **stackchan** 会话。DSH 为实现者，
+Codex 负责设计与每阶段代码/证据复核及后续派单。
+
+- 工作目录：`/Users/amtf/Documents/Git/StackChan`
+- 分支：`feat/aliyun-omni-v2v`；仓库：`MetaAlms/StackChan`；默认 PR base：`main`
+- 设计原始基线：`02917f425c415a21063bfca15638fda69bf9cc85`
+- 已落盘复核：`87995030464534ff914da0cb1835748b5490b763`，见
+  [评审结果](webrtc-media-review-result.md)
+- 最新明确范围：媒体上/下行、48kHz PCM 编解码与显式重采样、事件/UI、
+  本地打断与旧音频隔离、资源/重连验证、完整 WebSocket 回退。
+- RTP 48k clock 与 PCM rate 独立；48k PCM 是本轮用户指定的实现选择，
+  不再将上采样写成 WebRTC 规范要求。现有 AFE 16k 无法由上采样恢复高频。
+- 服务端 AEC 仍是待验证假设；全双工/不自打断必须实测，不用半双工门控掩盖失败。
+- 不 merge、auto-merge、发布或改上游；不得泄露凭据或以生成目录的未跟踪改动交付。
+
+## 当前状态
+
+已从桌面应用窗口确认目标标题 **stackchan — DeepSeek Harness**，
+会话中可见原三份媒体文档的交付。浏览器 `127.0.0.1:3080` 是另一实例，
+不作为本任务派发对象。实际工作目录由首轮派单要求 DSH 在修改前再次核对。
+
+## 首轮（D0）：设计修订
+
+派单见 [webrtc-media-d0-task.md](webrtc-media-d0-task.md)。
+范围为**仅文档**：重写 SPEC / PLAN / 评审请求，同步调度与事实记录；
+不改固件、不刷机；设计标为待 Codex 复审，不自行宣告通过。
+
+修订要点见 SPEC §0 的对照表，覆盖 P1 五项与 P2 十项。
+**未接受**评审 Q2 建议的"16k 编码 / 24k 解码"最小路径——
+用户最新明确要求 48 kHz PCM 与显式重采样，本版按用户要求设计，
+并在 SPEC §2.2 标注其为实现选择、写明代价，在 §8 Q1 保留回退决策点。
+
+上一轮评审结果 [webrtc-media-review-result.md](webrtc-media-review-result.md)
+**保留为历史证据，未修改**。
+
+## 流程约定
+
+- 每轮以**实际 PR Review ID、reviewed full HEAD 与新 full HEAD** 为准，
+  不把旧证据自动当作新提交的验证
+- 共享目录不 reset、不覆盖他人改动
+- 设备维持当前状态；设计修订无需先刷回 WebSocket
+- 不 merge、不 auto-merge、不发布、不改上游、不泄露凭据
+
+## 实际评审与实现进度
+
+- Draft PR：[MetaAlms/StackChan #1](https://github.com/MetaAlms/StackChan/pull/1)。
+- D0首轮：HEAD `7acb6f398961fbdad4c5e454a273867d82bceeba`，
+  [Review 5445638146](https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5445638146)
+  要求修正D0-1～D0-4。
+- D0修复：HEAD `57ab76eba38b9b8c9bacc95c704698b6316f0ac2`，
+  [Review 5445711841](https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5445711841)
+  **放行进入M1**，未放行未实现的媒体/AEC/产品阶段。
+- M1任务：[完整任务书](webrtc-media-m1-task.md)；同一原生`stackchan`会话第63轮已接单实施。
+  首批候选本地提交为`e6d7158`，随后另修正重建补丁和tracked DTLS/SRTP配置。
+  **这些是开发中候选，尚无M1实际HEAD的正式REVIEW_REQUEST或放行。**
+- Codex开发中反馈落在[预检记录](webrtc-media-m1-preflight.md)：容量入参、真实任务退出、
+  配置回显、逐条ASR与时间轴、资源统计、M0互斥/复用等。通过原生UI送入原任务，
+  第63轮持续修正；不能把WIP预检当已提交PR的最终评审。
+- 设备恢复在线后，首轮串口采集在第一条fixture发生断言重启；修统计容器后明确main栈溢出。
+  独立检查又发现sender栈8192被误认为32KB，ESP-IDF实际按字节计。
+  Codex终止失效的第63轮，并在**同一个会话第64轮**恢复未完成M1；
+  当前源码已使用`kSenderStackBytes = 32768`，等待重新构建/真机结果。
+  两条较早诊断在UI仍显示发送中；第64轮已直接读取完整预检，不以这两条队列状态当送达证据。
+- [M1.5准备记录](webrtc-media-m15-preparation.md)为独立只读调查，**尚未派发**。
+  M1通过实际HEAD评审后再冻结下一阶段任务，保持用户要求的48k PCM与WebSocket回退。
+
+### M1 第一次正式交付与修复轮
+
+- DSH第64轮提交并推送 `c3e658200d8365ac4bbb19a28290d491f2c04df3`，
+  [REVIEW_REQUEST](https://github.com/MetaAlms/StackChan/pull/1#issuecomment-6044400269)，并明确STOP。
+- 真机20ms sender未再panic、栈余量10232B；3条VAD/ASR均0、持续loop中断。
+  本地send API返回0不证明SRTP/socket成功；没有60ms通过证据。
+- Codex正式[Review 5446817816](https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5446817816)
+  绑定该完整SHA，回读commit_id已核对，决定**需要修复、不放行M1.5**。
+  正文见[复核结果](webrtc-media-m1-review-result.md)：M0 update丢失、真实退出、
+  ASR归属、独立时间轴、媒体诊断与验收、失败分层、可复核交付。
+- 已向同一原生`stackchan`发送绑定Review ID/SHA的最小修复指令。
+  新第65轮可见且进行中（1064步），源码已针对该Review恢复M0 update、
+  更正失败分层并增加媒体能量/本地解码诊断；不是另一会话或重复派单。
+  后续1065步可见一次`Read PR #1 ... Review 5446817816`用户消息与DSH对该轮的回应。
+  run8再次在DTLS阶段停住，现已正确报告transport失败，任务确认退出后才释放。
+  **仍为修复中，未交新HEAD复审。** M1.5、产品下行/AudioService/UI继续HOLD。
+
+### M1 第二次正式复核
+
+- 第65轮已交付并STOP：HEAD `9e45e63d9ce9083959a50e4420220b26a31da05e`，
+  [REVIEW_REQUEST](https://github.com/MetaAlms/StackChan/pull/1#issuecomment-6044837128)。
+- Codex [Review 5447065335](https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5447065335)
+  已回读核对 `commit_id` 与该HEAD、远端PR HEAD一致；
+  [复核正文](webrtc-media-m1-review-result-2.md)记录R2-1～R2-5。
+  run9完成持续loop且本地Opus全可解码、有语音能量，但无服务端VAD/ASR，M1未通过。
+- 撤回前次M1-7对合法patch上下文空行的清理要求；源码空白与patch应用分别核验。
+- 补充[标准栈媒体对照设计](webrtc-media-m1-standard-control.md)与
+  [host编码设计](webrtc-media-m1-host-encoding.md)，状态均为**只读核查、待实施**。
+  成功只能收窄设备媒体链，不能单独归因esp_peer；同源fixture不代表派生PCM/包逐字节相同。
+- 同一原生`stackchan`的第65轮STOP已在UI确认。Review ID/full SHA最小指令已填写、
+  完整草稿核对后发送。新第66轮（1078步）可见一次
+  `Read MetaAlms/StackChan PR #1 Review 5447065335`消息及DSH的补丁恢复回应，
+  媒体SDP白名单日志已出现WIP修改；**送达与继续实现已确认，尚无新HEAD交付**。
+  授权本Review必要诊断、修复和验证；M1.5及产品下行/AudioService/UI继续HOLD。
+- 第66轮在生成目录补丁恢复前暂停，没有commit/push或新REVIEW_REQUEST。
+  追加[实际发包观测设计](webrtc-media-m1-send-observation.md)，仅为既有R2-4的实现参考，
+  以公开SRTP/UDP函数的linker wrapper避免猜测内部对象布局。
+  同一会话已发送一次续接剩余工作的指令，第67轮（1084步）显示进行中；
+  不将此续接视为新的正式评审或新产品阶段。
+- 第68轮（1097步）继续同一Review的R2-4预检与诊断；ring/SRTP记录绑定/重试计数已出现WIP修正。
+  run10在DTLS层失败；run11在配置通过后因短诊断于8KB main编码而实测栈溢出，不能作为发包证据。
+  Codex补充预检并尝试插话；新纠正与两个历史诊断仍在UI显示发送中，不据此宣称全部送达。
+  **实际源码已把短诊断移到32KB sender任务**，保持唯一编码所有权；仍未交新HEAD。
+  后续以真实诊断、全Review修复及exact-head RQ为准，不重复派发已有执行任务。
+
+## 第三次 M1 代码复核与修复派发
+
+- 第二轮修复的实际交付 HEAD 为 `1cbd79bbe60f53f688cdcf512a0f60ec9cd8f42f`，
+  [REVIEW_REQUEST](https://github.com/MetaAlms/StackChan/pull/1#issuecomment-6045775796)
+  与 PR remote 已核对。原生轨迹确认第69轮只续做前次 unfinished Review；
+  run12 停在 DTLS，后续提交前又改了事件/时钟/最终判据，不能把旧采集覆盖新代码。
+- Codex 已完成 exact-head 审查及两个独立只读复核，提交并 read-back
+  [Review 5447785013](https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5447785013)，
+  `commit_id` 与上述 full SHA 相同，结论 needs fixes。
+  详见 `webrtc-media-m1-review-result-3.md`：实际发送假通过与漏覆盖、
+  item 匹配/VAD门槛、时间范围/分位偏置、必要媒体诊断及剩余生命周期/交付证据。
+- R3-4 的公开符号 DTLS 短诊断方案与 exporter 条件风险证据已落盘。
+  标准栈媒体对照现在执行，不以设备先握手成功为前提；不把未执行设计当实测。
+- Review ID/full SHA/范围/HOLD/verify+push+exact-head RQ+STOP 最小指令已填写到
+  同一原生 `stackchan` composer；发送与执行状态仍待 UI 后续核对，
+  不把 paste 成功或旧排队项的“发送中”当交付证据。
+- 保持 48k PCM 与 esp_peer1.5.5；M1.5/产品接入HOLD，不merge/发布/上游改动。
+
+## 聚焦执行 host 标准栈媒体对照
+
+- 原生第70轮已出现且 composer 清空，随后有实际源文件修改；
+  新交付 `3ab11e9823866fa0979298caa71184c15bb6c478` 和
+  [RQ](https://github.com/MetaAlms/StackChan/pull/1#issuecomment-6046130821) 均已核对。
+  仍是部分交付，R3-4 两实验明确未执行。
+- 源码核查发现 RQ 对发送计数修复描述过强：probe.cc 没变，三个新增计数
+  仅存在 header，不能据恒零数值报告完整覆盖。其他未完项保持未解决。
+- 为先取得判别性证据，本次收拢为**一个 host 实验**；
+  [Review 5447928154](https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5447928154)
+  已提交并 read-back 核对 exact 3ab11e9 full SHA，详见
+  `webrtc-media-m1-standard-control-review.md`。
+  本次只修 R4-1，真实执行三条同源 fixture 的标准栈媒体对照并交付结果；
+  保持当前固件/设备，其他 M1 findings 留待后续派修，不视作通过。
+- 最小 Review/SHA/唯一范围/验证+push+exact-head RQ+STOP 指令正在原生同会话
+  填写与发送核对中；等待一次真实投递，禁止因 UI 延迟重复发送。
+- 后续原生第71轮（1127步）已出现，composer清空；实际新增
+  `tools/webrtc_probe/encode_fixture.py` 与 `standard_media_control.js`。
+  确认已开始该 host 实验，源码预检与实际输出尚待完成；不以脚本存在当通过。
+
+## Host 首轮实际交付后的复核
+
+- 第71轮已交付并推送 `3b0844e0b6b3908995ad4a4023b1bf7b84b62f89`，
+  [RQ](https://github.com/MetaAlms/StackChan/pull/1#issuecomment-6046306584)。
+  三次实际运行配置回显通过，但只有 VAD start=1、stop=0、ASR=0。
+  这不支持“已排除服务端或会话配置、只剩设备问题”的归因。
+- Codex 已提交并回读 [Review 5448053831](https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5448053831)，
+  commit_id 与上述完整 HEAD 一致。H1–H4 只涉及 host 发送接受/时间轴、
+  item/关键词归属、通道与失败落盘、必要的短诊断和证据边界；
+  详见 [复核正文](webrtc-media-host-control-review-result.md)。
+- 同一原生 `stackchan` composer 的 Review ID/full SHA/唯一范围/验证与
+  exact-head RQ/STOP 指令已完整回读，并点击发送一次；
+  真实投递与继续执行待后续 UI/源码核对，不重复发送。
+- 当前设备固件保持不变；48k PCM 约束保留，其他 M1 findings 尚未解决。
+  M1.5 和产品集成继续 HOLD。
+
+### Host H1–H4 交付与残余修复
+
+- 原生第72轮已出现、composer清空，实际提交推送
+  `050a2f43410d5246239b1a1357078e3b52c33412`，
+  [RQ](https://github.com/MetaAlms/StackChan/pull/1#issuecomment-6046543591)。
+  手工与两项独立只读复核均确认原始日志的三条不同 item
+  各有完整 VAD start/stop/completed 与关键词命中；这是有效观察。
+- 仍发现 runner 读取旧120帧静音而归档生成60帧文件、item不匹配仅告警、
+  config失败落盘仍有TDZ、Date.now非单调以及多项改变被误报单独根因。
+  [Review 5448188682](https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5448188682)
+  已提交并回读核对 exact 050a2f4 full SHA，正文见
+  [残余复核](webrtc-media-host-control-review-result-2.md)。
+- 本轮仍只修host残余问题，纯逻辑验证并用同次生成输入真实重跑三条一次。
+  指令已填写到同一会话，投递与执行待核对；当前设备保持，M1.5/产品HOLD。
+  Host闭环后转回已授权设备DTLS/真实SRTP与UDP诊断，未放弃完整移植目标。
+
+### 有效host重跑后返回设备诊断
+
+- 原生第73轮已交付 `7317037231fbdba21a1cc029205fca0efb2ca264`，
+  [RQ](https://github.com/MetaAlms/StackChan/pull/1#issuecomment-6046696531)。
+  Codex核对同次输入hash/60帧静音、744包、单调时间和三条item对应事件链，
+  确认本次实际正对照结果成立；16项原有离线检查也通过。
+- 两个独立构造反例仍揭示host判据可混合A的VAD与B的completed、
+  空公告集合接受OLD。作为H7-1续修，不要求再开host云会话。
+- [Review 5448296466](https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5448296466)
+  已提交并回读核对exact 7317037 full SHA。
+  本轮聚焦H7-1及原R3-4的设备DTLS短诊断/实际发送计数（D1-1/D1-2），
+  正文见 [设备诊断复核](webrtc-media-m1-device-diagnostic-review.md)。
+  授权必要构建/flash/一次短尝试及发现具体错误后的短复测；
+  未先放行300s/60ms完整M1验收，更未放行M1.5/产品集成。
+- 下一指令仍通过同一原生stackchan发送；完整Review/SHA核对后发一次，
+  实际投递状态随后核对，不切换实现者或复制会话。
+- 最小Review ID/full SHA/H7-D1唯一范围/验证flash+push+exact-head RQ+STOP草稿
+  已完整回读并点击发送一次；等待原生新轮次/实际源码证据确认执行。
+- 后续原生第74轮（1178步）确认用户指令出现一次（轨迹row158），
+  DSH回应并核对完整SHA/读取Review（row164/171），实际设备源码修改已出现。
+  `/tmp/m1-dtls.log` ELF7fb588264实测配置通过，2秒有100次protect成功与
+  对应UDP整长；VAD/ASR仍0。当前DTLS钩子混HTTPS且role/profile缺失，
+  [在途预检](webrtc-media-m1-device-diag-preflight.md)记录公开接口/解析边界纠正。
+  尚未交新HEAD，不以WIP摘要当完整D1通过，也不重复派发原任务。
+
+### D1 新交付后的公开接口与区间修正
+
+- 已交并推送 `a3a7b9f4ccf7aeb7a25f75cc39c1010262edf570`，
+  [RQ6046920386](https://github.com/MetaAlms/StackChan/pull/1#issuecomment-6046920386)；
+  本地HEAD、PR及远端branch API核对一致。SSH只读ls-remote公钥不可用，
+  以GitHub API交叉核对，不改远端/密钥/会话。
+- 21项host离线测试重跑通过，不再重开host正对照。前置静音100protect/100UDP
+  实测保留，但仅覆盖zh_1之前；语音写出与远端解密尚未验证。
+- 当前固件参数编译公开DTLS getters片段退出0，RQ的“接口不可用”结论被推翻；
+  公开输出类型的PRIVATE宏不等于猜SSL内部布局。证据已记findings B23b。
+- [Review5448554040](https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5448554040)
+  已提交并read-back核对exact a3a7b9f full SHA；
+  [正文](webrtc-media-m1-device-diagnostic-review-2.md)续修D1映射/profile/record、
+  RTP真实重试状态和短语音区间证据，仍不放行M1.5/产品/300秒完整验收。
+- 新指令替换尚未发送的旧HEAD在途草稿，通过同一原生stackchan派发，
+  待完整回读/一次发送/真实投递核对，不重复发送。
+- 新Review全文/完整a3a7b9f/SHA/D2-1..4/HOLD/验证+push+RQ+STOP指令
+  已在原生composer完整回读，点击发送一次。旧草稿未发送；
+  仍待原生新轮次/完整用户消息与实际源码确认投递，禁止因UI延迟重发。
+- 原生第75轮（1189步）已出现且composer清空，实际DTLS代码持续修改；
+  已确认开始D2修复，不再重派该任务。独立ASan/UBSan probe状态反例确认评审。
+  WIP将DATAGRAM/STREAM数字写反及free符号/transport返回型错误，
+  同Review的签名预检已追加到preflight，准备必要在途纠正，非新阶段。
+
+## 2026-10-13：上游1.5.7并入U1，先修诊断归属
+
+- DSH第75轮已提交并推送 `b45aaa70ee324e2f9997412c1d573dd31b1269be`，
+  [RQ6047356544](https://github.com/MetaAlms/StackChan/pull/1#issuecomment-6047356544)。
+  正式交付仍将STREAM0/DATAGRAM1写反，所谓profile0来自HTTPS误归类，
+  不能作为设备SRTP未协商结论；findings B24已撤回该归因。
+- 用户已授权安排DSH按计划验证1.5.7。已核维护者发布回复与官方changelog，
+  SPEC/PLAN/上游验证步骤更新为U1-0→有效1.5.5基线→同代码1.5.7→评审取舍。
+  D0已通过而M1未通过的文件头状态同步；媒体验收/48k/回退/HOLD不变。
+- [Review5498100335](https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5498100335)
+  已提交并read-back核对exact b45aaa7 full SHA；
+  [正文](webrtc-media-m1-diagnostic-review-3.md)本轮只派D3-1/2诊断分类/真实API与身份，
+  不把全部旧M1 probe项当升级的无限前置。其余未完成项如实保留。
+- 本任务首次纳入兼容离线控制器，固定绝对台账：
+  `/Users/amtf/.codex/dev-harness/tasks/stackchan-webrtc-media/ledger.sqlite`。
+  epoch1 / 总动作上限24 / 已用1；u1-docs快照检查有实际PASS marker。
+  不替换台账/清used；后续按status/replan接续。此入口不覆盖DSH模型、编译子进程或设备。
+- 目前未发现usbmodem串口；离线修复/build先做，设备实测暂待接入。
+  同一原生stackchan已通过会话搜索复用，窗口/PR/RQ匹配。旧D2纠正草稿未发送，
+  将替换为新Review/full SHA/唯一修复范围/verify+push+RQ+STOP；实际投递待核对。
+- 在尝试替换草稿时Computer Use明确返回Mac已锁定，自动解锁失败；
+  **本轮D3指令尚未发送**。已请求用户手动解锁，禁止把填草稿/Review提交当投递成功。
+  最小指令保存在`/tmp/stackchan-u1-dsh-handoff.txt`，解锁后在同一会话替换旧稿、
+  完整回读再发一次。PR标题/正文已用CLI同步真实M1/U1状态；固件依赖仍1.5.5。
+- 用户明确回复已解锁；重新确认stackchan窗口/完整HEAD后，已替换旧草稿。
+  新Review5498100335/full b45aaa7/SHA/D3-1/2唯一范围/U1排序/验证+push+RQ+STOP
+  指令完整回读与预期逐字一致，点击发送一次；实际消息/新轮次核对中，禁止重发。
+- 发送未形成新用户消息；原生提交快捷键返回明确错误：
+  “当前会话已被占用，可能是其他正在运行的DSH导致的（如其他dsh web、桌面端）”。
+  D3仍未投递，未产生新HEAD。不得将提交动作记作接收成功；
+  不强杀其他DSH、切新会话或读私有数据库/后台API绕过占用。
+
+### 用户授权新DSH开发会话
+
+用户明确要求“新开dsh开发，blue-pr-fix-loop”，授权替代原生stackchan的会话复用限制。
+新会话仍使用 `/Users/amtf/Documents/Git/StackChan` / `feat/aliyun-omni-v2v`，
+不复制仓库或新worktree，不停止BookWebRuntime的DSH web。
+Review5498100335与本地/PR full b45aaa7 HEAD已重新核对一致。
+初始范围仍D3-1/2（U1-0），随后按U1步骤评审/放行；root的未提交docs保留。
+已通过原生“新建会话”选择StackChan工作区，初始指令准备中，
+创建/真实投递及新会话实际标题待发送后核对，不能把新建界面当运行成功。
+- 新会话任务正文的工作区、branch、PR1/Review5498100335/full b45aaa7、
+  D3-1/2/U1-0范围与验证/push/exact RQ/STOP已完整回读，并通过新建界面提交。
+  原生窗口新标题已变为“StackChan WebRTC U1 repair session”；
+  新会话创建已确认，完整用户消息/实际Review读取及源码执行仍在核对。
+  此后开发使用这个用户授权的新会话，旧stackchan草稿不再发送。
+- 新会话第1轮12步已在原生UI显示进行中；完整初始用户消息出现一次、composer清空，
+  DSH已读取指定Review并实际执行“Test host compile against real mbedtls headers”。
+  已确认投递与开发开始，后续按新会话的真实提交/RQ继续复核，不重派当前任务。
+
+## 2026-10-13：U1-0（D3-1/D3-2）诊断归属修复完成，待设备实测
+
+- 授权新DSH会话按Review5498100335修**仅**D3-1/D3-2/U1-0；
+  peer保持1.5.5，48kHz PCM与M1.5/产品HOLD不变，未改媒体参数/未merge/未改上游。
+- D3-1：分类改用公开 `MBEDTLS_SSL_TRANSPORT_*` 宏（本机ssl.h:301–302为STREAM0/DATAGRAM1）；
+  只有**同一次成功setup登记的(ctx,conf)**才算DATAGRAM，配置单独存在不足以定身份；
+  未完成握手不读profile；Arm/free终止身份。findings B23已标为归属错误并撤回，
+  另一条重复的B23改为B23b（引用同步），新增B26记录修复与仍在的M1未完项。
+- D3-2：`conf_transport`按真实**void**处理且更新已登记配置不early return；
+  释放符号更正为 `mbedtls_ssl_config_free` 并新增wrap `mbedtls_ssl_free`；
+  每个wrapper保留真实返回、保存入口errno并在真实调用后立即保存/恢复。
+  旧 `--wrap=mbedtls_ssl_conf_free` 在b45aaa7的ELF中**根本没有对应函数**
+  （`nm`无 `__wrap_mbedtls_ssl_conf_free`），属死代码而非"未观测到"。
+- 离线：`firmware/tests/run_dtls_probe_offline_check.sh` 用本机真实头文件
+  编译运行实际源码，8组场景120项断言全通过（属C++编译/运行，控制器覆盖外，单独报告）；
+  `firmware/tests/check_dtls_probe_actual_source.py` 经固定台账
+  `/Users/amtf/.codex/dev-harness/tasks/stackchan-webrtc-media/ledger.sqlite` 运行。
+- 本机仍无 `/dev/cu.usbmodem*`，**未做设备两臂实测**，不得宣告M1通过或编造profile。
+  下一步由Codex复核本exact HEAD后再派U1-1～3。
+
+## 2026-10-13：2403b287 复核后小范围返修
+
+- Codex 与只读独立复核绑定完整 HEAD `2403b287faeefe06942ab008513472cadb787c89`，
+  提交 [Review5498323405](https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5498323405)。
+  结论与三项范围见 [本轮复核](webrtc-media-m1-diagnostic-review-4.md)：
+  握手跨 Arm 不能污染新报告、前置计时后恢复入口 errno、真实 API 签名断言与受控行为执行。
+- 不要求活跃 session 修改/释放 config 后继续握手；公开 Mbed TLS API 禁止这种序列，
+  不把它当作本设备阻塞。其他 M1 诊断 TODO 保持原边界，peer 仍 1.5.5。
+- 目标仍为用户授权的新原生会话 **StackChan WebRTC U1 repair session**，
+  同一 worktree/branch；读取 Review→只修 F1–F3→验证→push→exact RQ→STOP。
+  原生 UI 已回读完整指令一次、输入框清空，新第2轮已读取 Review 并确认
+  本地/PR/review 三处 HEAD 一致，返修已开始；通过后另派 U1-1～3。
+
+## 2026-10-13：U1-0 通过，继续短模式与双版本构建
+
+- full `bcd4e35ebeecab620debbb572277682d99959799` / RQ6137430285：
+  Codex 与独立只读复核无 F1–F3 阻塞，
+  [Review5498372238](https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5498372238)
+  放行 U1-1～3；[证据与范围](webrtc-media-u1-0-review-result.md)。
+- controller 真实行为日志177/0 PASS，最终源码/产物指纹匹配，IDF build 已通过。
+  原 ledger epoch4 / used9/24，没有复测云端或设备。
+- 下一项是 [新任务书](webrtc-media-u1-task.md)，不是继续返修：
+  共用短入口→归档1.5.5→精确1.5.7同代码构建→设备恢复后各臂有界实测。
+  目标仍为 **StackChan WebRTC U1 repair session**；原生 UI 已回读派单一次、
+  composer 清空，第3轮已核对 Review/full HEAD 并读取完整 U1 任务书，开发已开始。
+  M1未通过；本机串口仍缺失，已请用户接入/唤醒，离线构建继续。
+
+- 开发中短入口遗漏媒体时钟 Arm，独立预检还发现短/完整验收混用及区间/partial事件
+  声明问题，见 [U1预检](webrtc-media-u1-preflight.md) / findings B28。
+  原生“插话发送”使第3轮停止，纠正消息留在“发送中”队列；未将此当作接单。
+  UI 后台任务面板确认5项均结束，无运行构建；准备同会话恢复未完成U1，
+  修正共同源码后重建两臂，旧WIP1.5.5归档保留为被替代候选。
+- 同会话正常恢复指令已出现一次、composer清空，第4轮已读取完整预检并核对WIP/组件
+  与后台任务：没有运行jobs，实际组件仍1.5.5，旧归档须重建；短入口 clock Arm 已补上。
+  已恢复实际开发；未另开会话/并行写同一固件，也未将旧“发送中”队列当作送达。
+
+## 2026-10-13：U1 同源固件交付，归档范围返修
+
+- full `c173d19b62673d2eac29f0116b2829cfad034ec2` / RQ6137813252 已推送并STOP。
+  短模式五项纠正与两臂同源固件通过Codex/独立只读复核；最小锁恢复处置接受。
+- [Review5498605495](https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5498605495)
+  只要求修归档A1/A2：flash参数相对路径缺文件、归档自身私有权限未实现；
+  [复核结果](webrtc-media-u1-review-result.md)。本次复用已通过的固件，不重跑云/构建。
+- 同一新DSH会话读取Review→只修A1/A2→验证→push→exact RQ→STOP；
+  原生 UI 已回读完整指令一次、composer清空，第5轮已核对三处HEAD、
+  读取完整Review并确认两项归档缺口，修复已开始。
+  设备仍离线，不宣告正式采用1.5.7或M1通过。
+- **F1–F3 已修并验证**：入口固定代际 + 三处核对（real 返回后 / 读 profile 前 /
+  提交时再持锁核对），过期调用不写任何字段；前置观察后**紧邻 real** 恢复入口 errno；
+  六项签名断言改为 `decltype(&__real_X)` 直接对 `decltype(&mbedtls_ssl_X)`。
+- **F3 的受控执行已落地**：编译与执行拆开，已编译二进制经原台账注册为
+  `u1-d3-probe-behaviour`（cache=never）运行，**177 项断言通过**；
+  产物置于工作区外（`~/.codex/dev-harness/artifacts/stackchan-webrtc-media/`），
+  因为控制器 sandbox 拒绝读取工作区，区内二进制无法执行。
+  编译与 IDF build 仍在控制器覆盖外，单独报告。
+- **负对照**（临时去掉 F1/F2 修复，仅在 `/tmp` 副本上，未改工作区）分别触发
+  12+ 与 5 项断言失败，证明新增测试确实覆盖这两处缺陷。
+- IDF v5.5.4 build 通过（`stack-chan.bin` 0x3104d0）。**本机仍无串口**，
+  设备两臂实测未做，不宣告 M1 通过。peer 保持 1.5.5，未进入 U1-1～3。
+
+## 2026-10-13：U1-1～3 短模式冻结与两臂归档
+
+- U1-0 由 Review5498372238 复核 full `bcd4e35` **通过**，放行 U1-1～3；
+  任务书见 [U1任务书](webrtc-media-u1-task.md)，不是返修循环。
+- 按 [U1-S预检](webrtc-media-u1-preflight.md) 完成五处接线纠正：短模式媒体时钟初始化、
+  短/完整验收分离、clip 写出证据正名、区间边界与"有无新包"分离、
+  ASR 无结果时保留 partial VAD/item。findings B28 保留。
+- 源码/fixture/配置冻结，两臂**同源指纹一致**
+  `4c14aaed542797bc1f9d43fe4aa88b02654b578441b0e3162961c1057c6517eb`；
+  顺序构建并归档 arm-a(1.5.5) 与 arm-b(精确1.5.7)，含 ELF/map/flash 产物、库 hash、
+  wrapper 实际 callsite 复核；旧 WIP 1.5.5 归档更名 superseded，不作基线。
+- **锁差异处置**：只改 peer pin 即触发组件管理器重求解，一次改动 **20 个无关组件**
+  （含 `esp_codec_dev` 1.5.11→1.5.4 降级、`esp_mmap_assets` 1.4.0→2.0.1 大版本变化）。
+  按任务书"不能静默升级"，逐条恢复基线值并验证管理器接受该锁，
+  最终差异仅 peer 条目 + `manifest_hash`；清单与理由在结果文档明示，交 U1-4 复核。
+- 受控检查：`u1-short-wiring`（五处接线的实际源码断言）PASS、
+  `u1-short-behaviour`（已编译二进制，cache=never）137/0 PASS、
+  `u1-docs` 与 `u1-d3-probe-source` 复跑通过；五处纠正各有负对照触发失败。
+  编译/IDF build 在控制器覆盖外，单独报告。
+- **设备仍离线**：无真实 ICE/DTLS/SRTP/VAD/ASR 结果，不宣告 1.5.7 采用、不宣告 M1 通过。
+  完整记录见 [U1结果](webrtc-media-u1-result.md)；实测步骤已按归档产物写明。
+
+## 2026-10-13：Review5498605495 — 只修归档 A1/A2
+
+- 复核 exact `c173d19`：短模式五项纠正、两版本同源构建、最小锁恢复处置均**被接受**；
+  两项待修均为**归档**问题，本轮只修这两项，未动固件/媒体/依赖。
+- **A1**：`flash_args`/`flasher_args.json` 的路径相对它们自己所在目录，原归档把
+  bootloader/partition 扁平放进 `bin/`、app bin 只在臂根，被引用的三个路径**都不存在**。
+  现 `bin/` 复现该目录形状，archiver 之后自动运行新校验器 `verify_u1_archive.py`。
+  修复**只使用各臂自己已归档的 bin**（app bin 自我复制、另两份原位移动），
+  **未重编固件、未用当前 1.5.7 生成目录补 1.5.5 臂**；逐臂 10/10 引用存在、
+  参数所选 app bin 与该臂记录 hash 相同；修复前后**已存在文件 0 个被修改**。
+- **A2**：archiver 增 `umask 077` 与显式 `chmod 700/600`，校验器检查权限位；
+  既有归档 root 与三臂目录收紧 700、三份 `sdkconfig.local-sensitive`（含 superseded）
+  收紧 600。只改本任务归档路径，未动 home/Keychain/其他工作区。
+- 控制器新增 `u1-archive-contract`（archiver 契约）PASS，`u1-docs` 复跑 PASS；
+  两项修复各有负对照触发失败。产物级校验超出控制器输入上限，**在控制器外单独报告**。
+- 未重复固件构建、未开云端会话、未宣告采用、未动 M1.5、未 merge/发布。
+  下一条为新的 full exact HEAD REVIEW REQUEST，随后 STOP。
+
+## 2026-10-13：离线准备收口，待设备接入
+
+- DSH full af42b726 / RQ6137921099 的A1/A2经Codex及独立只读复核通过。
+  两臂归档路径/原镜像hash/权限均确认；同规则修复superseded布局可接受，仍非基线。
+- Codex直接修正刷机示例的esptool子命令参数顺序，未改固件/依赖或重新构建。
+  收口记录见 [U1复核结果](webrtc-media-u1-review-result.md) 与findings B31。
+- 新DSH会话本轮开发与评审完成；两版本同源候选已可用于真机短诊断，
+  实测等待用户接入/唤醒设备。1.5.7尚未宣告正式采用，M1与完整媒体移植尚未通过。
