@@ -68,7 +68,11 @@ dependencies:
 
   # WebRTC。ICE + DTLS + SRTP + SCTP + DataChannel + OPUS。
   #
-  # 精确锁定 1.5.5，不要升到 1.5.6。
+  # U1-2 候选：精确 pin 1.5.7。官方 1.5.7 修复了 issue208 的 XOR-MAPPED
+  # 提名拒绝并加入 prflx 支持。是否正式采用由 Codex 的 U1-4 评审决定，
+  # 本轮不宣告采用；1.5.5 的完整构建/归档与回退证据保留。
+  #
+  # 不要升到 1.5.6：它有独立的 NAT 回归（见下），与 1.5.7 无关。
   #
   # 1.5.6 新增了一条 NAT 响应拒绝路径，使 controlling agent 永不提名，
   # ICE 永远 CONNECT_FAILED。严格单变量 A/B 可复现：
@@ -96,7 +100,7 @@ dependencies:
   #
   # 待上游修复后可移除该锁定。
   espressif/esp_peer:
-    version: 1.5.5
+    version: 1.5.7
     rules:
     - if: target in [esp32s3]
 

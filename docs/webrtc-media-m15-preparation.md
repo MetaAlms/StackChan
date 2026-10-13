@@ -20,7 +20,7 @@
   现有decoder会随帧时长重建（`audio_service.cc:463`），不适合直接复用为WebRTC实现。
   `esp_opus_dec.h:56` 的INVALID帧时长只按60ms算容量；最大120ms包需要明确足够的容量，
   检查consumed、decoded_size、needed_size与错误，不因packet时长变化重建decoder。
-- 网络回调与AFE回调不得等待队列腾空。原WS路径的133/40包及无限等待契约
+- 网络回调与AFE回调不得等待队列腾空。当前WS路径的40/40包及无限等待契约
   （`audio_service.h:56`、`audio_service.cc:516,533`）不能直接移植；预算应以时长、字节和延迟计。
   原Application的speaking状态和Aliyun WS发送门控会停采集或丢上行，本阶段探针需绕开。
 

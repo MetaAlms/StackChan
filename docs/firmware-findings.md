@@ -943,3 +943,62 @@ IDF v5.5.4 build 通过（`stack-chan.bin` 0x3104d0）。
 不宣告 M1 通过、不编造设备结果。peer 保持 1.5.5，未改媒体参数，未进入 U1-1～3。
 本 Review 明确**不**要求"活跃 session 修改/释放 config 后继续真实握手"这类
 Mbed TLS 禁止的调用序列（`ssl.h:2065–2072`），也不把它当本设备阻塞。
+
+### B28. U1-S 开发中预检：短入口与诊断声明须独立核对
+
+**证据**：2026-10-13，full bcd4e35 之后的 WIP 短模式，
+`RunShortDiag` 缺少媒体时钟初始化；完整三 clip 的 final verdict 未排除短模式，
+未运行的长循环会显示 COMPLETE；clip 前500ms为静音，却仅凭 clip 写出计数称为
+speech evidence；区间起始边界缺失被误报成没有新包；ASR超时不拷已有turn VAD/item。
+具体静态路径及最小修正见 [U1-S预检](webrtc-media-u1-preflight.md)。
+
+**状态**：**五处均已修**（媒体时钟初始化、短/完整验收分离、clip 写出证据正名、
+区间边界与"有无新包"分离、ASR 无结果保留 partial VAD/item），并从修正后的**共同源码**
+重建两臂；旧 WIP 1.5.5 归档更名 `superseded-arm-a-wip-1.5.5/`，不作基线。
+每处纠正都有负对照触发失败（`u1-short-wiring`）。
+仍不是真机故障结论：**设备离线，无实测**。详见 [U1结果](webrtc-media-u1-result.md)。
+
+### B29. 真实媒体集成的静态接线边界（准备资料）
+
+**证据**：当前AudioService/AFE源码的60ms PCM、单帧编码carry、队列与生命周期，
+以及Transport Start/Stop契约，见 [只读接线准备](webrtc-media-m2-preparation.md)。
+当前decode/send均40包（2400/60），历史133包说明已在SPEC/准备记录纠正。
+
+**状态**：只读调查，未派媒体实施、未改生成目录、未实测。不把模型/静态接线当作
+全双工或打断通过；后续须满足真实退出、旧PCM隔离及实际硬件停音的阶段出口。
+
+### B30. 只改一个 peer pin 就会重求解整图：一次改动 20 个无关组件
+
+**证据**（2026-10-13，U1-2，ESP-IDF v5.5.4 组件管理器）：
+
+`main/idf_component.yml` 只把 `espressif/esp_peer` 从 `1.5.5` 改为 `1.5.7`，
+`idf.py reconfigure` 后 `dependencies.lock` 有 **21 个条目变化**，其中 **20 个与 peer 无关**：
+
+```
+78/esp-wifi-connect 3.1.2->3.1.5        78/esp_lcd_nv3023 1.0.0->1.0.1
+78/uart-eth-modem 0.3.4->0.3.5          espressif/adc_battery_estimation 0.2.1->0.2.2
+espressif/adc_mic 0.2.2->0.2.3          espressif/bmi270_sensor 0.1.1->0.1.2
+espressif/button 4.1.6->4.1.7           espressif/esp32-camera 2.1.5->2.1.8
+espressif/esp_codec_dev 1.5.11->1.5.4   espressif/esp_image_effects 1.0.1->1.2.0
+espressif/esp_lcd_co5300 2.0.3->2.2.0   espressif/esp_lcd_panel_io_additions 1.0.1->1.0.1~1
+espressif/esp_lcd_touch_cst816s 1.1.1->1.1.2   espressif/esp_lcd_touch_gt1151 1.1.0->1.1.1
+espressif/esp_lcd_touch_gt911 1.2.0~1->1.2.1   espressif/esp_lcd_touch_st7123 1.0.1->1.0.2
+espressif/esp_mmap_assets 1.4.0->2.0.1  espressif/knob 1.0.2->1.1.0
+lvgl/lvgl（条目录入变化）                txp666/otto-emoji-gif-component 1.1.1->1.3.0
+waveshare/custom_io_expander_ch32v003 1.0.1->1.0.2
+```
+
+机制：`idf_component.yml` 一变，锁里的 `manifest_hash` 失配 → 管理器**重求解整图**并按
+"最新满足版本"落盘，而不是只动被改的那个依赖。其中 `esp_codec_dev` 是**降级**、
+`esp_mmap_assets` 是跨大版本升级——对"单变量 A/B"是直接污染。
+
+**可用处置（已实测）**：把无关条目逐条**恢复为基线锁的已知值**（含其已知
+`component_hash`，不猜新 hash），只保留目标依赖条目与 `manifest_hash` 的变化。
+之后 `idf.py reconfigure` **接受并沿用该锁**，把 `managed_components/` 中无关组件恢复为
+基线版本（实测 `78/esp-wifi-connect` 3.1.2、`esp_mmap_assets` 1.4.0、`knob` 1.0.2、
+`otto-emoji` 1.1.1、`esp_codec_dev` 1.5.11、`lvgl` 9.4.0 全部回到基线）。
+最终锁差异仅 3 行：peer 的 `component_hash`、peer 的 `version`、`manifest_hash`。
+
+**状态**：已用于 U1 两臂对照，并在结果文档明示该人工处置交 U1-4 复核。
+不是"手改锁绕过校验"：恢复的是**本仓库自己刚归档的基线值**，
+且管理器接受后仍按锁校验下载物。

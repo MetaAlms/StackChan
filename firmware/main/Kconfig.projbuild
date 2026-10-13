@@ -33,6 +33,24 @@ config STACKCHAN_WEBRTC_M1_FRAME_60MS
     bool "60 ms (48000 Hz mono s16: 5760 B / 2880 samples)"
 endchoice
 
+config STACKCHAN_WEBRTC_M1_SHORT_DIAG
+    bool "M1 short comparison mode (U1: 2 s silence + zh_1 only)"
+    default y
+    depends on STACKCHAN_WEBRTC_M1
+    help
+        Runs only the bounded U1 comparison sequence on the sender task:
+        2 s of leading silence, then the single zh_1 clip, then tail silence
+        and a bounded ASR wait. The sequence ends at the stage it actually
+        reached and never enters the resource loop, on success or failure.
+
+        This does not replace the full M1 acceptance: turn it off to get the
+        original three-clip run plus the sustained resource loop, which
+        remains the entry point for M1-1..M1-3 evidence.
+
+        The comparison is pinned to 20 ms frames; selecting 60 ms together
+        with this option is a build error rather than a silent difference
+        between the two arms.
+
 config STACKCHAN_WEBRTC_M1_LOOP_SECONDS
     int "M1 continuous media loop duration (seconds)"
     default 300
@@ -41,6 +59,10 @@ config STACKCHAN_WEBRTC_M1_LOOP_SECONDS
         After the three fixture clips have been played once, the probe keeps
         cycling them for this long while sampling heap, stack and latency, so
         the resource evidence covers sustained media rather than a single pass.
+
+        The short comparison mode never enters this loop, on any path; the
+        value is simply unused there. Turn the short mode off for the full
+        three-clip run that produces M1-1..M1-3 evidence.
 
 config STACKCHAN_WEBRTC_M0
     bool "Boot into the WebRTC interop test (M0) instead of normal firmware"

@@ -591,7 +591,7 @@ dependencies:
     - esp32c6
     version: 0.6.1
   espressif/esp_peer:
-    component_hash: 97aac8b5a27e3901ca5c415a3b9ac083209e02b942af1f5911a754319331e0ca
+    component_hash: 92bc1b80772acf8a0e2dc36193ec24278e0793140eca2a4060d8ce7b45c47845
     dependencies:
     - name: espressif/esp_libsrtp
       registry_url: https://components.espressif.com
@@ -600,7 +600,7 @@ dependencies:
     source:
       registry_url: https://components.espressif.com/
       type: service
-    version: 1.5.5
+    version: 1.5.7
   espressif/esp_sccb_intf:
     component_hash: eb6a7d5c992f09583c163b2e3f5e95a0fdc87a2d9f8e026f3e59153935553889
     dependencies:
@@ -937,6 +937,6 @@ direct_dependencies:
 - waveshare/esp_lcd_sh8601
 - waveshare/esp_lcd_touch_cst9217
 - wvirgil123/sscma_client
-manifest_hash: e9e1fdc27f2c231759b164b80ff4759b435abcc3dd2675d26acc607ab4338493
+manifest_hash: e53d29283164c9e85aa3c0d66ff974a6f8d0878cfbe2c15b0defe2ca6537a292
 target: esp32s3
 version: 2.0.0

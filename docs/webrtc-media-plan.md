@@ -70,18 +70,28 @@ STREAM=0 写反，报告的 profile0来自误归类；不能据此认定 SRTP �
 
 | 次序 | 动作 | 退出条件 |
 |---|---|---|
-| U1-0 | 修诊断分类/真实API签名与身份生命周期；离线检查实际代码；修正 UNSET 文档结论 | Codex 对新 exact HEAD 复核诊断有效性；当前只派此修复 |
+| U1-0 | 修诊断分类/真实API签名与身份生命周期；离线检查实际代码；修正 UNSET 文档结论 | full bcd4e35 的 Review5498372238 已通过本范围，放行 U1-1～3 |
 | U1-1 | 冻结修正后的同一固件代码/fixture/配置，记录1.5.5库hash、ELF、ICE/实际DTLS ret/role/profile、会话回显及有界语音写出 | 取得有效基线；失败也按实际阶段记录，不要求先通过整个M1 |
 | U1-2 | 仅将peer依赖改为精确1.5.7，使用官方组件及匹配头文件；保留锁文件和无关组件 | 复核依赖差异、真实component_hash/来源/库hash；无关升级或必要传递依赖变化先交评审 |
 | U1-3 | 相同代码与参数build/flash，短握手与zh_1对照；复核新二进制pts、包容量、wrapper实际callsite契约 | 分别报告ICE/DTLS/SCTP/config/实际SRTP+UDP/VAD/ASR，不以编译或单个profile字段宣告通过 |
 | U1-4 | Codex评审版本取舍，并将采用的精确pin/证据写回清单、锁、SPEC及结果文档 | 同等拓扑无回归才采用；证据不足则继续具体定位，保留1.5.5可回退 |
 
-当前repair STOP/RQ后先由Codex复核U1-0，再向用户授权的新原生DSH会话
+U1-0 已通过，向用户授权的新原生DSH会话
 **StackChan WebRTC U1 repair session** 派U1-1～3（替代旧stackchan）。
+先准备两臂共用短模式，再冻结源码；见 [U1任务书](webrtc-media-u1-task.md)。
 这是执行排序，不需要用户重复批准升级。详细契约见
 [upstream-fix-verification.md](upstream-fix-verification.md)。
 两版本只作版本对照，不并改cipher/SSRC/ICE角色/Opus参数，不发新上游issue；
 仍保持真实48k PCM与重采样、WebSocket回退，M1.5/产品集成HOLD。
+
+**U1-1～3 交付状态（2026-10-13）**：短模式已实现并按
+[U1-S 预检](webrtc-media-u1-preflight.md) 修正五处接线；源码/fixture/配置已冻结
+（两臂同源指纹一致）；两臂已**顺序构建并归档**（1.5.5 与精确 1.5.7，
+含 ELF/map/flash 产物/库 hash/wrapper 实际 callsite 复核）。
+锁差异收敛为**仅 peer 条目 + manifest_hash**（组件管理器一次重求解曾改动 20 个
+无关组件，已逐条恢复基线值；处置理由见结果文档）。
+**设备离线，实测未做**：没有真实 ICE/DTLS/SRTP/VAD/ASR 结果。
+是否采用待 U1-4。完整记录见 [U1 结果](webrtc-media-u1-result.md)。
 
 ### 目标
 

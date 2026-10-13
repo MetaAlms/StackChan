@@ -315,6 +315,29 @@ Review5498100335与本地/PR full b45aaa7 HEAD已重新核对一致。
   同一 worktree/branch；读取 Review→只修 F1–F3→验证→push→exact RQ→STOP。
   原生 UI 已回读完整指令一次、输入框清空，新第2轮已读取 Review 并确认
   本地/PR/review 三处 HEAD 一致，返修已开始；通过后另派 U1-1～3。
+
+## 2026-10-13：U1-0 通过，继续短模式与双版本构建
+
+- full `bcd4e35ebeecab620debbb572277682d99959799` / RQ6137430285：
+  Codex 与独立只读复核无 F1–F3 阻塞，
+  [Review5498372238](https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5498372238)
+  放行 U1-1～3；[证据与范围](webrtc-media-u1-0-review-result.md)。
+- controller 真实行为日志177/0 PASS，最终源码/产物指纹匹配，IDF build 已通过。
+  原 ledger epoch4 / used9/24，没有复测云端或设备。
+- 下一项是 [新任务书](webrtc-media-u1-task.md)，不是继续返修：
+  共用短入口→归档1.5.5→精确1.5.7同代码构建→设备恢复后各臂有界实测。
+  目标仍为 **StackChan WebRTC U1 repair session**；原生 UI 已回读派单一次、
+  composer 清空，第3轮已核对 Review/full HEAD 并读取完整 U1 任务书，开发已开始。
+  M1未通过；本机串口仍缺失，已请用户接入/唤醒，离线构建继续。
+
+- 开发中短入口遗漏媒体时钟 Arm，独立预检还发现短/完整验收混用及区间/partial事件
+  声明问题，见 [U1预检](webrtc-media-u1-preflight.md) / findings B28。
+  原生“插话发送”使第3轮停止，纠正消息留在“发送中”队列；未将此当作接单。
+  UI 后台任务面板确认5项均结束，无运行构建；准备同会话恢复未完成U1，
+  修正共同源码后重建两臂，旧WIP1.5.5归档保留为被替代候选。
+- 同会话正常恢复指令已出现一次、composer清空，第4轮已读取完整预检并核对WIP/组件
+  与后台任务：没有运行jobs，实际组件仍1.5.5，旧归档须重建；短入口 clock Arm 已补上。
+  已恢复实际开发；未另开会话/并行写同一固件，也未将旧“发送中”队列当作送达。
 - **F1–F3 已修并验证**：入口固定代际 + 三处核对（real 返回后 / 读 profile 前 /
   提交时再持锁核对），过期调用不写任何字段；前置观察后**紧邻 real** 恢复入口 errno；
   六项签名断言改为 `decltype(&__real_X)` 直接对 `decltype(&mbedtls_ssl_X)`。
@@ -327,3 +350,25 @@ Review5498100335与本地/PR full b45aaa7 HEAD已重新核对一致。
   12+ 与 5 项断言失败，证明新增测试确实覆盖这两处缺陷。
 - IDF v5.5.4 build 通过（`stack-chan.bin` 0x3104d0）。**本机仍无串口**，
   设备两臂实测未做，不宣告 M1 通过。peer 保持 1.5.5，未进入 U1-1～3。
+
+## 2026-10-13：U1-1～3 短模式冻结与两臂归档
+
+- U1-0 由 Review5498372238 复核 full `bcd4e35` **通过**，放行 U1-1～3；
+  任务书见 [U1任务书](webrtc-media-u1-task.md)，不是返修循环。
+- 按 [U1-S预检](webrtc-media-u1-preflight.md) 完成五处接线纠正：短模式媒体时钟初始化、
+  短/完整验收分离、clip 写出证据正名、区间边界与"有无新包"分离、
+  ASR 无结果时保留 partial VAD/item。findings B28 保留。
+- 源码/fixture/配置冻结，两臂**同源指纹一致**
+  `4c14aaed542797bc1f9d43fe4aa88b02654b578441b0e3162961c1057c6517eb`；
+  顺序构建并归档 arm-a(1.5.5) 与 arm-b(精确1.5.7)，含 ELF/map/flash 产物、库 hash、
+  wrapper 实际 callsite 复核；旧 WIP 1.5.5 归档更名 superseded，不作基线。
+- **锁差异处置**：只改 peer pin 即触发组件管理器重求解，一次改动 **20 个无关组件**
+  （含 `esp_codec_dev` 1.5.11→1.5.4 降级、`esp_mmap_assets` 1.4.0→2.0.1 大版本变化）。
+  按任务书"不能静默升级"，逐条恢复基线值并验证管理器接受该锁，
+  最终差异仅 peer 条目 + `manifest_hash`；清单与理由在结果文档明示，交 U1-4 复核。
+- 受控检查：`u1-short-wiring`（五处接线的实际源码断言）PASS、
+  `u1-short-behaviour`（已编译二进制，cache=never）137/0 PASS、
+  `u1-docs` 与 `u1-d3-probe-source` 复跑通过；五处纠正各有负对照触发失败。
+  编译/IDF build 在控制器覆盖外，单独报告。
+- **设备仍离线**：无真实 ICE/DTLS/SRTP/VAD/ASR 结果，不宣告 1.5.7 采用、不宣告 M1 通过。
+  完整记录见 [U1结果](webrtc-media-u1-result.md)；实测步骤已按归档产物写明。
