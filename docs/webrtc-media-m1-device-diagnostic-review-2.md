@@ -88,7 +88,7 @@ SSRC6固定选择可留作规范/路由检查，但数值小不是非法条件�
 随机性要求用于避免会话内碰撞，不能将小值当根因。
 静态key/salt方向正确，反向wildcard在本机libsrtp3保护时强制sender，
 也不支持盲改密钥方向。协商profile非1才触发已记录默认80位policy条件风险；
-DTLS cipher名字不是SRTP profile。见findings B23与只读role-policy报告。
+DTLS cipher名字不是SRTP profile。见findings B23b、B24与只读role-policy报告。
 
 本轮修诊断后构建/flash，只执行一次短真实握手+2秒静音+**zh_1与有界静音等待**，
 给语音区间单独的protect/UDP输出、pts/seq/PT/SSRC与有效payload长度范围；

@@ -313,7 +313,12 @@ if(CONFIG_STACKCHAN_WEBRTC_M1)
         "-Wl,--wrap=lwip_recvfrom"
         "-Wl,--wrap=mbedtls_ssl_handshake"
         "-Wl,--wrap=mbedtls_ssl_setup"
-        "-Wl,--wrap=mbedtls_ssl_conf_free"
+        # Real Mbed TLS 3.6.5 release symbols only (ssl.h:5569 / ssl.h:5741).
+        # The previous list wrapped `mbedtls_ssl_conf_free`, which does not exist:
+        # the real release was never observed and the wrapper was dropped by
+        # --gc-sections, so "wrapper defined" was mistaken for "wrapper called".
+        "-Wl,--wrap=mbedtls_ssl_config_free"
+        "-Wl,--wrap=mbedtls_ssl_free"
         "-Wl,--wrap=mbedtls_ssl_config_defaults"
         "-Wl,--wrap=mbedtls_ssl_conf_transport")
     message(STATUS "M1 probe: RTP/SRTP/UDP send observation enabled")

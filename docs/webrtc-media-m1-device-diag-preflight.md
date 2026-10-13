@@ -59,7 +59,7 @@ DSH已交 `a3a7b9f4ccf7aeb7a25f75cc39c1010262edf570` /
 公开 getter 片段按当前 `compile_commands.json` 的固件参数编译退出0，
 见 `/tmp/stackchan-public-dtls-getters.cc`、`.o`；因此 n/a 是尚未实现，非接口不可用。
 另外100包在 zh_1之前，仅覆盖前置静音；本轮应继续给同一条短语音 fixture
-单独观察 protect/UDP结果。详见 findings B23，不能提前排除编码/SRTP互通。
+单独观察 protect/UDP结果。详见 findings B23b，不能提前排除编码/SRTP互通。
 
 ### D2 已开始后的实际签名预检（同一 Review 的纠正）
 

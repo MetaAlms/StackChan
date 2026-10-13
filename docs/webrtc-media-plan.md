@@ -1,6 +1,7 @@
 # WebRTC 媒体链路 实现计划（D0 修订版）
 
-> **状态：待 Codex 复审。未通过，不自行宣告通过。**
+> **状态：D0 已通过（Review 5445711841）；当前 M1 未通过。**
+> 2026-10-13：按用户授权插入 U1（esp_peer 1.5.7 升级验证），不改变媒体/打断验收。
 > 本版按 [媒体设计评审结果](webrtc-media-review-result.md) 的 P1/P2 修订。
 
 对应 [webrtc-media-spec.md](webrtc-media-spec.md)。
@@ -59,6 +60,27 @@
 ---
 
 ## M1 — 上行通路
+
+### U1 — 先修诊断，再验证上游 1.5.7（M1 内的依赖升级）
+
+上游 [1.5.7 changelog](https://components.espressif.com/components/espressif/esp_peer/versions/1.5.7/changelog?language=en)
+已修复 issue208 的 XOR-MAPPED 提名拒绝，并增加 prflx 支持。
+本设备升级是否改善建连/媒体需要实测。当前 b45aaa7 探针将 DATAGRAM=1 与
+STREAM=0 写反，报告的 profile0来自误归类；不能据此认定 SRTP 未协商或报新issue。
+
+| 次序 | 动作 | 退出条件 |
+|---|---|---|
+| U1-0 | 修诊断分类/真实API签名与身份生命周期；离线检查实际代码；修正 UNSET 文档结论 | Codex 对新 exact HEAD 复核诊断有效性；当前只派此修复 |
+| U1-1 | 冻结修正后的同一固件代码/fixture/配置，记录1.5.5库hash、ELF、ICE/实际DTLS ret/role/profile、会话回显及有界语音写出 | 取得有效基线；失败也按实际阶段记录，不要求先通过整个M1 |
+| U1-2 | 仅将peer依赖改为精确1.5.7，使用官方组件及匹配头文件；保留锁文件和无关组件 | 复核依赖差异、真实component_hash/来源/库hash；无关升级或必要传递依赖变化先交评审 |
+| U1-3 | 相同代码与参数build/flash，短握手与zh_1对照；复核新二进制pts、包容量、wrapper实际callsite契约 | 分别报告ICE/DTLS/SCTP/config/实际SRTP+UDP/VAD/ASR，不以编译或单个profile字段宣告通过 |
+| U1-4 | Codex评审版本取舍，并将采用的精确pin/证据写回清单、锁、SPEC及结果文档 | 同等拓扑无回归才采用；证据不足则继续具体定位，保留1.5.5可回退 |
+
+当前repair STOP/RQ后先由Codex复核U1-0，再向同一stackchan派U1-1～3。
+这是执行排序，不需要用户重复批准升级。详细契约见
+[upstream-fix-verification.md](upstream-fix-verification.md)。
+两版本只作版本对照，不并改cipher/SSRC/ICE角色/Opus参数，不发新上游issue；
+仍保持真实48k PCM与重采样、WebSocket回退，M1.5/产品集成HOLD。
 
 ### 目标
 
@@ -251,7 +273,7 @@ SPEC §6.4 的 M3-1 … M3-5。
 | R4 | 回调借用内存被滥用 | M1.5/M2 | SPEC §4.4 复制要求 |
 | R5 | 包超长越界（A9）| M1 | SPEC §2.4 容量校验 + 丢弃计数 |
 | R6 | 全双工改造牵动状态机 | M2 | SPEC §4.5 已列可实现任务；M1.5 先验最小回路 |
-| R7 | 上游不修 ICE 缺陷 | 长期 | 已接受，锁 1.5.5 |
+| R7 | 1.5.7修复尚未在本设备验证 | U1 | 按U1同代码版本对照后决定精确pin，保留1.5.5回退 |
 | R8 | 改动落在未跟踪目录而丢失 | 每阶段 | SPEC §2.6；每阶段做重建验证 |
 
 ---

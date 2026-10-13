@@ -218,7 +218,7 @@ Codex 负责设计与每阶段代码/证据复核及后续派单。
 - 21项host离线测试重跑通过，不再重开host正对照。前置静音100protect/100UDP
   实测保留，但仅覆盖zh_1之前；语音写出与远端解密尚未验证。
 - 当前固件参数编译公开DTLS getters片段退出0，RQ的“接口不可用”结论被推翻；
-  公开输出类型的PRIVATE宏不等于猜SSL内部布局。证据已记findings B23。
+  公开输出类型的PRIVATE宏不等于猜SSL内部布局。证据已记findings B23b。
 - [Review5448554040](https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5448554040)
   已提交并read-back核对exact a3a7b9f full SHA；
   [正文](webrtc-media-m1-device-diagnostic-review-2.md)续修D1映射/profile/record、
@@ -232,3 +232,73 @@ Codex 负责设计与每阶段代码/证据复核及后续派单。
   已确认开始D2修复，不再重派该任务。独立ASan/UBSan probe状态反例确认评审。
   WIP将DATAGRAM/STREAM数字写反及free符号/transport返回型错误，
   同Review的签名预检已追加到preflight，准备必要在途纠正，非新阶段。
+
+## 2026-10-13：上游1.5.7并入U1，先修诊断归属
+
+- DSH第75轮已提交并推送 `b45aaa70ee324e2f9997412c1d573dd31b1269be`，
+  [RQ6047356544](https://github.com/MetaAlms/StackChan/pull/1#issuecomment-6047356544)。
+  正式交付仍将STREAM0/DATAGRAM1写反，所谓profile0来自HTTPS误归类，
+  不能作为设备SRTP未协商结论；findings B24已撤回该归因。
+- 用户已授权安排DSH按计划验证1.5.7。已核维护者发布回复与官方changelog，
+  SPEC/PLAN/上游验证步骤更新为U1-0→有效1.5.5基线→同代码1.5.7→评审取舍。
+  D0已通过而M1未通过的文件头状态同步；媒体验收/48k/回退/HOLD不变。
+- [Review5498100335](https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5498100335)
+  已提交并read-back核对exact b45aaa7 full SHA；
+  [正文](webrtc-media-m1-diagnostic-review-3.md)本轮只派D3-1/2诊断分类/真实API与身份，
+  不把全部旧M1 probe项当升级的无限前置。其余未完成项如实保留。
+- 本任务首次纳入兼容离线控制器，固定绝对台账：
+  `/Users/amtf/.codex/dev-harness/tasks/stackchan-webrtc-media/ledger.sqlite`。
+  epoch1 / 总动作上限24 / 已用1；u1-docs快照检查有实际PASS marker。
+  不替换台账/清used；后续按status/replan接续。此入口不覆盖DSH模型、编译子进程或设备。
+- 目前未发现usbmodem串口；离线修复/build先做，设备实测暂待接入。
+  同一原生stackchan已通过会话搜索复用，窗口/PR/RQ匹配。旧D2纠正草稿未发送，
+  将替换为新Review/full SHA/唯一修复范围/verify+push+RQ+STOP；实际投递待核对。
+- 在尝试替换草稿时Computer Use明确返回Mac已锁定，自动解锁失败；
+  **本轮D3指令尚未发送**。已请求用户手动解锁，禁止把填草稿/Review提交当投递成功。
+  最小指令保存在`/tmp/stackchan-u1-dsh-handoff.txt`，解锁后在同一会话替换旧稿、
+  完整回读再发一次。PR标题/正文已用CLI同步真实M1/U1状态；固件依赖仍1.5.5。
+- 用户明确回复已解锁；重新确认stackchan窗口/完整HEAD后，已替换旧草稿。
+  新Review5498100335/full b45aaa7/SHA/D3-1/2唯一范围/U1排序/验证+push+RQ+STOP
+  指令完整回读与预期逐字一致，点击发送一次；实际消息/新轮次核对中，禁止重发。
+- 发送未形成新用户消息；原生提交快捷键返回明确错误：
+  “当前会话已被占用，可能是其他正在运行的DSH导致的（如其他dsh web、桌面端）”。
+  D3仍未投递，未产生新HEAD。不得将提交动作记作接收成功；
+  不强杀其他DSH、切新会话或读私有数据库/后台API绕过占用。
+
+### 用户授权新DSH开发会话
+
+用户明确要求“新开dsh开发，blue-pr-fix-loop”，授权替代原生stackchan的会话复用限制。
+新会话仍使用 `/Users/amtf/Documents/Git/StackChan` / `feat/aliyun-omni-v2v`，
+不复制仓库或新worktree，不停止BookWebRuntime的DSH web。
+Review5498100335与本地/PR full b45aaa7 HEAD已重新核对一致。
+初始范围仍D3-1/2（U1-0），随后按U1步骤评审/放行；root的未提交docs保留。
+已通过原生“新建会话”选择StackChan工作区，初始指令准备中，
+创建/真实投递及新会话实际标题待发送后核对，不能把新建界面当运行成功。
+- 新会话任务正文的工作区、branch、PR1/Review5498100335/full b45aaa7、
+  D3-1/2/U1-0范围与验证/push/exact RQ/STOP已完整回读，并通过新建界面提交。
+  原生窗口新标题已变为“StackChan WebRTC U1 repair session”；
+  新会话创建已确认，完整用户消息/实际Review读取及源码执行仍在核对。
+  此后开发使用这个用户授权的新会话，旧stackchan草稿不再发送。
+- 新会话第1轮12步已在原生UI显示进行中；完整初始用户消息出现一次、composer清空，
+  DSH已读取指定Review并实际执行“Test host compile against real mbedtls headers”。
+  已确认投递与开发开始，后续按新会话的真实提交/RQ继续复核，不重派当前任务。
+
+## 2026-10-13：U1-0（D3-1/D3-2）诊断归属修复完成，待设备实测
+
+- 授权新DSH会话按Review5498100335修**仅**D3-1/D3-2/U1-0；
+  peer保持1.5.5，48kHz PCM与M1.5/产品HOLD不变，未改媒体参数/未merge/未改上游。
+- D3-1：分类改用公开 `MBEDTLS_SSL_TRANSPORT_*` 宏（本机ssl.h:301–302为STREAM0/DATAGRAM1）；
+  只有**同一次成功setup登记的(ctx,conf)**才算DATAGRAM，配置单独存在不足以定身份；
+  未完成握手不读profile；Arm/free终止身份。findings B23已标为归属错误并撤回，
+  另一条重复的B23改为B23b（引用同步），新增B26记录修复与仍在的M1未完项。
+- D3-2：`conf_transport`按真实**void**处理且更新已登记配置不early return；
+  释放符号更正为 `mbedtls_ssl_config_free` 并新增wrap `mbedtls_ssl_free`；
+  每个wrapper保留真实返回、保存入口errno并在真实调用后立即保存/恢复。
+  旧 `--wrap=mbedtls_ssl_conf_free` 在b45aaa7的ELF中**根本没有对应函数**
+  （`nm`无 `__wrap_mbedtls_ssl_conf_free`），属死代码而非"未观测到"。
+- 离线：`firmware/tests/run_dtls_probe_offline_check.sh` 用本机真实头文件
+  编译运行实际源码，8组场景120项断言全通过（属C++编译/运行，控制器覆盖外，单独报告）；
+  `firmware/tests/check_dtls_probe_actual_source.py` 经固定台账
+  `/Users/amtf/.codex/dev-harness/tasks/stackchan-webrtc-media/ledger.sqlite` 运行。
+- 本机仍无 `/dev/cu.usbmodem*`，**未做设备两臂实测**，不得宣告M1通过或编造profile。
+  下一步由Codex复核本exact HEAD后再派U1-1～3。

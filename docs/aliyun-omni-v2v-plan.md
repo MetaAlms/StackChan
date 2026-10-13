@@ -1,5 +1,10 @@
 # StackChan 直连阿里云 V2V 改造计划
 
+**2026-10-13 接续**：媒体设计D0已通过Review5445711841，M1尚未通过。
+用户授权按[媒体PLAN U1](webrtc-media-plan.md)受控验证esp_peer1.5.7：
+先纠正DTLS诊断身份（现有profile0归属无效），再做同代码1.5.5/1.5.7对照，
+复核后采用精确pin。WebSocket回退与48k PCM要求保留，M1.5/产品接入待M1验收。
+
 > 目标：StackChan 开机后**只连阿里云百炼**，用 `qwen3.8-omni-flash-realtime` 做实时语音对话 + 表情联动。
 > 不给小志后端（`api.tenclass.net`）也不给 M5Stack 后端（`47.113.125.164:12800`）付任何费用，也不联系它们。
 

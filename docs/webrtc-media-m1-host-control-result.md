@@ -210,7 +210,11 @@ esp_peer 是否在 SDP 中宣告了一致的 SSRC。
 - `errno` 在真实调用后**立即**保存，再读 timer/getter
 - 摘要含 transport poll 进出耗时字段（本轮未接线，见"未完成"）
 
-实测（`run_d2_profile_unset.log`）：
+实测（`run_d2_profile_unset.log`，**归属错误的历史日志**：
+其 `dtls=1` 实际是 STREAM/HTTPS 的 TLS 握手，真正的 DATAGRAM 握手被记入
+`stream_excluded=6`，故下面的 `profile=0 UNSET` 不能作为 SRTP 未协商的证据。
+撤回与正确契约见 findings B23/B24 与
+[D3 记录](webrtc-media-m1-diagnostic-review-3.md)）：
 
 ```
 gen=1 | setups=2 (datagram=1 stream=1 overflow=0)

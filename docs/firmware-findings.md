@@ -743,9 +743,17 @@ RTP 侧改为导出 `rtp_probe::ObserveSendto()`，由该唯一包装转发。
 **小数值本身不是非法条件**，不能当作"设备未在 SDP 声明 SSRC"或根因。
 保留为"固定 SSRC / SDP 关联待验证"。
 
-### B23. 设备 DTLS 握手完成但 SRTP profile 为 UNSET
+### B23. 【已撤回｜归属错误的历史日志】设备 DTLS 握手完成但 SRTP profile 为 UNSET
 
-**证据**（2026-10-08，D2-1 短诊断，`docs/device_diag_evidence/run_d2_profile_unset.log`）：
+> **本条结论已撤回（2026-10-13，[Review5498100335](https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5498100335) D3-1）。**
+> 下面的日志**归属错误**：它把 STREAM(HTTPS) 的握手算成了 DTLS，把真正的 DATAGRAM
+> 握手记成 `stream_excluded`。因此「DTLS 完成」「SRTP 未协商」「失败在 DTLS 之后」
+> 三条件结论**全部不成立**，不能作为设备侧证据，更不能据此报上游。
+> 原始日志**保留**为历史证据（不删除），正确归属见 B24。
+> 摘要行原文是 `dtls=1 ... profile=0 UNSET`，其中那次 `dtls=1` 实际是 HTTPS 的 TLS。
+
+**证据**（2026-10-08，D2-1 短诊断，`docs/device_diag_evidence/run_d2_profile_unset.log`，
+**归属错误的历史日志**）：
 
 ```
 setups=2 (datagram=1 stream=1) | hs calls=7 dtls=1 ok=1 fail=0 stream_excluded=6
@@ -754,19 +762,17 @@ cipher=TLS-ECDHE-RSA-WITH-AES-128-GCM-SHA256
 profile=0 UNSET
 ```
 
-**要点**：
-1. DTLS 握手**成功完成**（`is_handshake_over=1`，ret 0），
-   推翻了"DTLS 握手超时"作为本阶段失败的解释。
-2. `mbedtls_ssl_get_dtls_srtp_negotiation_result` 返回的
-   `chosen_dtls_srtp_profile` 为 **0（MBEDTLS_TLS_SRTP_UNSET）**，
-   即 **SRTP 保护 profile 未协商**。
-3. 失败点因此位于 **DTLS 之后**（SRTP/DataChannel 建立阶段），
-   与 `peer_state=6 CONNECTING`、`stage=server answer received(4)` 一致。
+**当时的要点（均已撤回，留作对照）**：
+1. ~~DTLS 握手成功完成（`is_handshake_over=1`，ret 0）~~ —— 该次握手是 STREAM。
+2. ~~SRTP 保护 profile 未协商~~ —— 这个 profile0 读自被误判为 DTLS 的 HTTPS context。
+3. ~~失败点位于 DTLS 之后~~ —— 由 1、2 推出，前提不成立。
 
-**状态**：**实测条件，未做单变量验证，不宣称根因**；
-未据此盲改 cipher/profile，也未升级 1.5.6。
+**状态**：**历史日志，归属错误，结论撤回**。
+`run_d2_profile_unset.log` 保留，但只作为「分类写反」的现场记录；
+设备媒体根因**仍未确定**。正确的诊断契约见 B24 与
+[D3 记录](webrtc-media-m1-diagnostic-review-3.md)。
 
-### B23. D1 短诊断结论修正：公开 getter 存在，100 包仅覆盖前置静音
+### B23b. D1 短诊断结论修正：公开 getter 存在，100 包仅覆盖前置静音
 
 **证据**（2026-10-08，复核 exact HEAD
 `a3a7b9f4ccf7aeb7a25f75cc39c1010262edf570`）：本机 Mbed TLS 3.6.5
@@ -794,3 +800,110 @@ SRTP互通，不能把 SSRC6 的数值小当根因；
 同次日志`:216–217`的Offer已宣告`a=ssrc:6`，与探针值一致；
 不能直接认定设备缺少SSRC声明。
 保留设备参数，先测同一 DTLS context 的 role/profile 和实际语音 fixture 写出。
+
+### B24. D2 的 profile0 来自 HTTPS 误归类，不能认定 SRTP 未协商
+
+**证据**（2026-10-13复核 full HEAD `b45aaa70ee324e2f9997412c1d573dd31b1269be`）：
+本机 Mbed TLS `ssl.h:301–302` 定义 STREAM=0、DATAGRAM=1；
+`dtls_short_probe.cc:467–470` 将两者写反。摘要所谓dtls1/stream_excluded6
+实际上把STREAM计为DTLS、DATAGRAM排除。因此上一条B23（归属错误的历史日志）的
+“DTLS成功/profile0实测、失败位于DTLS之后”结论**撤回**，该日志保留为历史。
+只有正确识别同一DATAGRAM context后，才能报告真实DTLS完成与选中SRTP profile。
+此外conf_transport真实返回void，释放符号为config_free（不存在conf_free）；
+这些探针契约必须先修，不应以错误UNSET结果提新上游issue。
+
+**上游状态**：维护者在
+[2026-10-08发布回复](https://github.com/espressif/esp-webrtc-solution/issues/208#issuecomment-6059327698)
+确认组件1.5.7已发布；
+[官方changelog](https://components.espressif.com/components/espressif/esp_peer/versions/1.5.7/changelog?language=en)
+列出XOR-MAPPED提名拒绝修复及prflx支持。独立LiveKit/NAT验证是上游修复库的
+外部证据，不代替本设备阿里端验证。Issue仍OPEN。
+
+**状态**：用户已授权按PLAN U1受控升级。先修诊断、取1.5.5有效基线，再同代码
+对照1.5.7，评审后采用精确pin；不删整个锁、不并调媒体/角色/cipher。
+48k媒体与M1.5验收独立保持。复核及派修见新D3记录。
+
+### B25. 1.5.7 静态兼容性与真实组件指纹
+
+**证据**（2026-10-13，官方组件只读下载/二进制比较）：
+1.5.7源提交 `33a863f1a6c57bdcb7821f6f7a8e159035a0acf6`；
+注册表component_hash为 `92bc1b80772acf8a0e2dc36193ec24278e0793140eca2a4060d8ce7b45c47845`；
+S3库SHA256为 `e6fa4ccb3256007105bf7eff1e313dc5c06669f7d3b6df192571ebdba4496285`。
+二者不是同一种hash，更新锁条目不得用库/zip的SHA冒充component_hash。
+来源为[官方注册表元数据](https://components-file.espressif.com/components/espressif/esp_peer.json)。
+
+与本机1.5.5相比：DTLS/UDP公开源码、结构/枚举与CMake保持一致，
+依赖仍private esp_libsrtp ^1.0.0。S3 RTP/jitter/rolling-buffer对象相同，
+七个相关音频函数指令/常量/重定位相同；pts毫秒→48*ticks与1428B整包缓冲
+及本应用1352B保守payload预算继续有效。新增pthread mutexattr符号本机IDF5.5.4已实现。
+
+**状态**：仅未发现所查表面的新ABI/依赖阻塞，尚未安装、构建、真机运行或采用新版。
+最终link/wrapper路径与实际两臂媒体仍需U1验证；升级不会修复本应用的诊断分类错误。
+完整指纹、来源和证据边界见[静态核查](esp-peer-157-preflight.md)。
+
+### B26. U1-0：探针身份分类与真实 API 签名/生命周期修复
+
+**证据**（2026-10-13，[Review5498100335](https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5498100335)
+D3-1/D3-2，修自 `b45aaa70ee324e2f9997412c1d573dd31b1269be`）：
+
+判据全部取自**本机 Mbed TLS 3.6.5 头文件**，不是推测：
+
+| 事实 | 位置 |
+|---|---|
+| `MBEDTLS_SSL_TRANSPORT_STREAM == 0`、`DATAGRAM == 1` | `ssl.h:301–302` |
+| `mbedtls_ssl_conf_transport` 返回 **void** | `ssl.h:2143` |
+| 释放符号是 `mbedtls_ssl_config_free`（**无** `mbedtls_ssl_conf_free`）| `ssl.h:5741` |
+| `mbedtls_ssl_free`（清 context 身份也要 wrap）| `ssl.h:5569` |
+| `mbedtls_ssl_conf_get_endpoint`/`context_get_config`/`is_handshake_over` 为 static inline | `ssl.h:2124/2298/5114` |
+
+**旧 wrapper 是死代码，不是"未被观测到"**：`firmware/build/stack-chan.elf`
+（b45aaa7 构建，重建前采集）中 `nm` 只有 `__wrap_mbedtls_ssl_handshake/setup/conf_transport/
+config_defaults`，**没有任何 `__wrap_mbedtls_ssl_conf_free`**，
+真实符号是 `mbedtls_ssl_config_free`。因为该符号不存在，`__real_*` 引用随
+`--gc-sections` 一起被丢弃。这正是"wrapper 有定义 ≠ 有调用"的现场。
+
+**修复后的最终 ELF 实际 callsite**（`stack-chan.map` 的 Cross Reference Table）：
+
+| wrapper | 实际调用者 |
+|---|---|
+| `__wrap_mbedtls_ssl_handshake` | libmbedtls `ssl_msg.c.obj`、esp-tls `esp_tls_mbedtls.c.obj`、esp_peer `dtls_srtp.c.obj` |
+| `__wrap_mbedtls_ssl_setup` | esp-tls `esp_tls_mbedtls.c.obj`、esp_peer `dtls_srtp.c.obj` |
+| `__wrap_mbedtls_ssl_conf_transport` | esp_peer `dtls_srtp.c.obj` |
+| `__wrap_mbedtls_ssl_config_defaults` | esp-tls、esp_peer `dtls_srtp.c.obj` |
+| **`__wrap_mbedtls_ssl_config_free`** | esp-tls、esp_peer `dtls_srtp.c.obj` |
+| **`__wrap_mbedtls_ssl_free`** | esp-tls、esp_peer `dtls_srtp.c.obj` |
+
+反向核对：未 wrap 的 `mbedtls_ssl_*` 真实符号**只**被 `dtls_short_probe.cc.obj`
+（即 wrapper 里的 `__real_*`）引用，说明真实释放确实经过观测点。
+两个 HTTPS(esp-tls) 与 DTLS(esp_peer) 都会命中同一组 wrapper，
+所以"只有同一次成功 setup 登记的 (ctx,conf) 才算 DATAGRAM"是必需的，不是保守。
+
+真实 callsite 在**源码**里而非预编译库：`libpeer_default.a` 不含任何
+`mbedtls_ssl_*` 未定义符号（只用 `mbedtls_md_*`）；DTLS 在
+`espressif__esp_peer/src/dtls_srtp.c`（IDF<6.0 分支）与 `src/dtls_common.h`，
+二者与 mbedtls 不同目标文件，`--wrap` 有效。
+`dtls_srtp_reset_session()` 会在**同一个 context 指针**上
+`mbedtls_ssl_free → init → setup`，并可能换角色，所以 free 必须终止身份、
+已登记配置的 transport 必须**更新**而不是 early return。
+
+**修复形态**：新增 ESP 无关的 `firmware/main/hal/webrtc/dtls_probe_core.h`，
+把身份表/分类/profile 门控/errno 纪律集中一处，设备 `.cc` 与离线检查**共用同一份**
+代码；transport 一律走公开宏；只有**同一次成功 setup 登记的 (ctx, conf)** 才能判为
+DATAGRAM，配置单独存在不足以定身份（未知保持未知），Arm/新代际清空身份，
+每个 wrapper 保留真实返回并把 errno 恢复为真实调用产生的值。
+
+**离线实测**（`firmware/tests/`）：
+- `run_dtls_probe_offline_check.sh`：用本机真实头文件编译并运行，
+  8 组场景 **120 项断言全通过**（STREAM 成功被排除、DATAGRAM 成功读 profile=1、
+  未完成不读 profile、未知 setup 不被当成 DTLS、conf_transport 由 STREAM 切
+  DATAGRAM 生效、free/Arm 终止身份、返回值与 errno 保持、固定表溢出显式计数）。
+  属 C++ 编译/运行检查，**不在**单进程离线控制器覆盖内，单独报告。
+- `check_dtls_probe_actual_source.py`：经控制器运行的实际源码检查，
+  另见台账 `dev-harness/tasks/stackchan-webrtc-media/ledger.sqlite`。
+
+**状态**：诊断代码已修，**设备两臂实测未做**（本轮未发现 `/dev/cu.usbmodem*`）。
+不得据此宣告 M1 通过，也不得编造 profile 或升级结果。
+以下 M1 未完成项按 Review 保留、不并入本轮：
+`my_id` 声明未赋值/使用、protect 仍找同 tuple 最新 pending、旧调用跨 Arm 污染
+`g_rep`、`SettleWindow()` 只有声明/定义无调用、`NotePoll/NoteDtlsSocket/
+NoteRtpSocket` 尚未接线（恒零不能当观测）、DTLS record 样本 ring 未做。
