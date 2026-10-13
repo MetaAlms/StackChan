@@ -1,5 +1,8 @@
 # U1 候选复核：固件对照成立，归档需修复
 
+> 当前状态：归档修复已通过收口复核，设备实测待接入。以下保留初审证据与修复范围，
+> 修复后的结论见文末；1.5.7仍为候选，M1未通过。
+
 Reviewed exact HEAD: `c173d19b62673d2eac29f0116b2829cfad034ec2`。
 [RQ6137813252](https://github.com/MetaAlms/StackChan/pull/1#issuecomment-6137813252)。
 
@@ -56,3 +59,19 @@ Reviewed exact HEAD: `c173d19b62673d2eac29f0116b2829cfad034ec2`。
 归档脚本/文档修复本身无需重新跑两臂固件构建或云端会话。
 commit/push→新full exact HEAD REVIEW_REQUEST→STOP，Codex随即复核。
 之后设备恢复可按归档跑有界两臂对照；没有设备结果不宣布正式采用1.5.7或M1通过。
+
+## 修复后的收口复核
+
+DSH交付 full `af42b7260ef02c969e2aeceba15cb5974eb14f25` / RQ6137921099，
+只修归档与文档。Codex及独立只读复核确认A1/A2已关闭：两臂每份参数文件的
+5条引用均存在（每臂合计10/10），app镜像仍为原臂的17fe8c19…53c5 / e313ac0e…cb99，
+原ELF/map/库及同源指纹未变；归档根/臂目录700、三份敏感配置600，未来umask077。
+superseded布局同规则修复且原字节保留，可接受；其非基线声明仍保留。
+
+Codex另修正结果文档的CLI示例：本机esptool4.12把flash选项定义为write_flash子命令
+参数，原示例顺序不合法。现在从各臂bin目录执行
+`esptool.py --chip esp32s3 -p <实际串口> write_flash @flash_args`，选项沿用原参数文件。
+该修正仅文档；未改固件，也未连接设备。
+
+**归档准备范围通过，放行设备接入后的有界两臂诊断。**
+这是离线准备的出口：1.5.7仍是候选，最终采用与M1通过仍需要真实设备结果。
