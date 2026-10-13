@@ -338,6 +338,18 @@ Review5498100335与本地/PR full b45aaa7 HEAD已重新核对一致。
 - 同会话正常恢复指令已出现一次、composer清空，第4轮已读取完整预检并核对WIP/组件
   与后台任务：没有运行jobs，实际组件仍1.5.5，旧归档须重建；短入口 clock Arm 已补上。
   已恢复实际开发；未另开会话/并行写同一固件，也未将旧“发送中”队列当作送达。
+
+## 2026-10-13：U1 同源固件交付，归档范围返修
+
+- full `c173d19b62673d2eac29f0116b2829cfad034ec2` / RQ6137813252 已推送并STOP。
+  短模式五项纠正与两臂同源固件通过Codex/独立只读复核；最小锁恢复处置接受。
+- [Review5498605495](https://github.com/MetaAlms/StackChan/pull/1#pullrequestreview-5498605495)
+  只要求修归档A1/A2：flash参数相对路径缺文件、归档自身私有权限未实现；
+  [复核结果](webrtc-media-u1-review-result.md)。本次复用已通过的固件，不重跑云/构建。
+- 同一新DSH会话读取Review→只修A1/A2→验证→push→exact RQ→STOP；
+  原生 UI 已回读完整指令一次、composer清空，第5轮已核对三处HEAD、
+  读取完整Review并确认两项归档缺口，修复已开始。
+  设备仍离线，不宣告正式采用1.5.7或M1通过。
 - **F1–F3 已修并验证**：入口固定代际 + 三处核对（real 返回后 / 读 profile 前 /
   提交时再持锁核对），过期调用不写任何字段；前置观察后**紧邻 real** 恢复入口 errno；
   六项签名断言改为 `decltype(&__real_X)` 直接对 `decltype(&mbedtls_ssl_X)`。
@@ -372,3 +384,21 @@ Review5498100335与本地/PR full b45aaa7 HEAD已重新核对一致。
   编译/IDF build 在控制器覆盖外，单独报告。
 - **设备仍离线**：无真实 ICE/DTLS/SRTP/VAD/ASR 结果，不宣告 1.5.7 采用、不宣告 M1 通过。
   完整记录见 [U1结果](webrtc-media-u1-result.md)；实测步骤已按归档产物写明。
+
+## 2026-10-13：Review5498605495 — 只修归档 A1/A2
+
+- 复核 exact `c173d19`：短模式五项纠正、两版本同源构建、最小锁恢复处置均**被接受**；
+  两项待修均为**归档**问题，本轮只修这两项，未动固件/媒体/依赖。
+- **A1**：`flash_args`/`flasher_args.json` 的路径相对它们自己所在目录，原归档把
+  bootloader/partition 扁平放进 `bin/`、app bin 只在臂根，被引用的三个路径**都不存在**。
+  现 `bin/` 复现该目录形状，archiver 之后自动运行新校验器 `verify_u1_archive.py`。
+  修复**只使用各臂自己已归档的 bin**（app bin 自我复制、另两份原位移动），
+  **未重编固件、未用当前 1.5.7 生成目录补 1.5.5 臂**；逐臂 10/10 引用存在、
+  参数所选 app bin 与该臂记录 hash 相同；修复前后**已存在文件 0 个被修改**。
+- **A2**：archiver 增 `umask 077` 与显式 `chmod 700/600`，校验器检查权限位；
+  既有归档 root 与三臂目录收紧 700、三份 `sdkconfig.local-sensitive`（含 superseded）
+  收紧 600。只改本任务归档路径，未动 home/Keychain/其他工作区。
+- 控制器新增 `u1-archive-contract`（archiver 契约）PASS，`u1-docs` 复跑 PASS；
+  两项修复各有负对照触发失败。产物级校验超出控制器输入上限，**在控制器外单独报告**。
+- 未重复固件构建、未开云端会话、未宣告采用、未动 M1.5、未 merge/发布。
+  下一条为新的 full exact HEAD REVIEW REQUEST，随后 STOP。

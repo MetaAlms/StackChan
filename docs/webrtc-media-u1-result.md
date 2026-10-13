@@ -90,8 +90,8 @@ non-sensitive config digest (凭据行以固定标记替换后取 sha256)
 
 顺序构建（两臂共用 `managed_components/`，不能并行改组件）。归档在
 `~/.codex/dev-harness/artifacts/stackchan-webrtc-media/u1-archive/`（本机私有，不进 Git），
-每臂含 ELF/map/所有 flash 引用的 bin、`dependencies.lock`、peer 组件与 S3 库、
-`ARM_VERIFY.json`、`SOURCE_HASHES.txt`、`FROZEN_SOURCE_FINGERPRINT.txt`。
+每臂含 ELF/map、一个自洽的 `bin/` flash 目录、`dependencies.lock`、peer 组件与 S3 库、
+`ARM_VERIFY.json`、`ARCHIVE_VERIFY.json`、`SOURCE_HASHES.txt`、`FROZEN_SOURCE_FINGERPRINT.txt`。
 **旧 WIP 1.5.5 归档已更名为 `superseded-arm-a-wip-1.5.5/` 并附说明，不作为基线。**
 
 | 项 | arm-a | arm-b |
@@ -208,11 +208,75 @@ map 中的 wrapper 引用两臂均保留（未被内联或绕过）。
 
 设备恢复后按归档产物执行（顺序固定）：
 
-1. 用 `arm-a-esp_peer-1.5.5/bin/flash_args` + 同目录 bin 刷 1.5.5，跑一次短模式；
-2. 用 `arm-b-esp_peer-1.5.7/bin/flash_args` + 同目录 bin 刷 1.5.7，跑一次同参数短模式；
+1. 用 `arm-a-esp_peer-1.5.5/bin/flash_args` 刷 1.5.5，跑一次短模式；
+2. 用 `arm-b-esp_peer-1.5.7/bin/flash_args` 刷 1.5.7，跑一次同参数短模式；
 3. 两次都记录真实库/ELF 标识、ICE 阶段、同一已登记 DATAGRAM 的 ret/role/completion/profile、
    `session.created/updated`、静音/语音分段 SRTP/UDP 与 VAD/ASR；
 4. **不要让 `idf.py flash` 在共享的新 `managed_components/` 下重建旧臂**——旧臂产物已在归档里。
+
+刷写命令以 `bin/` 为工作目录（flash 参数里的相对路径就相对它解析）：
+
+```bash
+cd <archive>/<arm>/bin
+esptool.py --chip esp32s3 -p /dev/cu.usbmodemXXXX \
+  --flash_mode dio --flash_freq 80m --flash_size 16MB write_flash @flash_args
+```
+
+## 归档修复（Review5498605495 A1 / A2）
+
+### A1：flash 参数引用了不存在的文件
+
+`flash_args` 与 `flasher_args.json` 是从构建目录**原样复制**的，其中的路径相对于
+它们自己所在目录：`bootloader/bootloader.bin`、`stack-chan.bin`、
+`partition_table/partition-table.bin`、`ota_data_initial.bin`、`generated_assets.bin`。
+原归档把 bootloader/partition 两个 bin **扁平**放进 `bin/`、把 app bin 只放在臂根，
+于是 `bin/bootloader/bootloader.bin`、`bin/stack-chan.bin`、
+`bin/partition_table/partition-table.bin` **三者都不存在**——按归档刷机会失败。
+
+修复：`bin/` 现在复现 flash 参数所命名的目录形状
+（`bin/stack-chan.bin`、`bin/bootloader/bootloader.bin`、
+`bin/partition_table/partition-table.bin`，另两个 bin 原位不变），
+archiver 之后自动运行 `firmware/tests/verify_u1_archive.py`。
+**只使用各臂自己已归档的文件**：app bin 由该臂臂根的 `stack-chan.bin` 复制，
+bootloader/partition 由该臂自己扁平的那两份**原位移动**（字节不变）。
+**没有重新构建固件，也没有用当前 1.5.7 的生成目录去补 1.5.5 臂的文件。**
+
+验证证据（`ARCHIVE_VERIFY.json`，逐臂）：
+
+```
+arm-a  flash references resolved 10/10   app bin 17fe8c19…53c5 == 参数所选 17fe8c19…53c5
+arm-b  flash references resolved 10/10   app bin e313ac0e…cb99 == 参数所选 e313ac0e…cb99
+```
+
+（10 = `flash_args` 5 条 + `flasher_args.json` 5 条，两份文件都逐条解析。）
+
+**hash 保留核对**（修复前后对全部文件取 sha256 清单对比）：
+**已存在的文件 0 个被修改**；变化只有 4 处**原位移动**（字节相同）、
+2 份 app bin 自我复制（与该臂记录的 `stack-chan.bin` 相同）与新增的校验 JSON。
+`stack-chan.elf` / `.bin` / `.map`、`dependencies.lock`、peer 库、
+`SOURCE_HASHES.txt`、两臂源指纹 `4c14aaed…6517eb` **全部不变**。
+
+### A2：归档的私有权限没有兑现
+
+原归档 root 为 755、`sdkconfig.local-sensitive` 为 644（元数据观察，未读取或输出凭据，
+不主张已发生泄露）。修复：
+
+- `archive_u1_arm.sh` 增加 `umask 077`，并显式 `chmod 700` 归档 root 与臂目录、
+  `chmod 600` 含凭据的 `sdkconfig.local-sensitive`；校验器同时检查权限位（不只假设）。
+- 既有归档：本任务 `u1-archive` root 与三个臂目录收紧为 **700**，
+  三份 `sdkconfig.local-sensitive`（含 superseded 候选）收紧为 **600**。
+- **只改本任务归档路径**，未改 home/Keychain/其他工作区权限；
+  校验器还断言 archiver 不对本归档之外的路径 chmod；
+  敏感文件不进 Git/PR。
+
+### 覆盖边界（如实）
+
+产物级校验（`verify_u1_archive.py`）要读 67 MB ELF、32 MB map 与数 MB 镜像，
+远超离线控制器的单输入 2 MB / 快照 10 MB 上限，**因此在控制器之外运行、单独报告**。
+控制器侧新增 `u1-archive-contract` 只断言 archiver 的**契约**
+（bin 目录形状、不得回退扁平布局、必须运行校验器、umask/权限、只动本归档路径）。
+两者都有负对照：把脚本改回扁平布局或缺 `umask` 会触发 `U1_ARCHIVE_CONTRACT_FAIL`；
+把校验器指向旧的扁平归档会逐条报出 6 处引用缺失与 2 处权限不符。
 
 ## 本轮不下的结论
 

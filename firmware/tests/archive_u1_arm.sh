@@ -13,7 +13,9 @@
 #
 # Writes to $DTLS_PROBE_ARTIFACT_DIR/u1-archive/<arm-label>/ :
 #   stack-chan.elf/.map/.bin      final link products (symbol evidence lives here)
-#   bin/                          every binary `idf.py flash` would write
+#   bin/                          a self-consistent flash directory: every path
+#                                 referenced by flash_args / flasher_args.json
+#                                 resolves inside bin/ (see A1 below)
 #   component/                    peer manifest, changelog, esp32s3 library, hashes
 #   dependencies.lock             resolved dependency set for this arm
 #   idf_component.yml             the pin this arm was built from
@@ -21,11 +23,31 @@
 #   FROZEN_SOURCE_FINGERPRINT.txt digest of the shared, frozen source set
 #   ARM_VERIFY.json               output of verify_u1_arm.py
 #
+# A1 - flash-argument layout: `flash_args` and `flasher_args.json` are copied
+# byte-for-byte from the build, and they name their inputs *relative to the
+# directory they sit in*:
+#
+#     bootloader/bootloader.bin        stack-chan.bin
+#     partition_table/partition-table.bin
+#     ota_data_initial.bin             generated_assets.bin
+#
+# The archive must reproduce that directory shape inside `bin/`; flattening it
+# (an earlier defect) left the parameters pointing at files that did not exist,
+# so the archive could not be flashed on its own. `verify_u1_archive.py`
+# re-checks every reference after the fact.
+#
+# A2 - permissions: the archive holds a full sdkconfig, which carries device
+# credentials, so it is created under umask 077 and the credential-bearing file
+# is forced to 0600.
+#
 # Nothing here is committed to Git: the firmware binaries and the full sdkconfig
 # stay in the local private archive, and only a desensitised record goes into the
 # repository.
 
 set -euo pipefail
+
+# Private by default: this archive contains a credential-bearing sdkconfig.
+umask 077
 
 ARM_LABEL="${1:?usage: archive_u1_arm.sh <arm-label> <peer-version>}"
 PEER_VERSION="${2:?usage: archive_u1_arm.sh <arm-label> <peer-version>}"
@@ -60,8 +82,15 @@ rm -rf "$ARM_DIR"
 mkdir -p "$ARM_DIR/bin" "$ARM_DIR/component"
 
 cp "$FW/build/stack-chan.elf" "$FW/build/stack-chan.map" "$FW/build/stack-chan.bin" "$ARM_DIR/"
-cp "$FW/build/bootloader/bootloader.bin" "$FW/build/partition_table/partition-table.bin" \
-   "$FW/build/ota_data_initial.bin" "$FW/build/generated_assets.bin" "$ARM_DIR/bin/"
+
+# bin/ must mirror the directory shape the flash parameters refer to: the
+# parameters name `bootloader/bootloader.bin`, `stack-chan.bin` and
+# `partition_table/partition-table.bin` relative to their own directory.
+mkdir -p "$ARM_DIR/bin/bootloader" "$ARM_DIR/bin/partition_table"
+cp "$FW/build/stack-chan.bin"                        "$ARM_DIR/bin/stack-chan.bin"
+cp "$FW/build/bootloader/bootloader.bin"             "$ARM_DIR/bin/bootloader/bootloader.bin"
+cp "$FW/build/partition_table/partition-table.bin"   "$ARM_DIR/bin/partition_table/partition-table.bin"
+cp "$FW/build/ota_data_initial.bin" "$FW/build/generated_assets.bin" "$ARM_DIR/bin/"
 cp "$FW/build/flash_args" "$FW/build/flasher_args.json" "$ARM_DIR/bin/"
 cp "$FW/sdkconfig" "$ARM_DIR/sdkconfig.local-sensitive"
 
@@ -107,6 +136,16 @@ python3 "$HERE/verify_u1_arm.py" \
     --lock "$ARM_DIR/dependencies.lock" \
     --component-yml "$ARM_DIR/idf_component.yml" \
     --json-out "$ARM_DIR/ARM_VERIFY.json" | tee "$ARM_DIR/ARM_VERIFY.txt"
+
+# A2: the archive root and the credential-bearing config are private. The
+# umbrella directory is forced to 0700 because it holds this arm's sdkconfig.
+chmod 700 "$ARCHIVE_ROOT" "$ARM_DIR" "$ARM_DIR/bin" "$ARM_DIR/component"
+chmod 600 "$ARM_DIR/sdkconfig.local-sensitive"
+
+# A1 + A2 verified against the archive as written, not against the build tree.
+python3 "$HERE/verify_u1_archive.py" --archive-root "$ARCHIVE_ROOT" \
+    --arm "$ARM_LABEL" --json-out "$ARM_DIR/ARCHIVE_VERIFY.json" \
+    | tee "$ARM_DIR/ARCHIVE_VERIFY.txt"
 
 echo
 echo "archived $ARM_LABEL (peer $RESOLVED) -> $ARM_DIR"
