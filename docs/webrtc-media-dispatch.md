@@ -411,3 +411,23 @@ Review5498100335与本地/PR full b45aaa7 HEAD已重新核对一致。
   收口记录见 [U1复核结果](webrtc-media-u1-review-result.md) 与findings B31。
 - 新DSH会话本轮开发与评审完成；两版本同源候选已可用于真机短诊断，
   实测等待用户接入/唤醒设备。1.5.7尚未宣告正式采用，M1与完整媒体移植尚未通过。
+
+## 2026-10-22：U1 两臂真机实测（U1-3 设备部分完成）
+
+- 设备接入（`/dev/cu.usbmodem101`，CoreS3）。每臂只刷一次归档固件，之后用
+  `esptool.py run` 复位重复跑同一短诊断；串口 115200 全量采集，日志脱敏后落盘。
+- **两版本共 7 次连通运行**（1.5.5 四次、1.5.7 三次，参数完全相同）。
+  7 次全部：ICE PAIRED、DTLS 成功（profile=2）、`session.updated` 配置回显校验通过、
+  SRTP 1339/1339、UDP 1339/1339 全写出、本地 Opus 解码 0 失败；
+  **7 次全部 VAD=0、ASR=0、`transcript=""`、`outcome=asr-timeout`**。
+- 结论：M1 的阻塞点**不是 peer 版本差异**，也不在 ICE/DTLS/SCTP/配置/SRTP 本地路径；
+  剩下未解释的是"服务端是否解码接受这些 RTP"或"服务端 VAD 条件"。
+- DTLS 抖动：arm-a 出现 1 次 18 连败（23.3 s，未建会话）与 1 次两重试（7.99 s）；
+  arm-b 三次首握（582–605 ms）。失败形态是握手超时（DTLS 记录双向流动但未成功），
+  不是 issue208 的 ICE 提名问题。样本量小，**不宣称 1.5.7 改善**。
+- U1-4 建议：**保持 1.5.5 基线**、1.5.7 归档保留候选（待评审确认）。
+- 下一步（M1 定位）：host/browser 参考客户端同音频对照；补记下行 RTP/RTCP 与
+  DTLS-SRTP protection profile；再试 stereo/fmtp 单变量。
+- 证据与完整数据：[U1 设备结果](webrtc-media-u1-device-result.md)；
+  日志在 `docs/device_diag_evidence/2026-10-22-u1/`。
+- 仍未宣告 M1 通过、未宣告 1.5.7 采用；M1.5/产品集成继续 HOLD。

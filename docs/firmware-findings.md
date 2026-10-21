@@ -1014,3 +1014,55 @@ app镜像仍为原臂hash，既存镜像/ELF/map/库字节未改变；root/臂�
 **状态**：归档准备已通过Codex/独立只读复核，具体记录见
 [U1复核](webrtc-media-u1-review-result.md)。未刷机、未输出敏感配置内容；
 设备实测与版本采用仍待接入，不以归档检查替代M1媒体验收。
+
+### B32. 两版本媒体都送达边界，但服务端 VAD/ASR 恒为 0（U1 真机，7/7 运行）
+
+**证据**：2026-10-22 两臂真机短诊断（1.5.5 四次、1.5.7 三次）全部：
+`session.created`→`session.update`→配置回显校验通过
+（`server_vad thr=0.50 silence=800`、`qwen3-asr-flash-realtime`）；
+SRTP protect 1339/1339、UDP 1339/1339 全写出、无短写/失败；
+本地 Opus 解码 1339 ok/0 failed；但 `[vad] started=0 stopped=0`、
+`[asr] completed=0`、`zh_1 kw=0/3`、`transcript=""`、20 s 后 `asr-timeout`。
+同一日志里 `media/wall elapsed : 26780 / 3865 ms` 的 wall 只统计 clip 段（见 B34）。
+原始日志：`docs/device_diag_evidence/2026-10-22-u1/`。
+
+**解读**：本地 SRTP/UDP 写出成功只证明"包进了 socket"，不证明服务端解密/解码成功。
+由于两版本结果完全一致，M1 的阻塞点不是 esp_peer 版本，也不是 ICE/DTLS/SCTP/
+会话配置；应优先排查服务端是否接受这些 RTP（SRTP protection profile、payload/声道、
+时序）或服务端 VAD 触发条件（账号/端点/配置面）。
+**未排除**：SRTP 密钥或 profile 与设备侧不一致导致服务端静默丢包。
+
+**状态**：已用 7 次运行复现；下一步用 host/browser 参考客户端与下行 RTP/RTCP、
+SRTP profile 观测区分"设备包不被接受"与"服务端 VAD 不触发"。
+M1 仍未通过，不得把本发现当作 M1 通过或 AEC 结论。
+
+### B33. DTLS 握手偶发超时：记录双向流动但仍 18 连败，不能归因 peer 版本
+
+**证据**：arm-a（1.5.5）刷机后第一次启动：
+`hs calls=19 dtls=18 ok=0 fail=18 total=23324 ms`、`profile=-1`、`session_created=0`，
+结尾 `VERDICT: FAIL - transport layer. stage=server answer received(4) peer_state=6`；
+探针同一行显示 `DTLS TX records=19 in_dgrams=19`、`RX records=41`，
+并明确 `DTLS records flowed both ways ... but the handshake never returned success`
+（`last_ret=-30848`，`agent_recv timeout`）。同臂后续运行有 1 次两重试后成功
+（`hs calls=4 dtls=3 ok=1 fail=2 total=7992 ms`），其余首握 591–618 ms；
+arm-b（1.5.7）三次首握 582–605 ms。
+
+**解读**：失败形态是 DTLS 握手阶段的超时/重试，而 ICE 已 PAIRED、Candidate 有响应，
+**不是 issue208 的 ICE 提名拒绝**。单次失败出现在刷机后首启，随后的同臂运行未复现，
+不能排除服务端会话/TURN 状态或网络瞬态；样本量不足以宣称 1.5.7 改善握手。
+
+**状态**：已记录为 U1 实测的抖动项；U1-4 建议保持 1.5.5 基线（待评审）。
+后续若再出现，按同一 `hs calls/fail/total`、profile 与 RX/TX records 记录，不猜独立根因。
+
+### B34. U1-S 的 `media/wall` 统计口径混用，不能当实时性判据
+
+**证据**：`firmware/main/hal/webrtc/webrtc_m1.cc` 的 `StreamClip()` 只在 clip 发送段
+累加 `g_metrics.wall_us`（本机约 3.865 s，接近 `zh_1` 的 3.887 s），
+而 summary 的 media 用 `g_metrics.frames_media * kFrameMs`，包含前置 2 s 静音与
+ASR 等待期间持续发送的静音（1339 帧 = 26.78 s）。因此固定出现
+`media/wall elapsed : 26780 / 3865 ms`，**不是**"媒体比实时快 7 倍"，
+也不能据此判断 pacing、丢包或服务端接收节奏。
+
+**状态**：仅诊断口径问题，不影响实际发送（日志中 `pacing late` 4–8、
+`media t` 与 wall 同步推进）。修复时要么让 `wall_us` 覆盖所有发送帧，
+要么把该行改名为 clip 段耗时；在修复前不得引用该比值下结论。

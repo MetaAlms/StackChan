@@ -74,7 +74,7 @@ STREAM=0 写反，报告的 profile0来自误归类；不能据此认定 SRTP �
 | U1-1 | 冻结修正后的同一固件代码/fixture/配置，记录1.5.5库hash、ELF、ICE/实际DTLS ret/role/profile、会话回显及有界语音写出 | 取得有效基线；失败也按实际阶段记录，不要求先通过整个M1 |
 | U1-2 | 仅将peer依赖改为精确1.5.7，使用官方组件及匹配头文件；保留锁文件和无关组件 | 复核依赖差异、真实component_hash/来源/库hash；无关升级或必要传递依赖变化先交评审 |
 | U1-3 | 相同代码与参数build/flash，短握手与zh_1对照；复核新二进制pts、包容量、wrapper实际callsite契约 | 分别报告ICE/DTLS/SCTP/config/实际SRTP+UDP/VAD/ASR，不以编译或单个profile字段宣告通过 |
-| U1-4 | Codex评审版本取舍，并将采用的精确pin/证据写回清单、锁、SPEC及结果文档 | 同等拓扑无回归才采用；证据不足则继续具体定位，保留1.5.5可回退 |
+| U1-4 | Codex评审版本取舍，并将采用的精确pin/证据写回清单、锁、SPEC及结果文档 | 同等拓扑无回归才采用；证据不足则继续具体定位，保留1.5.5可回退。**2026-10-22 设备实测：7 次连通运行两版本均无 VAD/ASR；建议保持 1.5.5 基线（待评审）** |
 
 U1-0 已通过，向用户授权的新原生DSH会话
 **StackChan WebRTC U1 repair session** 派U1-1～3（替代旧stackchan）。
@@ -90,8 +90,12 @@ U1-0 已通过，向用户授权的新原生DSH会话
 含 ELF/map/flash 产物/库 hash/wrapper 实际 callsite 复核）。
 锁差异收敛为**仅 peer 条目 + manifest_hash**（组件管理器一次重求解曾改动 20 个
 无关组件，已逐条恢复基线值；处置理由见结果文档）。
-**设备离线，实测未做**：没有真实 ICE/DTLS/SRTP/VAD/ASR 结果。
-是否采用待 U1-4。完整记录见 [U1 结果](webrtc-media-u1-result.md)。
+**2026-10-22 设备实测已完成**：两臂各刷一次，之后复位重复运行；共 7 次连通运行
+（1.5.5 四次、1.5.7 三次），全部 ICE/DTLS/SRTP/UDP 通过、配置校验通过，
+但服务端 VAD/ASR 恒为 0（`zh_1` 无 turn）。1.5.5 另出现 1 次 18 连败的 DTLS
+握手超时和 1 次两重试；1.5.7 三次首握成功（样本小，不据此宣称改善）。
+是否采用待 U1-4；建议保持 1.5.5。完整记录见
+[U1 设备结果](webrtc-media-u1-device-result.md) 与 [U1 结果](webrtc-media-u1-result.md)。
 
 ### 目标
 
