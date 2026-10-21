@@ -449,3 +449,20 @@ Review5498100335与本地/PR full b45aaa7 HEAD已重新核对一致。
   产品路径（M2）应用同一修复、esp_peer 上游 issue。
 - 记录：[根因](webrtc-media-m1-srtp-profile-rootcause.md)、findings B35/B36、
   日志 `docs/device_diag_evidence/2026-10-22-u1/arm-srtp-profile-fix.log`。
+
+## 2026-10-22：M1 完整验收 PASS（自测，待评审）
+
+- 关闭 `SHORT_DIAG`，构建完整 M1（esp_peer 1.5.7 组件 + SRTP profile 修复），
+  真机跑三 clip + 300 s 资源循环。
+- 结果：`session.updated` 校验通过；zh_1/zh_2/zh_3 的 VAD 均 1/1、
+  转写与关键词 **3/3、2/2、2/2 完全一致**；全程 `vad started=69 stopped=69`、
+  `asr completed=69 failed=0`；`srtp_protect 15901/15901`、
+  `udp 15901/15901`、pacing late=2、零编码/超限/发送错误。
+- 资源：循环 318.1 s COMPLETE；DRAM free 104831→104331（min 98183）、
+  PSRAM free 7913256→7902460；sender 栈余量 10148/32768；
+  重采样 p95 455 µs、编码 p95 7637 µs / p99 9315 µs。
+- 固件最终判决：**`VERDICT: PASS`**（`acceptance incomplete: no`）。
+- 边界：单次运行、只验上行；`media/wall` 口径缺陷仍在（B34）；
+  U1-4 需修复后重跑两臂；产品路径（M2）必须移植同一修复。
+- 记录：[M1 验收结果](webrtc-media-m1-acceptance-result.md)、
+  日志 `docs/device_diag_evidence/2026-10-22-m1/m1-full-acceptance.log`。

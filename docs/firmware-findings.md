@@ -1114,3 +1114,24 @@ M1-3（完整三 clip + 5 分钟资源）与 M1.5 未跑；产品路径（M2）�
 **状态**：脚本在本机 `/tmp/aliyun_rtc_ref2.py`（未入库；含读取本地配置的逻辑，
 不应提交带凭据的运行产物）。日志要点已记入 B35 与
 [根因记录](webrtc-media-m1-srtp-profile-rootcause.md)。
+
+### B37. 修复 SRTP profile 后 M1 完整验收通过（单次运行基线）
+
+**证据**：2026-10-22 关闭短模式、完整 M1 模式真机运行（日志
+`docs/device_diag_evidence/2026-10-22-m1/m1-full-acceptance.log`）：
+
+- 3 个 clip：VAD 1/1，转写与关键词 `3/3`、`2/2`、`2/2` 完全一致；
+- 全程 `vad started=69 stopped=69`、`asr completed=69 failed=0`；
+- `srtp_protect 15901/15901`、`udp 15901/15901`、`pacing late=2`；
+  编码/重采样/超限/OOM/发送失败均为 0；
+- 300 s 资源循环 `COMPLETE`（wall 318.1 s）：DRAM free 104831→104331
+  （min 98183）、PSRAM free 7913256→7902460、sender 栈余量 10148/32768；
+- 重采样 p95 455 µs、编码 p95 7637 µs / p99 9315 µs；
+- 固件判决 `VERDICT: PASS`。
+
+**解读**：根因修复（B35）之后，M1 的四层验收在本机单次运行内成立。
+这同时确认此前"1.5.5/1.5.7 都无 VAD"不是 peer 版本问题，而是 SRTP profile/策略
+不一致；版本取舍（U1-4）仍需修复后重跑两臂。
+
+**状态**：开发侧自测通过，待评审放行 M1.5；单次运行不代表长时稳定性
+（重连/抖动/丢包属 M3）；只验上行，不涉及 AEC/打断。

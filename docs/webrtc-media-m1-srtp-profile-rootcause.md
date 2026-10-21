@@ -114,10 +114,11 @@ W M1: [short] outcome=media-completed
 
 ## 7. 未完成与后续
 
-- **M1-3 未跑**：完整三 clip + 5 分钟资源检查需要关掉
-  `CONFIG_STACKCHAN_WEBRTC_M1_SHORT_DIAG` 重新构建；短模式不能替代。
-- **M1-1/M1-2 已可在短模式复现通过**（VAD 与转写都真实出现），但按流程
-  仍以完整模式的证据为准。
+- ~~M1-3 未跑~~：2026-10-22 已完成完整模式（`SHORT_DIAG=n`，300 s 资源循环），
+  三 clip 全过、`sustained loop COMPLETE`、`VERDICT: PASS`。见
+  [M1 完整验收结果](webrtc-media-m1-acceptance-result.md)。
+- **M1-1/M1-3 均已在完整模式取得证据**（VAD 69 次 start/stop、
+  转写 3/3 完全一致、318.1 s 循环），待评审放行。
 - **产品路径（M2）也要修**：当前 wrapper 只在 `CONFIG_STACKCHAN_WEBRTC_M1`
   的探针构建里生效；接入产品 WebRTC 时必须一并应用，否则同样静默丢包。
 - **上游建议**：给 esp_peer 报 issue / PR —— 要么按协商结果选择

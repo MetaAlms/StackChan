@@ -65,7 +65,9 @@
 DTLS-SRTP 协商到 SHA1_32、而 esp_peer 固定安装 SHA1_80 策略（服务端静默丢弃）。
 修复用 `--wrap` 把 offer 收窄为 SHA1_80，已实测出现 VAD 与正确转写。
 详见 [根因记录](webrtc-media-m1-srtp-profile-rootcause.md) 与 findings B35。
-M1-1/M1-2 已在短模式复现；**M1-3 的完整三 clip + 5 分钟资源仍未跑**。
+**2026-10-22 完整模式已跑：三 clip VAD/转写全过、300 s 循环 COMPLETE、
+`VERDICT: PASS`（自测，待评审放行）**，见
+[M1 验收结果](webrtc-media-m1-acceptance-result.md)。
 
 ### U1 — 先修诊断，再验证上游 1.5.7（M1 内的依赖升级）
 
