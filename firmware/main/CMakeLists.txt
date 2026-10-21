@@ -320,7 +320,10 @@ if(CONFIG_STACKCHAN_WEBRTC_M1)
         "-Wl,--wrap=mbedtls_ssl_config_free"
         "-Wl,--wrap=mbedtls_ssl_free"
         "-Wl,--wrap=mbedtls_ssl_config_defaults"
-        "-Wl,--wrap=mbedtls_ssl_conf_transport")
+        "-Wl,--wrap=mbedtls_ssl_conf_transport"
+        # B35: the component offers SRTP profiles it cannot produce; keep the
+        # offer to the SHA1_80 policy it actually installs.
+        "-Wl,--wrap=mbedtls_ssl_conf_dtls_srtp_protection_profiles")
     message(STATUS "M1 probe: RTP/SRTP/UDP send observation enabled")
 endif()
 

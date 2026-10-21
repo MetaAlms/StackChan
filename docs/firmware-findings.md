@@ -1066,3 +1066,51 @@ ASR 等待期间持续发送的静音（1339 帧 = 26.78 s）。因此固定出�
 **状态**：仅诊断口径问题，不影响实际发送（日志中 `pacing late` 4–8、
 `media t` 与 wall 同步推进）。修复时要么让 `wall_us` 覆盖所有发送帧，
 要么把该行改名为 clip 段耗时；在修复前不得引用该比值下结论。
+
+### B35. 【根因】SRTP 协商 SHA1_32、实现 SHA1_80：服务端静默丢弃全部媒体
+
+**证据**：
+1. U1 短诊断（1.5.5/1.5.7 共 7 次连通运行）本地 SRTP/UDP 全成功，但服务端
+   `[vad]/[asr]` 恒为 0。
+2. 同端点用 **aiortc** 参考客户端发同一 `zh_1`：VAD 触发、转写
+   "今天我们测试语音连接。"、服务端回报收到 589/591 包 → 服务端无问题。
+3. 探针经 `mbedtls_ssl_get_dtls_srtp_negotiation_result()` 读到
+   **`profile=2` = `MBEDTLS_TLS_SRTP_AES128_CM_HMAC_SHA1_32`**；
+   但 `managed_components/espressif__esp_peer/src/dtls_common.h` 对所有 profile
+   都调用 `srtp_crypto_policy_set_rtp_default()`（= SHA1_80，80-bit 认证标签）。
+   服务端按 32-bit 标签校验 → 全部认证失败、静默丢包；本地 `srtp_protect`
+   与 `sendto` 当然成功，因此既有诊断看不到错误。
+4. 密钥派生不变（AES128_CM 的 key 16 B / salt 14 B 与 profile 无关）。
+
+**旁证**：屏蔽 aiortc 的 RTCP 发送后 VAD/转写仍正常（收到 575/585），
+所以"设备不发 RTCP SR"不是本问题的原因。
+
+**修复（已实测）**：在 tracked 源码里用 `--wrap` 收窄
+`mbedtls_ssl_conf_dtls_srtp_protection_profiles()` 的 offer 到
+`{SHA1_80}`（`dtls_short_probe.cc` + `main/CMakeLists.txt`），
+`managed_components` 的临时改动已还原。修复后同一短诊断：
+`profile=1`、`speech_started/stopped`、ASR 转写正确、
+`outcome=media-completed`。
+
+**状态**：根因与修复已验证 [根因记录](webrtc-media-m1-srtp-profile-rootcause.md)；
+M1-3（完整三 clip + 5 分钟资源）与 M1.5 未跑；产品路径（M2）需同样应用此修复；
+建议给 esp_peer 报上游 issue（offer 与实现不一致，应二选一修）。
+
+### B36. 参考客户端是对齐"服务端行为"与"设备实现"的最短路径
+
+**证据**：aiortc（Python，pylibsrtp/PyAV）对同一端点、同一 `zh_1`、同一
+`session.update` 建立了完整链路并通过 VAD/ASR；关键点：
+
+- 服务端会**自己开一个 `label=txt` 的 DataChannel** 并立即发 `session.created`；
+  客户端自建 `oai-events` 通道会与之抢同一 stream id 而卡在 connecting；
+- `session.update` 必须发在服务端 `txt` 通道上，回显
+  `turn_detection` 才完整（`prefix_padding_ms`、`create_response` 等）；
+- 发送前必须等 `session.updated`：参考脚本最初在 `recv()` 里睡到未来时刻，
+  导致 `start_at` 更新后仍不发送，表现为"完全没声音"的假阴性——
+  这类错误会污染对照结论。
+
+**用途**：以后再出现"设备发得出去、服务端没反应"，先花十分钟跑参考客户端，
+能把问题三分为服务端/账号、设备媒体实现、或诊断口径，再决定查哪一侧。
+**状态**：脚本在本机 `/tmp/aliyun_rtc_ref2.py`（未入库；含读取本地配置的逻辑，
+不应提交带凭据的运行产物）。日志要点已记入 B35 与
+[根因记录](webrtc-media-m1-srtp-profile-rootcause.md)。

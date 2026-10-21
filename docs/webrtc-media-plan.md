@@ -61,6 +61,12 @@
 
 ## M1 — 上行通路
 
+**2026-10-22 根因与修复**：短诊断"本地全成功、服务端无 VAD"的原因已定位为
+DTLS-SRTP 协商到 SHA1_32、而 esp_peer 固定安装 SHA1_80 策略（服务端静默丢弃）。
+修复用 `--wrap` 把 offer 收窄为 SHA1_80，已实测出现 VAD 与正确转写。
+详见 [根因记录](webrtc-media-m1-srtp-profile-rootcause.md) 与 findings B35。
+M1-1/M1-2 已在短模式复现；**M1-3 的完整三 clip + 5 分钟资源仍未跑**。
+
 ### U1 — 先修诊断，再验证上游 1.5.7（M1 内的依赖升级）
 
 上游 [1.5.7 changelog](https://components.espressif.com/components/espressif/esp_peer/versions/1.5.7/changelog?language=en)
@@ -74,7 +80,7 @@ STREAM=0 写反，报告的 profile0来自误归类；不能据此认定 SRTP �
 | U1-1 | 冻结修正后的同一固件代码/fixture/配置，记录1.5.5库hash、ELF、ICE/实际DTLS ret/role/profile、会话回显及有界语音写出 | 取得有效基线；失败也按实际阶段记录，不要求先通过整个M1 |
 | U1-2 | 仅将peer依赖改为精确1.5.7，使用官方组件及匹配头文件；保留锁文件和无关组件 | 复核依赖差异、真实component_hash/来源/库hash；无关升级或必要传递依赖变化先交评审 |
 | U1-3 | 相同代码与参数build/flash，短握手与zh_1对照；复核新二进制pts、包容量、wrapper实际callsite契约 | 分别报告ICE/DTLS/SCTP/config/实际SRTP+UDP/VAD/ASR，不以编译或单个profile字段宣告通过 |
-| U1-4 | Codex评审版本取舍，并将采用的精确pin/证据写回清单、锁、SPEC及结果文档 | 同等拓扑无回归才采用；证据不足则继续具体定位，保留1.5.5可回退。**2026-10-22 设备实测：7 次连通运行两版本均无 VAD/ASR；建议保持 1.5.5 基线（待评审）** |
+| U1-4 | Codex评审版本取舍，并将采用的精确pin/证据写回清单、锁、SPEC及结果文档 | 同等拓扑无回归才采用；证据不足则继续具体定位，保留1.5.5可回退。**2026-10-22 设备实测：7 次连通运行两版本均无 VAD/ASR；其共同根因是 SRTP profile 不匹配（已修），版本本身无差异；建议保持 1.5.5 基线（待评审）** |
 
 U1-0 已通过，向用户授权的新原生DSH会话
 **StackChan WebRTC U1 repair session** 派U1-1～3（替代旧stackchan）。

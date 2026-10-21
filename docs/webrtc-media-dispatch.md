@@ -431,3 +431,21 @@ Review5498100335与本地/PR full b45aaa7 HEAD已重新核对一致。
 - 证据与完整数据：[U1 设备结果](webrtc-media-u1-device-result.md)；
   日志在 `docs/device_diag_evidence/2026-10-22-u1/`。
 - 仍未宣告 M1 通过、未宣告 1.5.7 采用；M1.5/产品集成继续 HOLD。
+
+## 2026-10-22：M1 根因定位与修复（SRTP profile 不匹配）
+
+- 设备 7 次连通运行都是"媒体送达、服务端无 VAD"。用 aiortc 参考客户端对同一
+  端点/同一 `zh_1` 做对照：**服务端 VAD、转写、下行音频全部正常**
+  （589/591 包被服务端计入），证明服务端/账号/配置无问题。
+- 探针读到协商结果 `profile=2`（SRTP **SHA1_32**），而 esp_peer 固定安装
+  **SHA1_80** 策略：服务端对每个包认证失败并静默丢弃。本地 protect/sendto
+  成功掩盖了这一点。
+- 另做单变量实验：屏蔽 aiortc 的 RTCP 后 VAD 仍正常，**排除 RTCP 缺失**假设。
+- 修复：tracked 源码里用 `--wrap` 把 DTLS-SRTP offer 收窄为 `{SHA1_80}`
+  （`dtls_short_probe.cc` + `main/CMakeLists.txt`），组件临时改动已还原。
+  修复后同一短诊断：`profile=1`、VAD start/stop、ASR 转写正确、
+  `outcome=media-completed`。
+- 仍未做：M1-3（完整三 clip + 5 分钟资源）、修复后的 U1 两臂重跑、
+  产品路径（M2）应用同一修复、esp_peer 上游 issue。
+- 记录：[根因](webrtc-media-m1-srtp-profile-rootcause.md)、findings B35/B36、
+  日志 `docs/device_diag_evidence/2026-10-22-u1/arm-srtp-profile-fix.log`。
