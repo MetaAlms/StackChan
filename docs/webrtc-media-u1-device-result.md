@@ -8,6 +8,7 @@
 > 不匹配**（协商 SHA1_32、esp_peer 实现 SHA1_80），修复后短诊断已出现 VAD 与
 > 正确转写。详见 [根因记录](webrtc-media-m1-srtp-profile-rootcause.md)。
 > 本页的版本对照结论（1.5.5/1.5.7 无差异）不受影响。
+> 修复后两臂已重跑并据此**采纳 1.5.7**，见 [U1-4 结论](webrtc-media-u1-4-decision.md)。
 
 ## 环境与口径
 

@@ -1135,3 +1135,18 @@ M1-3（完整三 clip + 5 分钟资源）与 M1.5 未跑；产品路径（M2）�
 
 **状态**：开发侧自测通过，待评审放行 M1.5；单次运行不代表长时稳定性
 （重连/抖动/丢包属 M3）；只验上行，不涉及 AEC/打断。
+
+### B38. U1-4：修复 SRTP profile 后两臂等价，采纳 1.5.7
+
+**证据**：2026-10-22 两臂用同一源码（含 SRTP wrapper）与参数各跑一次短诊断：
+1.5.5 首握 608 ms，1.5.7 首握 595 ms；两臂均协商 `profile=1`（SHA1_80）、
+`vad started=1 stopped=1`、ASR 转写"今天我们测试语音连接。"、
+`opus packets=336`、`srtp_protect 336/336`、`outcome=media-completed`。
+锁差异仍只有 peer `component_hash`/`version` 与 `manifest_hash` 三行。
+
+**决定**：采纳 1.5.7（无回归；M1 完整 `VERDICT: PASS` 在其上取得），
+保留 1.5.5 回退路径。此前"两版本都无 VAD"的对照因 SRTP profile 缺陷失效，
+不得再用于版本取舍。
+
+**状态**：[U1-4 结论](webrtc-media-u1-4-decision.md)；每臂仅一次运行，
+未重新归档两臂构建，旧归档标注为无 SRTP 修复、不可直接用于媒体验收。

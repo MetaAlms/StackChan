@@ -466,3 +466,16 @@ Review5498100335与本地/PR full b45aaa7 HEAD已重新核对一致。
   U1-4 需修复后重跑两臂；产品路径（M2）必须移植同一修复。
 - 记录：[M1 验收结果](webrtc-media-m1-acceptance-result.md)、
   日志 `docs/device_diag_evidence/2026-10-22-m1/m1-full-acceptance.log`。
+
+## 2026-10-22：U1-4 收口，采纳 1.5.7
+
+- 修复 SRTP profile 后，用同一源码/参数把两臂各重建并跑一次短诊断：
+  1.5.5 首握 608 ms、1.5.7 首握 595 ms；两臂均 `profile=1`、
+  `vad started=1/stopped=1`、ASR "今天我们测试语音连接。"、
+  `opus packets=336`、`srtp 336/336`、`outcome=media-completed`。
+- 结论：**采纳 esp_peer 1.5.7**（无回归，且 M1 完整 PASS 在其上取得）；
+  保留 1.5.5 回退与最小锁恢复方法；SRTP 修复与版本无关必须保留。
+- 限制：每臂各一次短诊断；未重新归档两臂构建（旧归档标注为无修复、不可直接验收）。
+- 记录：[U1-4 结论](webrtc-media-u1-4-decision.md)；
+  日志 `docs/device_diag_evidence/2026-10-22-u1/arm-a-1.5.5-fixed.log`、
+  `arm-b-1.5.7-fixed.log`。
