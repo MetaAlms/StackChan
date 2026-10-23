@@ -130,3 +130,11 @@ M5Stack-StackChan-Board: Init power save timer: sleep=300 s, shutdown=600 s
 `EnableInput(false/true)`当作RX缓存已刷新；单纯等待也不会读空缓存。
 M15在新轮读取丢弃120ms源采样后重置转换器/AFE缓存，具体实现和验证边界见
 [findings B44](firmware-findings.md#b44-采集预热等待不会排空dma关闭in也未必立即关rx2026-10-23)。
+
+
+### 4.6 手动下载模式
+
+M5Stack官方步骤为长按底部microSD卡槽旁RST约3秒，进入下载模式后再刷写，
+见[官方说明](https://docs.m5stack.com/en/uiflow2/stackchan/program)。
+本机esptool USB自动复位未连接时，此步骤已使刷写成功；若写后ROM仍显示DOWNLOAD，
+本轮`--after watchdog_reset`可启动应用。具体观测见[findings B45](firmware-findings.md#b45-stackchan手动下载模式与写后rom停留2026-10-23)。

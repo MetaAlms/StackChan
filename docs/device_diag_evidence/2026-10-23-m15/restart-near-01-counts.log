@@ -1,0 +1,90 @@
+# Device candidate 80df789; run near_20261023_01.
+# Sanitized selected lines, not full raw log. Any fields after unsupported 64-bit formatting in the same line are INVALID.
+# In particular config/joined after elapsed_ms=ld and all PLAYBACK %llu fields are not interpreted.
+# Valid 32-bit MEDIA/HARDWARE/EVIDENCE/LIFECYCLE/STATUS lines and pre-LL stage/reason are retained.
+# DTLS -0x6900 is WANT_READ; 25 repeats are not an independently proven fatal error.
+# private raw sha256 e1b8e7e0638b8ef8e9dcd6bcc5cf550f701a43c74524543d316f5213f416deca
+HOST 2026-10-23T15:04:09.319976+00:00 COMMAND STATUS
+HOST 2026-10-23T15:04:20.900338+00:00 COMMAND STATUS
+HOST 2026-10-23T15:04:53.387824+00:00 COMMAND STATUS
+W (2402) WebRTC-Run: IDLE; USB commands: START <run_id> near|duplex <5..180 seconds>, STOP <run_id>, STATUS; fresh run ID for each start
+W (2412) WebRTC-Run: STATUS run=none state=Idle restart_requires_reboot=0
+HOST 2026-10-23T15:05:03.718581+00:00 COMMAND STATUS
+W (10332) WebRTC-Run: STATUS run=none state=Idle restart_requires_reboot=0
+HOST 2026-10-23T15:05:43.957922+00:00 COMMAND START near_20261023_01 near 60
+W (50542) WebRTC-Run: PREPARING run=near_20261023_01; wait for RUNNING before speech
+I (55442) WebRTC-TP: [state] NEW_CONNECTION (2)
+W (55442) WebRTC-Run: PROGRESS run=near_20261023_01 state=Preparing reason=none stage=0 session_tag=00000000 elapsed_ms=ld config=0 transport_joined=-1
+I (55442) WebRTC-TP: [state] CANDIDATE_GATHERING (3)
+W (55452) WebRTC-Run: MEDIA run=near_20261023_01 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (55462) WebRTC-Run: TIMELINE run=near_20261023_01 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=ld:ld max_send_gap_us=ld max_queue_age_us=ld
+W (55482) WebRTC-Run: PLAYBACK run=near_20261023_01 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=lu inflight_samples=lu submitted_samples=lu submitted_calls=lu submit_us=ld:ld stop_requested_us=ld stop_completed_us=ld physical_end_unknown=1
+W (55502) WebRTC-Run: HARDWARE run=near_20261023_01 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=50259 stack=27456
+I (55992) WebRTC-TP: SDP exchange: err=ESP_OK http=200
+I (56082) WebRTC-TP: [state] PAIRING (4)
+I (56082) WebRTC-TP: fed answer to peer -> 0
+I (56162) WebRTC-TP: [state] PAIRED (5)
+I (56192) WebRTC-TP: [state] CONNECTING (6)
+E (57802) DTLS: CLient handshake fail ret -0x6900
+E (58712) DTLS: CLient handshake fail ret -0x6900
+E (59702) DTLS: CLient handshake fail ret -0x6900
+W (60452) WebRTC-Run: PROGRESS run=near_20261023_01 state=Preparing reason=none stage=4 session_tag=00000000 elapsed_ms=ld config=1077499744 transport_joined=-1
+W (60452) WebRTC-Run: MEDIA run=near_20261023_01 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (60462) WebRTC-Run: TIMELINE run=near_20261023_01 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=ld:ld max_send_gap_us=ld max_queue_age_us=ld
+W (60472) WebRTC-Run: PLAYBACK run=near_20261023_01 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=lu inflight_samples=lu submitted_samples=lu submitted_calls=lu submit_us=ld:ld stop_requested_us=ld stop_completed_us=ld physical_end_unknown=1
+W (60502) WebRTC-Run: HARDWARE run=near_20261023_01 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=55335 stack=27456
+E (60622) DTLS: CLient handshake fail ret -0x6900
+E (61582) DTLS: CLient handshake fail ret -0x6900
+E (62582) DTLS: CLient handshake fail ret -0x6900
+E (63502) DTLS: CLient handshake fail ret -0x6900
+E (64502) DTLS: CLient handshake fail ret -0x6900
+E (65412) DTLS: CLient handshake fail ret -0x6900
+W (65462) WebRTC-Run: PROGRESS run=near_20261023_01 state=Preparing reason=none stage=4 session_tag=00000000 elapsed_ms=ld config=995513725 transport_joined=-1
+W (65462) WebRTC-Run: MEDIA run=near_20261023_01 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (65472) WebRTC-Run: TIMELINE run=near_20261023_01 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=ld:ld max_send_gap_us=ld max_queue_age_us=ld
+W (65482) WebRTC-Run: PLAYBACK run=near_20261023_01 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=lu inflight_samples=lu submitted_samples=lu submitted_calls=lu submit_us=ld:ld stop_requested_us=ld stop_completed_us=ld physical_end_unknown=1
+W (65512) WebRTC-Run: HARDWARE run=near_20261023_01 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=55335 stack=27456
+E (66362) DTLS: CLient handshake fail ret -0x6900
+E (67362) DTLS: CLient handshake fail ret -0x6900
+E (68262) DTLS: CLient handshake fail ret -0x6900
+E (69162) DTLS: CLient handshake fail ret -0x6900
+E (70072) DTLS: CLient handshake fail ret -0x6900
+W (70472) WebRTC-Run: PROGRESS run=near_20261023_01 state=Preparing reason=none stage=4 session_tag=00000000 elapsed_ms=ld config=0 transport_joined=-1
+W (70472) WebRTC-Run: MEDIA run=near_20261023_01 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (70482) WebRTC-Run: TIMELINE run=near_20261023_01 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=ld:ld max_send_gap_us=ld max_queue_age_us=ld
+W (70492) WebRTC-Run: PLAYBACK run=near_20261023_01 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=lu inflight_samples=lu submitted_samples=lu submitted_calls=lu submit_us=ld:ld stop_requested_us=ld stop_completed_us=ld physical_end_unknown=1
+W (70522) WebRTC-Run: HARDWARE run=near_20261023_01 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=55207 stack=27456
+E (71022) DTLS: CLient handshake fail ret -0x6900
+E (71922) DTLS: CLient handshake fail ret -0x6900
+E (72922) DTLS: CLient handshake fail ret -0x6900
+E (73872) DTLS: CLient handshake fail ret -0x6900
+E (74812) DTLS: CLient handshake fail ret -0x6900
+W (75482) WebRTC-Run: PROGRESS run=near_20261023_01 state=Preparing reason=none stage=4 session_tag=00000000 elapsed_ms=ld config=1125593708 transport_joined=-1
+W (75482) WebRTC-Run: MEDIA run=near_20261023_01 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (75492) WebRTC-Run: TIMELINE run=near_20261023_01 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=ld:ld max_send_gap_us=ld max_queue_age_us=ld
+W (75502) WebRTC-Run: PLAYBACK run=near_20261023_01 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=lu inflight_samples=lu submitted_samples=lu submitted_calls=lu submit_us=ld:ld stop_requested_us=ld stop_completed_us=ld physical_end_unknown=1
+W (75532) WebRTC-Run: HARDWARE run=near_20261023_01 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=55379 stack=27456
+E (75812) DTLS: CLient handshake fail ret -0x6900
+E (76722) DTLS: CLient handshake fail ret -0x6900
+E (77732) DTLS: CLient handshake fail ret -0x6900
+E (78662) DTLS: CLient handshake fail ret -0x6900
+E (79592) DTLS: CLient handshake fail ret -0x6900
+W (80492) WebRTC-Run: PROGRESS run=near_20261023_01 state=Preparing reason=none stage=4 session_tag=00000000 elapsed_ms=ld config=0 transport_joined=-1
+W (80492) WebRTC-Run: MEDIA run=near_20261023_01 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (80502) WebRTC-Run: TIMELINE run=near_20261023_01 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=ld:ld max_send_gap_us=ld max_queue_age_us=ld
+W (80512) WebRTC-Run: PLAYBACK run=near_20261023_01 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=lu inflight_samples=lu submitted_samples=lu submitted_calls=lu submit_us=ld:ld stop_requested_us=ld stop_completed_us=ld physical_end_unknown=1
+W (80542) WebRTC-Run: HARDWARE run=near_20261023_01 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=55371 stack=27456
+E (80602) DTLS: CLient handshake fail ret -0x6900
+I (80622) WebRTC-TP: peer main loop exited
+I (80622) WebRTC-TP: both tasks confirmed exit; releasing transport resources
+W (80622) WebRTC-Run: FINAL run=near_20261023_01 state=Failed reason=prepare_timeout stage=4 session_tag=00000000 elapsed_ms=ld config=1070474448 transport_joined=-1
+W (80632) WebRTC-Run: MEDIA run=near_20261023_01 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (80652) WebRTC-Run: TIMELINE run=near_20261023_01 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=ld:ld max_send_gap_us=ld max_queue_age_us=ld
+W (80662) WebRTC-Run: PLAYBACK run=near_20261023_01 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=lu inflight_samples=lu submitted_samples=lu submitted_calls=lu submit_us=ld:ld stop_requested_us=ld stop_completed_us=ld physical_end_unknown=1
+W (80682) WebRTC-Run: DISCARD_AT_STOP run=near_20261023_01 mic=0 down=0 events=0
+W (80692) WebRTC-Run: EVIDENCE run=near_20261023_01 items=0 missing=0 invalid=0 duplicates=0 overflow=0 keyword_mask=0 near_observed=0 speech=0 responses=0 asr_failed=0 T1_T4=NOT_ACCEPTED AEC=UNDETERMINED
+W (80712) WebRTC-Run: CAPTURE run=near_20261023_01 afe_us=ld:ld max_afe_gap_us=ld afe_samples=0 capture_callbacks=0 adc_timestamps_available=0
+W (80722) WebRTC-Run: HARDWARE run=near_20261023_01 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=70075 stack=27456
+W (80732) WebRTC-Run: LIFECYCLE run=near_20261023_01 capture_quiescent=1 transport_joined=1 reusable=1 physical_end_unknown=1
+HOST 2026-10-23T15:07:20.606105+00:00 COMMAND STATUS
+W (147182) WebRTC-Run: STATUS run=near_20261023_01 state=Idle restart_requires_reboot=0

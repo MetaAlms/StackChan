@@ -5,6 +5,7 @@
 #include "media_admission.h"
 #include "bounded_media_queue.h"
 #include "console_command.h"
+#include "decimal_log_value.h"
 #include "session_run_control.h"
 #include "webrtc_transport.h"
 #include "audio_service.h"
@@ -28,6 +29,8 @@ constexpr const char* kTag = "WebRTC-Run";
 using webrtc_media::RunMode;
 using webrtc_media::RunState;
 using webrtc_media::StopReason;
+using webrtc_media::SignedDecimal;
+using webrtc_media::UnsignedDecimal;
 const cJSON* Field(const cJSON* obj, const char* name) { return cJSON_GetObjectItemCaseSensitive(obj, name); }
 bool StringIs(const cJSON* obj, const char* value) { return cJSON_IsString(obj) && strcmp(obj->valuestring, value) == 0; }
 const char* StateName(RunState s) {
@@ -97,6 +100,7 @@ struct Run {
     uint32_t first_tx_pts = 0, last_tx_pts = 0, first_rx_pts = 0, last_rx_pts = 0;
     int64_t first_rx_us = 0, last_rx_us = 0, last_send_us = 0, max_send_gap_us = 0, max_mic_age_us = 0;
     int64_t run_stopped_us = 0;
+    uint32_t initial_read_ok = 0, initial_write_ok = 0;
     uint32_t initial_read_failed = 0, initial_write_failed = 0;
     uint32_t initial_capture_cvt_failed = 0, initial_drain_failed = 0, initial_drained_frames = 0, initial_afe_reset_failed = 0;
     AudioService::WebRtcPlaybackSnapshot initial_playback{};
@@ -231,8 +235,8 @@ void HandleEvent(Run& r, const Event& e) {
             const cJSON* id = Field(root, "item_id");
             const auto observation = r.control.ObserveAsr(r.command.run_id,
                 cJSON_IsString(id) ? id->valuestring : "", KeywordBits(Field(root, "transcript")));
-            ESP_LOGW(kTag, "ASR run=%s dt_ms=%lld item=%u status=%d keyword_mask=%u transcript_omitted=1",
-                r.command.run_id.c_str(), (long long)(dt / 1000), (unsigned)observation.ordinal,
+            ESP_LOGW(kTag, "ASR run=%s dt_ms=%s item=%u status=%d keyword_mask=%u transcript_omitted=1",
+                r.command.run_id.c_str(), SignedDecimal(dt / 1000).c_str(), (unsigned)observation.ordinal,
                 (int)observation.status, observation.keyword_mask);
             if (r.control.near_end_complete()) { r.near_observed = true; Stop(r, StopReason::Completed); }
         }
@@ -246,10 +250,10 @@ void BeginCaptureWindow(Run& r) {
     r.capture_warming = false;
     PublishState(r);
     if (!Continue(r)) return;
-    ESP_LOGW(kTag, "RUNNING run=%s mode=%s session_tag=%08lx t0_us=%lld duration_s=%lu real_mic=1 speaker=%d first_warm_afe_us=%lld",
+    ESP_LOGW(kTag, "RUNNING run=%s mode=%s session_tag=%08lx t0_us=%s duration_s=%lu real_mic=1 speaker=%d first_warm_afe_us=%s",
         r.command.run_id.c_str(), r.command.mode == RunMode::NearEnd ? "near" : "duplex", (unsigned long)r.session_tag,
-        (long long)r.control.run_started_us(), (unsigned long)r.command.duration_seconds,
-        r.command.mode == RunMode::Duplex, (long long)r.first_warm_afe_us.load());
+        SignedDecimal(r.control.run_started_us()).c_str(), (unsigned long)r.command.duration_seconds,
+        r.command.mode == RunMode::Duplex, SignedDecimal(r.first_warm_afe_us.load()).c_str());
 }
 void Report(Run& r, bool final) {
     auto p = r.audio_started ? g_audio.GetWebRtcPlaybackSnapshot() : AudioService::WebRtcPlaybackSnapshot{};
@@ -258,26 +262,26 @@ void Report(Run& r, bool final) {
     if (!p.submitted_calls) p.last_submit_started_us = p.last_submit_finished_us = 0;
     if (p.stop_completed_us <= r.initial_playback.stop_completed_us) p.stop_completed_us = 0;
     const int64_t now = esp_timer_get_time();
-    ESP_LOGW(kTag, "%s run=%s state=%s reason=%s stage=%d session_tag=%08lx elapsed_ms=%lld config=%d transport_joined=%d",
+    ESP_LOGW(kTag, "%s run=%s state=%s reason=%s stage=%d session_tag=%08lx elapsed_ms=%s config=%d transport_joined=%d",
         final ? "FINAL" : "PROGRESS", r.command.run_id.c_str(), StateName(r.control.state()), ReasonName(r.control.stop_reason()),
         r.transport.stage(), (unsigned long)r.session_tag,
-        (long long)(r.control.run_started_us() < 0 ? -1 : ((r.run_stopped_us ? r.run_stopped_us : now) - r.control.run_started_us()) / 1000),
+        SignedDecimal(r.control.run_started_us() < 0 ? -1 : ((r.run_stopped_us ? r.run_stopped_us : now) - r.control.run_started_us()) / 1000).c_str(),
         r.configuration_ok, r.transport.Stopped());
     ESP_LOGW(kTag, "MEDIA run=%s sent=%lu decoded=%lu failures=%lu mic_full=%lu mic_invalid=%lu rx_full=%lu rx_invalid=%lu event_full=%lu event_invalid=%lu",
         r.command.run_id.c_str(), (unsigned long)r.sent, (unsigned long)r.decoded, (unsigned long)r.failures,
         (unsigned long)r.mic_full.load(), (unsigned long)r.mic_invalid.load(), (unsigned long)r.rx_full.load(),
         (unsigned long)r.rx_invalid.load(), (unsigned long)r.event_full.load(), (unsigned long)r.event_invalid.load());
-    ESP_LOGW(kTag, "TIMELINE run=%s tx_pts_ms=%lu:%lu rx_pts_ms=%lu:%lu rx_us=%lld:%lld max_send_gap_us=%lld max_queue_age_us=%lld",
+    ESP_LOGW(kTag, "TIMELINE run=%s tx_pts_ms=%lu:%lu rx_pts_ms=%lu:%lu rx_us=%s:%s max_send_gap_us=%s max_queue_age_us=%s",
         r.command.run_id.c_str(), (unsigned long)r.first_tx_pts, (unsigned long)r.last_tx_pts,
-        (unsigned long)r.first_rx_pts, (unsigned long)r.last_rx_pts, (long long)r.first_rx_us, (long long)r.last_rx_us,
-        (long long)r.max_send_gap_us, (long long)r.max_mic_age_us);
-    ESP_LOGW(kTag, "PLAYBACK run=%s accepted=%lu invalid=%lu stopped=%lu stale=%lu contended=%lu full=%lu queued_samples=%llu inflight_samples=%llu submitted_samples=%llu submitted_calls=%llu submit_us=%lld:%lld stop_requested_us=%lld stop_completed_us=%lld physical_end_unknown=1",
+        (unsigned long)r.first_rx_pts, (unsigned long)r.last_rx_pts, SignedDecimal(r.first_rx_us).c_str(), SignedDecimal(r.last_rx_us).c_str(),
+        SignedDecimal(r.max_send_gap_us).c_str(), SignedDecimal(r.max_mic_age_us).c_str());
+    ESP_LOGW(kTag, "PLAYBACK run=%s accepted=%lu invalid=%lu stopped=%lu stale=%lu contended=%lu full=%lu queued_samples=%s inflight_samples=%s submitted_samples=%s submitted_calls=%s submit_us=%s:%s stop_requested_us=%s stop_completed_us=%s physical_end_unknown=1",
         r.command.run_id.c_str(), (unsigned long)r.playback_admission[0], (unsigned long)r.playback_admission[1],
         (unsigned long)r.playback_admission[2], (unsigned long)r.playback_admission[3], (unsigned long)r.playback_admission[4],
-        (unsigned long)r.playback_admission[5], (unsigned long long)p.queued_samples, (unsigned long long)p.inflight_samples,
-        (unsigned long long)p.submitted_samples, (unsigned long long)p.submitted_calls,
-        (long long)p.last_submit_started_us, (long long)p.last_submit_finished_us,
-        (long long)r.stop_requested_us.load(), (long long)p.stop_completed_us);
+        (unsigned long)r.playback_admission[5], UnsignedDecimal(p.queued_samples).c_str(), UnsignedDecimal(p.inflight_samples).c_str(),
+        UnsignedDecimal(p.submitted_samples).c_str(), UnsignedDecimal(p.submitted_calls).c_str(),
+        SignedDecimal(p.last_submit_started_us).c_str(), SignedDecimal(p.last_submit_finished_us).c_str(),
+        SignedDecimal(r.stop_requested_us.load()).c_str(), SignedDecimal(p.stop_completed_us).c_str());
     if (final) {
         ESP_LOGW(kTag, "DISCARD_AT_STOP run=%s mic=%lu down=%lu events=%lu",
             r.command.run_id.c_str(), (unsigned long)r.stop_discard_mic,
@@ -286,15 +290,17 @@ void Report(Run& r, bool final) {
             r.command.run_id.c_str(), (unsigned)r.control.asr_items(), (unsigned long)r.control.asr_missing_item(),
             (unsigned long)r.control.asr_invalid_item(), (unsigned long)r.control.asr_duplicates(), (unsigned long)r.control.asr_overflow(),
             r.control.keyword_mask(), r.near_observed, (unsigned long)r.speech, (unsigned long)r.responses, (unsigned long)r.asr_failed);
-        if (r.capture_callbacks.load() == 0) ESP_LOGW(kTag, "CAPTURE run=%s afe_us=%lld:%lld max_afe_gap_us=%lld afe_samples=%lu capture_callbacks=%u adc_timestamps_available=0",
-            r.command.run_id.c_str(), (long long)r.first_afe_us, (long long)r.last_afe_us, (long long)r.max_afe_gap_us,
+        if (r.capture_callbacks.load() == 0) ESP_LOGW(kTag, "CAPTURE run=%s afe_us=%s:%s max_afe_gap_us=%s afe_samples=%lu capture_callbacks=%u adc_timestamps_available=0",
+            r.command.run_id.c_str(), SignedDecimal(r.first_afe_us).c_str(), SignedDecimal(r.last_afe_us).c_str(), SignedDecimal(r.max_afe_gap_us).c_str(),
             (unsigned long)(r.capture_pts_ms * 16), r.capture_callbacks.load());
         else ESP_LOGE(kTag, "CAPTURE run=%s snapshot_unavailable=1 callback_join_timeout=1", r.command.run_id.c_str());
     }
     if (r.audio_started) {
         auto* h = static_cast<CoreS3AudioCodec*>(Board::GetInstance().GetAudioCodec());
-        ESP_LOGW(kTag, "HARDWARE run=%s read_failed=%lu write_failed=%lu capture_cvt_failed=%lu drain_failed=%lu drained_source_frames=%lu afe_reset_failed=%lu dram=%u stack=%u",
-            r.command.run_id.c_str(), (unsigned long)(h->ReadFailed() - r.initial_read_failed),
+        ESP_LOGW(kTag, "HARDWARE run=%s read_ok=%lu write_ok=%lu read_failed=%lu write_failed=%lu capture_cvt_failed=%lu drain_failed=%lu drained_source_frames=%lu afe_reset_failed=%lu dram=%u stack=%u",
+            r.command.run_id.c_str(), (unsigned long)(h->ReadOk() - r.initial_read_ok),
+            (unsigned long)(h->WriteOk() - r.initial_write_ok),
+            (unsigned long)(h->ReadFailed() - r.initial_read_failed),
             (unsigned long)(h->WriteFailed() - r.initial_write_failed),
             (unsigned long)(g_audio.WebRtcCaptureConversionFailed() - r.initial_capture_cvt_failed),
             (unsigned long)(g_audio.WebRtcCaptureDrainFailed() - r.initial_drain_failed),
@@ -313,6 +319,8 @@ void RunBody(Run& r) {
     if (Continue(r) && !r.codec.Open()) { ++r.failures; Stop(r, StopReason::Error); }
     if (Continue(r)) {
         auto* h = static_cast<CoreS3AudioCodec*>(Board::GetInstance().GetAudioCodec());
+        r.initial_read_ok = h->ReadOk();
+        r.initial_write_ok = h->WriteOk();
         r.initial_read_failed = h->ReadFailed();
         r.initial_write_failed = h->WriteFailed();
         if (!g_audio_initialized) {

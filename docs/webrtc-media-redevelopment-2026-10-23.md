@@ -4,7 +4,7 @@
 
 保留已通过复核的 M1 上行、精确 esp_peer 1.5.7、SRTP SHA1_80 修复与真实 48k PCM 编解码。
 替换 `2b69e06` 的自动启动限时探针，重新实现受控会话、停止准入和证据边界。
-本轮完成的是离线开发，**没有刷写、复位、读串口、开启设备采集或云端会话**。
+80df789交付前仅做离线开发。之后用户明确“开始”，已完成下文首轮设备启动门/准备超时观测；近端媒体未运行。
 没有登记 T1–T4、AEC、插话、重连或完整产品移植通过。
 
 历史“安静时反复 ASR”和文本重合不能独立证明声学回声；
@@ -88,7 +88,7 @@ close/join失败的owner保留，最终标Failed，不能以等待时间代替jo
 | media-admission | 530断言，永久取消及128轮线程竞争 | redevelop-admission-1 |
 | capture-lifecycle | 60检查，读取/Stop/Start/Access实际线程互斥及旧generation隔离 | restart-capture-lifecycle-1 |
 
-台账当前used=25，limit=32。检查仅覆盖实际共享的可移植组件，
+R0离线阶段used=25，limit=32；下方Nano修复后used=26。检查仅覆盖实际共享的可移植组件，
 不覆盖 USB 驱动、设备调度、音频库/硬件、网络或模型服务。
 编译与以下操作在控制器覆盖之外，单独记录：
 
@@ -101,7 +101,37 @@ close/join失败的owner保留，最终标Failed，不能以等待时间代替jo
 `/Users/amtf/.codex/dev-harness/artifacts/stackchan-webrtc-media/m15-takeover/`。
 含凭据的构建产物不加入仓库，不把原始 SDP/转写放进报告。
 
-## 下一轮操作顺序（尚未执行）
+## 首轮授权设备观测（80df789，2026-10-23）
+
+用户明确“开始”，授权先观察Idle20秒，再最多60秒near；没有授权顺带双向或重连。
+自动复位连接三次未成功，用户按官方步骤长按RST进入下载模式后app写入/hash校验成功。
+RTS硬复位仍停DOWNLOAD，改watchdog复位后正常从0x20000启动候选。
+
+- 默认Idle实际观察约48秒；显式START前没有POST/peer/AFE启动标记，USB STATUS为Idle。
+- START near_20261023_01 near 60后HTTP200、ICE配对，停在DTLS CONNECTING；没有CONNECTED/DataChannel/RUNNING。
+- 25次-0x6900对应MBEDTLS_ERR_SSL_WANT_READ；它单独不是致命错误证明，亦不证明SRTP策略或AEC问题。
+- 准备30秒超时，FINAL reason=prepare_timeout；MEDIA sent/decoded为0、ASR items=0、drained_source_frames=0。
+  **未提示用户读句子，近端测试未执行。**
+- LIFECYCLE capture_quiescent=1 transport_joined=1 reusable=1，随后STATUS Idle。
+- 当前Nano配置不支持%lld/%llu，打印出ld/lu并影响后续参数；这些行的后续config、时间和播放样本字段不采信。
+  只有32位MEDIA/HARDWARE/EVIDENCE/LIFECYCLE/STATUS及前置stage/reason用于上述结论；旧候选未报告write_ok，不能声称硬件零次写。
+- 独立对照旧device-echo-fallback.log也有65次WANT_READ且未连接；旧成功日志约620–630ms进入CONNECTED。
+  这说明失败形态早已存在，不能据本轮归因重构；当前新候选传输也未获设备放行。
+
+脱敏证据：[restart-near-01-counts.log](device_diag_evidence/2026-10-23-m15/restart-near-01-counts.log)。
+本轮结束后没有自动重启会话/重刷。设备保持Idle；启动门/超时清理观察有效，T1/媒体/AEC不作结论。
+
+### 随后离线日志修复
+
+ESP-IDF components/newlib/Kconfig明确Nano不支持64位整数格式，与设备ld/lu及后续字段错位吻合。
+M15改为固定栈缓冲手动十进制转换后用%s输出，不改全局libc配置、不改握手行为；
+同时新增per-run read_ok/write_ok增量，下一轮才能核对硬件提交次数。
+原台账epoch11→12、used25→26、limit32，新增decimal-log-value（41检查）通过；
+独立只读复核参数顺序/临时buffer生命周期/INT64_MIN和UINT64_MAX边界均通过；
+媒体固件构建通过，应用0x3cbae0、分区余量23%。
+该修复未刷入设备，设备当前仍80df789。修复不宣称解决DTLS停滞；下一轮另等“开始”。
+
+## 后续设备操作顺序（待新“开始”）
 
 每轮先说明内容和时间，**等用户明确说“开始”**，再操作设备。
 首轮只验启动门与近端控制；先观察 Idle 不自动开云端会话，再显式 START。

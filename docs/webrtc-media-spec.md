@@ -441,6 +441,7 @@ reset无错误且RunBody日志/析构全部完成才允许显式 START 新ID。�
 `STOP acknowledged` 只确认收到请求，须等待 FINAL/LIFECYCLE 和 STATUS Idle；软停止不证明 DMA 无尾音。
 详见 [重新开发交付记录](webrtc-media-redevelopment-2026-10-23.md)。
 
+80df789首轮仅观察到默认Idle/显式启动及准备超时清理；DTLS未完成，近端未运行，Nano日志的64位及后续字段不采信。
 M2 产品接入和 T3/T4 的响应归属前置仍未完成；受控入口离线检查通过仅允许准备下一轮，
 不自动放行真机测试或替代上述里程碑。
 

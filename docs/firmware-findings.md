@@ -1237,3 +1237,30 @@ reset AFE/input buffer；fetch task 独立运行，输出缓冲区没有在 Stop
 随后校验转换器reset及AFE ringbuf reset（接口返回1成功/-1失败），首AFE回调后才开放发送和计时。
 读取、reset、Feed和输入电源timer使用统一同步边界；转换/排空/reset失败单列并结束准备。
 已做代码复核、共享同步组件60项检查和两配置构建；设备新轮边界、DSP内部历史/实际尾音仍待实测。
+
+
+### B45. StackChan手动下载模式与写后ROM停留（2026-10-23）
+
+**证据**：本轮USB自动复位未收ROM响应；用户长按底部microSD旁RST约3秒进入下载模式后，
+`--before no_reset`刷入80df789成功并校验hash。`--after hard_reset`后仍见boot0x23 DOWNLOAD，
+改`--before no_reset --after watchdog_reset chip_id`后见boot0x2b SPI_FAST_FLASH_BOOT，启动0x20000应用。
+官方步骤：[M5Stack StackChan下载模式](https://docs.m5stack.com/en/uiflow2/stackchan/program)。
+
+**状态**：本轮已恢复应用启动，非固件写入失败；后续不能把有串口节点等同ROM已响应，
+也不能把写后仍在ROM的STATUS无响应当作应用Idle失败。M15跳过正常产品UI，Starting up屏幕文字本身不是进程状态证据。
+
+### B46. Nano不支持64位格式，M15日志后续字段错位（2026-10-23）
+
+**证据**：80df789启用CONFIG_LIBC_NEWLIB_NANO_FORMAT；ESP-IDF components/newlib/Kconfig说明不支持64位整型格式。
+本轮实际`elapsed_ms=ld`、`submitted_samples=lu`，且后续config/transport_joined等字段出现无效值。
+不能根据这类字段推断配置、时间或播放计数。见[脱敏日志](device_diag_evidence/2026-10-23-m15/restart-near-01-counts.log)。
+
+**状态**：M15改固定栈缓冲十进制转换和%s，补read_ok/write_ok增量；离线41项边界/相邻参数检查及独立复核通过。
+固件重新构建通过，尚未刷入设备。只修观测，不声称修复DTLS。
+
+### B47. 首轮受控启动DTLS阶段未完成，媒体未运行（2026-10-23）
+
+**证据/状态**：80df789默认Idle约48秒无网络/AFE启动，显式START后HTTP200、ICE配对，停CONNECTING。
+25次-0x6900是WANT_READ；准备超时安全结束，sent/decoded/ASR/drain均0，LIFECYCLE三项为1，STATUS回Idle。
+旧echo-fallback日志已有同形态，不能单轮归因为此次生命周期重构，也不将WANT_READ单独当作致命错误。
+**本轮只支持启动门/超时清理观察；没有近端/T1或AEC结论。** 后续设备诊断须新“开始”，不自动重跑。
