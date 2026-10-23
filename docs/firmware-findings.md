@@ -1227,11 +1227,13 @@ reset AFE/input buffer；fetch task 独立运行，输出缓冲区没有在 Stop
 这是持久任务的迭代静止边界，不是销毁所有AudioService任务的完整join，也不宣称自动重连或真机多轮已通过。
 见 [重新开发记录](webrtc-media-redevelopment-2026-10-23.md)。
 
-### B44. 采集预热等待不会排空DMA，关闭IN也未必立即关RX（2026-10-23）
+### B44. 采集预热等待不等于排空DMA；RX延期关闭论据已收窄（2026-10-23）
 
 **证据**：`audio_codec.h`的DMA为6×240帧，CoreS3输入24k（约60ms）；
-`esp_codec_dev/platform/audio_codec_data_i2s.c`的SOC_I2S_HW_VERSION_1分支在配对TX启用时延期关闭IN。
 旧AudioInputTask预热仅`vTaskDelay(120)`，这段时间并未读取/丢弃RX缓存；AFEStop单独重置也不能排掉ADC缓存。
+**论据纠正**：平台源码“TX启用时延期关闭IN”受`SOC_I2S_HW_VERSION_1`条件限制，
+本机ESP32-S3为VERSION_2，不能援引该分支断言本板关闭IN会延期。
+这不改变睡眠不等于主动读取排空的事实，也不据此修改现有实际排空方案。
 
 **状态**：M15新轮实际读出并丢弃12次10ms原始源采样（24k共2880帧，大于当前DMA容量），
 随后校验转换器reset及AFE ringbuf reset（接口返回1成功/-1失败），首AFE回调后才开放发送和计时。
@@ -1317,3 +1319,49 @@ esptool读回0x8000起4096字节，前3072字节与本地partition bin逐字节�
 
 **后续单轮观测**：4e53790本轮自动刷写/hash校验成功，RTS硬复位直接正常Idle，未观察到分区校验异常。
 这仅是后续一轮正常启动，不定位或消除694b695写后异常根因；未改分区表，也未进行连续重启验收。
+
+
+### B50. 安静环境双向出现反复短答与电流声，根因未定（2026-10-23）
+
+**证据**：4e53790的duplex_20261023_04先弹窗确认再START，RUNNING后用户只说一次故事请求，
+随后确认一直安静、无其他音源。设备反复“从前+电流声”；root立即STOP，用户确认声音已停。
+运行58180ms，reason=requested；ASR17、speech18、response17，计数包含初始合法请求，不能直接等同回声触发次数。
+sent2886、mic_full17、停止排空mic4，AFE930240样本=2907帧，三项闭合；
+decoded/accepted/write_ok均780，submitted_samples354000，即24k下累计API音频14.75秒，
+不证明连续≥30秒声学播放。read_ok5835、排空2880帧，硬件/转换/drain/reset错误0。
+LIFECYCLE三项1，STATUS回Idle；用户确认STOP后声音停，无声学延迟测量，无再START。
+见[duplex-04-counts.log](device_diag_evidence/2026-10-23-m15/duplex-04-counts.log)。
+
+**状态**：本轮可听播放质量与重复行为未通过，正式T2证据不足、AEC未定。
+缺正常/最高预期音量、多次连续≥30秒、实际声学回声对照等完整控制；
+不能将循环唯一归因为声学回声、服务器缺陷或本地格式错误。串口打开实际触发USB reset，不能当同进程多轮证据。
+near03的T1单轮通过保持，T3/T4、M1.5整体、重连/产品尚未通过。
+**2026-10-24离线补充**：已增加TURN事件元数据与Codec样本计数，AFE等待/CodecStats/最终TURN独立复核通过。
+TURN初稿共享essential队列的问题已修为独立8项诊断队列，满仅记drop；原essential8项保持。
+最多64项记录在结束后打印，接收与快照时间分离，缺失/非法、截断/溢出、停止丢弃分别记录；
+FNV32仅供诊断，不作RTP归属。结束后报告48k/24k样本、直方图、accepted/submitted样本与峰值/端点。
+只观察`response.done.response.status`；`status_details`实际返回才记录，两个会话bool为三态观测不改配置。
+媒体/WS构建与四源码补丁重建通过，详见重新开发记录；实现4d5fa0b已推送并刷入，
+只完成启动/20秒Idle准备，尚无媒体效果验证，不声称声音已修复。
+
+### B51. M15的20ms AFE等待短于32ms音频块，产生高频失败日志（2026-10-23）
+
+**证据**：AFE日志feed/fetch均512样本、16k，即32ms块。M15使用20ms有限fetch等待，
+near03打印731次、duplex04打印1845次`AfeAudioProcessor: Error code:-1`；
+正常近端T1同样出现，不能把该日志总数当成实际采样错误或双向循环根因。
+`esp_afe_sr_iface.h`将ticks_to_wait定义为等待结果的超时，结果提前到达可返回，并非每次固定睡眠。
+20ms窗口短于音频块，预期等待与真实ESP_FAIL在现有日志中没有区分，高频同步输出也可能扰动调度。
+
+**处置/状态**：最小改动仅M15等待20→100ms（至少1tick），保留所有错误日志/处理、
+running检查、input/fetch锁、Stop迭代静止边界；普通模式仍portMAX_DELAY，不改音频数据/模型/AGC/AEC。
+100ms覆盖块周期及调度余量，但不是Stop硬上界，锁等待/回调仍有额外耗时。
+**2026-10-24验证**：跟踪AFE lifecycle patch已同步，独立复核通过。
+root从xiaozhi HEAD e77dedb1309153bb63fed285772962c920c97dd4依次应用vendor/Aliyun/media/AFE四补丁，
+AudioService h/cc与AFE h/cc均和live逐字节一致。IDF5.5.4媒体构建通过（0x3ccc30，余23%），
+独立WebSocket回退构建通过（0x3a37a0，余26%）；两构建/重建在控制器外，原台账epoch12/26of32不变。
+实现4d5fa0b已推送并刷入；只完成启动/20秒Idle准备，尚未START、无媒体效果验证，
+不能声称高频日志已在设备消失或“从前+电流声”已修复。当前弹窗Q等待用户开始，预定duplex05仅30秒诊断。
+
+**本次刷写准备记录**：首次default_reset无串口数据；用户弹窗确认手动下载后，no_reset刷写/hash通过。
+RTS硬复位停ROM下载，单独watchdog_reset chip_id后正常Idle；观察20秒无START/POST/peer/AFE。
+该操作只验证候选启动/Idle，不改变分区，也不定位历史启动或声音异常根因。

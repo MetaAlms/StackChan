@@ -8,7 +8,8 @@
 694b695第二轮没有同步到有效近端刺激；4e53790第三轮先弹窗确认再START，
 用户确认三句已说完，观察到3个独立Accepted ASR item的关键词覆盖；
 结合ASR配置、真实采集/编码/发送、喇叭关闭及无错误，经独立人工复核，**SPEC §6.2 的T1单项通过**。
-T2–T4、M1.5整体、AEC、插话、重连或完整产品移植仍未通过。
+随后duplex04出现用户安静时反复“从前+电流声”，播放质量与本轮行为未通过；正式T2证据不足，AEC未定。
+T3/T4、M1.5整体、插话、重连或完整产品移植仍未通过。
 
 历史“安静时反复 ASR”和文本重合不能独立证明声学回声；
 旧“三句3/3”仅为未对时会话中的关键词覆盖，不是正式 T1。
@@ -211,8 +212,99 @@ ASR等短日志仍在发送worker同步输出，约14ms线速估算仍不是执�
 原始日志保留`T1_T4=NOT_ACCEPTED AEC=UNDETERMINED`：这是程序不自动验收的硬编码标记，
 不妨碍依据原始观测和§6.2进行人工单项T1复核。**T2–T4、M1.5整体与AEC仍未通过**，
 本轮不代替双向回声、插话、同进程多轮、长期资源或产品验收。
-设备当前为4e53790，Idle；台账仍epoch12、used26、limit32。
+该轮结束时设备为4e53790，Idle；台账仍epoch12、used26、limit32。
 脱敏证据：[live-near-03-counts.log](device_diag_evidence/2026-10-23-m15/live-near-03-counts.log)。
+
+## 第四轮授权双向观测（duplex04，4e53790）
+
+复用设备上的4e53790，不重刷；串口打开时虽未请求复位，实际仍出现USB_UART_CHIP_RESET并从Idle启动。
+因此**本轮不是同进程near→duplex重开证据**。Idle阶段无POST/peer/AFE标记，
+先弹窗Q，用户明确点“开始”后才发`START duplex_20261023_04 duplex 180`。
+RUNNING后用户只说一次故事请求，随后明确确认一直安静、没有其他音源。
+本轮沿用已保存音量，实际NVS值未读取，未覆盖正常/最高预期两档。
+
+用户听到设备无限重复“从前”并交替电流/静态噪声，root获报后立即STOP；用户确认声音已停。
+运行实际58180ms，以`reason=requested`结束，没有等到180秒超时。
+
+- stage=6、config=1、speaker=1、real_mic=1，sent=2886、decoded=780、failures=0。
+  mic_full=17，mic/rx/event的invalid及rx_full/event_full均0；停止排空mic=4、down/events=0。
+  AFE930240样本=2907个20ms帧=2886发送+17队列满+4停止排空。
+  最大SendAudio间隔40262us、队列年龄129469us，不能登记持续无丢帧。
+- 780个下行包被解码并准入播放，submitted_calls=780、write_ok=780，排队/处理中样本最后为0。
+  submitted_samples=354000，在24k下相当于**累计API音频14.75秒**，
+  不是实际连续播放时长，不满足完整T2要求的“多次连续≥30秒”的证明。
+- ASR独立item=17、speech=18、responses=17，缺失/非法/重复/溢出及ASR失败均0。
+  这些计数包含最初合法故事请求，不把总数直接等同回声自触发次数；
+  用户安静确认与重复可听输出证实本轮异常行为，但不能唯一归因为声学回声或服务端AEC缺陷。
+- HARDWARE read_ok=5835、write_ok=780，源排空2880帧，read/write、转换、drain、AFE reset错误均0。
+  API成功不能证明样本格式、音质、物理回声或实际播放完成。
+- LIFECYCLE的capture_quiescent、transport_joined、reusable均1，STATUS回Idle。
+  用户确认STOP后声音停，但没有声学停止延迟测量；串口关闭，无后续START或自动重试。
+
+**结论**：双向收发/播放API链路有观测，本轮重复回答与播放质量未通过；**正式T2证据不足、AEC未定**。
+缺少两档音量、多次连续≥30秒、实际声学回声对照与播放期间连续上行的充分控制，
+不把本轮直接判为服务端AEC失败，也不掩盖可听异常。T1的near03单轮通过保持，
+T3/T4、M1.5整体、同进程多轮、重连与产品验收仍未通过。
+证据：[duplex-04-counts.log](device_diag_evidence/2026-10-23-m15/duplex-04-counts.log)。
+原台账保持epoch12、used26/limit32；本轮设备观测不计作离线检查。
+
+### 随后离线修复与观测补充（2026-10-24，验证通过、已完成刷写准备）
+
+只读复核实际AFE管线为`[input] -> VAD(WebRTC) -> [output]`，near03与duplex04一致；
+源码AGC/AEC关闭，不支持“本轮本地AEC/NS/BSS误开”的归因。
+MR仍把第二物理麦放在参考位置；代码没有将下行PCM直接注入输入/参考，输入与输出转换器独立。
+TX打开时从stereo/mask3重配到mono/mask1，仍24k/16bit/WS16，未见RX重配；
+这既不证明输入被污染，也不能仅凭API返回成功排除格式/模拟音频问题。
+
+已定位独立的日志扰动：M15的fetch等待20ms短于512/16k=32ms音频块，
+near03打印731次、duplex04打印1845次`Error code:-1`，预期等待与真实故障没有在日志中区分。
+库接口定义的是等待结果的超时，不是固定睡眠。最小改为仅M15有限等待100ms（至少1tick），
+保留running检查、输入/fetch锁、Stop迭代静止边界及全部错误处理，普通模式仍portMAX_DELAY。
+100ms不是Stop硬上界，锁/调度/回调耗时还在其外；本改动不改模型、AGC、AEC或音频数据。
+跟踪AFE lifecycle patch已同步，独立复核通过；重建/两配置构建结果如下。
+之后仅完成下方刷写/Idle准备，尚无媒体效果验证，不声称高频等待日志已消失或“从前+电流声”已修复。
+
+事件元数据与Codec样本统计已完成纯观测实现：
+
+- TURN使用独立8项compact metadata队列，原essential事件队列仍为8项；
+  诊断队列满只增加diagnostic_dropped，不挤占essential或令会话失败。
+  worker最多保存64项，媒体停止后才打印；溢出、字段缺失/非法、停止丢弃单列。
+- receive_ms是回调接收时间，snapshot_ms是worker处理/取统计的时间；
+  独立队列的处理顺序不保证原始接收顺序，API快照也不是原子声学播放边界。
+  FNV32标签仅供诊断关联，不是无碰撞身份或RTP归属规则。
+- 依据[阿里云服务端事件](https://help.aliyun.com/zh/model-studio/server-events)的`response.done.response.status`观察响应结束；
+  `status_details`只在实际返回时观测，不假定必有或具有固定原因字段。
+  `create_response`与`interrupt_response`仅记录true/false/unknown三态，不改变会话配置。
+- 结束后报告成功Decode的48k样本、转换后的24k样本、解码样本数直方图、
+  播放accepted/submitted样本及PCM24最大绝对值/精确s16端点计数。
+  这些是音频数据的只读统计，不改变编解码器/滤波器状态、VAD或播放样本；端点计数本身不证明失真。
+  不输出原始JSON、转写正文、原始事件ID或凭据。
+
+独立复核已通过AFE有限等待、CodecStats及最终TURN实现。
+TURN初稿共享essential队列的风险已改为上述独立诊断队列，最终复核确认该发现关闭。
+root在2026-10-24执行最终验证：
+
+| 验证 | 实际结果 |
+|---|---|
+| ESP-IDF5.5.4媒体构建 | 通过；应用0x3ccc30，分区余量23% |
+| 独立WebSocket回退构建 | 通过；应用0x3a37a0，分区余量26% |
+| 依赖补丁重建 | xiaozhi HEAD `e77dedb1309153bb63fed285772962c920c97dd4` → vendor → Aliyun → media → AFE；AudioService h/cc及AFE h/cc四源码均与live逐字节一致 |
+
+原台账仍epoch12、used26/limit32；此次只补计数/记录，没有新增可移植行为检查或镜像实现测试。
+两配置构建与补丁重建在离线控制器覆盖外单独记录，不伪计为受控测试。
+实现提交`4d5fa0b80c82765ed869c202a8d7087532fc1364`已推送；候选已刷入，**只完成启动/Idle准备，未做媒体验证**。
+不宣称噪声或重复回答已修复。
+
+### 诊断候选设备准备（2026-10-24，仅启动/Idle）
+
+首次default_reset未收到串口数据；弹窗确认用户手动进入下载模式后，no_reset刷写/hash校验通过。
+RTS硬复位仍停ROM下载，单独watchdog_reset chip_id后正常启动Idle。已观察20秒，
+未发送START、无POST/peer/AFE启动标记。该恢复步骤不改变分区或归因历史启动异常。
+
+当前设备为4d5fa0b，Idle；已弹窗Q等待用户明确点击“开始”，预定仅30秒duplex05诊断。
+**截至本准备记录，尚未发送START**，没有该候选的音频、TURN、等待日志效果或AEC结论。
+准备授权不替代真正START前的弹窗确认，不自动重跑；根因仍未定。
+
 
 ## 后续设备操作顺序（待新“开始”）
 
@@ -220,8 +312,10 @@ ASR等短日志仍在发送worker同步输出，约14ms线速估算仍不是执�
 真正START前，**先弹窗Q用户说明该轮内容与时长；等用户看到该弹窗并明确点“开始”后，
 才发送START、打开采集与倒计时**。不得先开启60秒窗口再等待用户注意消息。
 看到RUNNING后才提示具体读句，时间从新t0开始；用户未回应就不启动这一轮。
-下一轮内容与时长单独约定；当前近端关键词覆盖不自动授权双向、重连或新采集。
-最终检查 speaker提交为0、独立输入item、错误/丢弃与停止原因；不得自动把关键词mask7登记T1通过。
+本次诊断固件已刷入并确认Idle，当前弹窗Q等待明确“开始”；只有该弹窗获回应才发送START、采集/倒计时。
+预定duplex05仅30秒，不当完整T2，也不自动追加重连或新一轮。
+近端模式核对speaker提交为0；双向诊断核对下行样本/提交与TURN序列、独立item、错误/丢弃及停止原因。
+不得自动把关键词mask7登记T1通过。
 后续双向及任何重启/采集均重新对表，不沿用上一轮“开始”。
 
 设备端命令（LF或CRLF，单空格分隔）：
