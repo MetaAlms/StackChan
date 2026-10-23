@@ -1,9 +1,19 @@
 # StackChan 直连阿里云 V2V 改造计划
 
-**2026-10-13 接续**：媒体设计D0已通过Review5445711841，M1尚未通过。
-用户授权按[媒体PLAN U1](webrtc-media-plan.md)受控验证esp_peer1.5.7：
-先纠正DTLS诊断身份（现有profile0归属无效），再做同代码1.5.5/1.5.7对照，
-复核后采用精确pin。WebSocket回退与48k PCM要求保留，M1.5/产品接入待M1验收。
+**2026-10-23 当前状态**：媒体设计 D0 与 M1 上行已复核放行；U1 修复后两臂对照完成，
+采用精确 esp_peer 1.5.7，保留 1.5.5 回退。DTLS 身份误归类与 SRTP profile 问题已有纠正，
+不重启旧排查。真实48k PCM 编解码、16→48/48→24 重采样和 WebSocket 回退仍是硬需求。
+
+完整 WebRTC 产品移植尚未完成。当前 M1.5 仅为限时双向探针；历史三句是未对时的关键词覆盖，
+不登记正式 T1 通过，也不据重复事件或文本重合判定 AEC 失败。
+本轮优先重开发公共媒体会话生命周期、停止/旧任务隔离及默认 Idle 的显式 START/STOP 入口，
+补齐 t0、采集/下行 pts、分原因丢帧与独立 input item 的 ASR 去重。
+M2 产品音频/事件/UI/重连、T3/T4 所需响应归属规则仍未完成；顺序以
+[媒体 SPEC §4.8](webrtc-media-spec.md) 与 [媒体 PLAN R0–R3](webrtc-media-plan.md) 为准。
+本轮已实现默认 Idle 的受控命令入口、不可撤销 STOP 准入、预热后 t0、独立 item 去重及播放 API 提交观测。
+暂时一轮/上电；AFE join/安全重连、同会话插话与完整产品接入仍未交付。
+本轮只做离线开发验证；每轮真机测试先说明内容与时长，等用户明确说“开始”，不自动启动采集。
+离线交付与待做项见 [重新开发记录](webrtc-media-redevelopment-2026-10-23.md)。
 
 > 目标：StackChan 开机后**只连阿里云百炼**，用 `qwen3.8-omni-flash-realtime` 做实时语音对话 + 表情联动。
 > 不给小志后端（`api.tenclass.net`）也不给 M5Stack 后端（`47.113.125.164:12800`）付任何费用，也不联系它们。
@@ -13,10 +23,10 @@
 **2026-10-08 状态更新**：本页保留初版 WebSocket 方案。
 下文“回采参考已开/AEC 无需自研/WebRTC 不可用”已被后续复核修正，以
 [问题台账](firmware-findings.md)、[AEC 边界](aec-limitation.md)为准。
-M0 已证 WebRTC 握手/事件互通；媒体 SPEC/PLAN 已按评审完成 D0 修订
-（待 Codex 复审）。服务端 AEC 仍为**待验证假设**；Opus 的 48k RTP clock
+M0 已证 WebRTC 握手/事件互通；媒体 SPEC/PLAN 的 D0 修订已复核通过。
+服务端 AEC 仍为**待验证假设**；Opus 的 48k RTP clock
 不强制 PCM 48k，本方案采用的 48k PCM 是用户指定的实现选择。
-下一步进入 WebRTC 媒体链路移植。设计（D0 修订版，**待 Codex 复审**）：
+当前 WebRTC 媒体链路移植设计与执行状态：
 [SPEC](webrtc-media-spec.md)、[PLAN](webrtc-media-plan.md)、
 [评审请求](webrtc-media-review-request.md)；上一轮
 [媒体评审结果](webrtc-media-review-result.md) 保留为历史证据。
@@ -24,7 +34,7 @@ M0 已证 WebRTC 握手/事件互通；媒体 SPEC/PLAN 已按评审完成 D0 �
 
 ---
 
-## 0. 现状事实（已核实）
+## 0. 初版 WebSocket 方案事实（历史，非当前 WebRTC 结论）
 
 | 项 | 结论 | 证据 |
 |---|---|---|

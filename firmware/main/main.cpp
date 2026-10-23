@@ -89,11 +89,7 @@ extern "C" void app_main(void)
 #endif
 
 #if CONFIG_STACKCHAN_WEBRTC_M15
-    Board::GetInstance().StartNetwork();
-    while (!WifiManager::GetInstance().IsConnected()) {
-        GetHAL().feedTheDog();
-        GetHAL().delay(500);
-    }
+    // Idle until the operator explicitly starts a named run.
     WebRtcM15Run();
 #endif
 

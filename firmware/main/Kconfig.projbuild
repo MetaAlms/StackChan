@@ -1,23 +1,14 @@
 config STACKCHAN_WEBRTC_M15
-    bool "Boot into WebRTC bidirectional media probe (M1.5 prerequisites)"
+    bool "Boot into controlled WebRTC media development mode"
     default n
     depends on !STACKCHAN_WEBRTC_M0 && !STACKCHAN_WEBRTC_M1 && USE_AUDIO_PROCESSOR
     help
         Real microphone via AFE 16k -> 48k Opus, downlink 48k -> 24k playback.
-        Runs a bounded probe, independent of the product UI. Does not certify
-        AEC, interruption or delayed RTP response association.
+        Boots Idle. USB START selects near/duplex and a bounded time window.
+        One run per boot until the AFE lifecycle supports a restart join.
+        Independent of the product UI; does not certify AEC or interruption.
 
 menu "StackChan Aliyun Realtime"
-
-config STACKCHAN_WEBRTC_M15_NEAR_END_CONTROL
-    bool "M1.5 near-end positive control (no fixture, no speaker output)"
-    default n
-    depends on STACKCHAN_WEBRTC_M15
-    help
-        For SPEC T1 only: forwards real microphone PCM from the first frame,
-        suppresses remote PCM submission to the speaker, and observes three
-        known spoken sentences. The bounded test ends after all three keyword
-        sets match, or after 180 seconds. This is not the full-duplex test.
 
 config STACKCHAN_WEBRTC_M1
     bool "Boot into the M1 media-uplink probe"

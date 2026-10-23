@@ -20,16 +20,30 @@
  };
  
  struct DebugStatistics {
-@@ -133,8 +139,23 @@
+@@ -133,8 +139,41 @@
      bool ReadAudioData(std::vector<int16_t>& data, int sample_rate, int samples);
      void ResetDecoder();
      void SetModelsList(srmodel_list_t* models_list);
 +#if CONFIG_STACKCHAN_WEBRTC_M15
++    enum class WebRtcPcmAdmission { Accepted, Invalid, Stopped, Stale, Contended, Full };
++    struct WebRtcPlaybackSnapshot {
++        uint64_t queued_samples;
++        uint64_t inflight_samples;
++        // Completed OutputData calls, including any underlying write failure.
++        // These are API submission attempts, not acoustically played samples.
++        uint64_t submitted_samples;
++        uint64_t submitted_calls;
++        int64_t last_submit_started_us;
++        int64_t last_submit_finished_us;
++        int64_t stop_completed_us;
++    };
 +    // Install before Start; sink must not block or retain borrowed storage.
 +    void SetWebRtcPcmSink(std::function<void(std::vector<int16_t>&&)> sink) { webrtc_pcm_sink_ = std::move(sink); }
 +    uint32_t WebRtcCaptureConversionFailed() const { return webrtc_capture_conversion_failed_.load(); }
 +    uint64_t WebRtcPlaybackEpoch() const { return webrtc_playback_epoch_.load(); }
-+    bool PushWebRtcPcm(std::vector<int16_t>&& pcm, uint64_t epoch);
++    WebRtcPcmAdmission PushWebRtcPcm(std::vector<int16_t>&& pcm, uint64_t epoch);
++    // Nonblocking observations: fields can straddle a worker transition.
++    WebRtcPlaybackSnapshot GetWebRtcPlaybackSnapshot() const;
 +    // Worker only: synchronizes against hardware submission, not a network callback.
 +    void StopWebRtcPlayback();
 +#endif
@@ -39,11 +53,22 @@
 +    std::function<void(std::vector<int16_t>&&)> webrtc_pcm_sink_;
 +    std::atomic<uint64_t> webrtc_playback_epoch_{1};
 +    std::atomic<uint32_t> webrtc_capture_conversion_failed_{0};
++    std::atomic<uint64_t> webrtc_queued_samples_{0}, webrtc_inflight_samples_{0};
++    std::atomic<uint64_t> webrtc_submitted_samples_{0}, webrtc_submitted_calls_{0};
++    std::atomic<int64_t> webrtc_last_submit_started_us_{0}, webrtc_last_submit_finished_us_{0};
++    std::atomic<int64_t> webrtc_stop_completed_us_{0};
 +    std::mutex webrtc_output_mutex_;
 +#endif
      AudioCodec* codec_ = nullptr;
      AudioServiceCallbacks callbacks_;
      std::unique_ptr<AudioProcessor> audio_processor_;
+@@ -192,4 +231,4 @@
+     void CheckAndUpdateAudioPowerState();
+ };
+ 
+-#endif
+\ No newline at end of file
++#endif
 --- a/main/audio/audio_service.cc
 +++ b/main/audio/audio_service.cc
 @@ -63,6 +63,9 @@
@@ -92,7 +117,17 @@
  }
  
  void AudioService::Stop() {
-@@ -193,15 +205,40 @@
+@@ -177,6 +189,9 @@
+     audio_encode_queue_.clear();
+     audio_decode_queue_.clear();
+     audio_playback_queue_.clear();
++#if CONFIG_STACKCHAN_WEBRTC_M15
++    webrtc_queued_samples_ = 0;
++#endif
+     audio_testing_queue_.clear();
+     audio_queue_cv_.notify_all();
+ }
+@@ -193,15 +208,40 @@
          if (!codec_->InputData(data)) {
              return false;
          }
@@ -135,7 +170,20 @@
              resampled.resize(actual_output * codec_->input_channels());
              data = std::move(resampled);
          }
-@@ -306,7 +343,20 @@
+@@ -297,6 +337,12 @@
+ 
+         auto task = std::move(audio_playback_queue_.front());
+         audio_playback_queue_.pop_front();
++#if CONFIG_STACKCHAN_WEBRTC_M15
++        if (task->playback_epoch != 0) {
++            webrtc_queued_samples_.fetch_sub(task->pcm.size());
++            webrtc_inflight_samples_ = task->pcm.size();
++        }
++#endif
+         audio_queue_cv_.notify_all();
+         lock.unlock();
+ 
+@@ -306,7 +352,28 @@
              codec_->EnableOutput(true);
          }
  
@@ -146,8 +194,16 @@
 +                const size_t count = std::min(size_t(480), task->pcm.size() - offset);
 +                std::vector<int16_t> chunk(task->pcm.begin() + offset, task->pcm.begin() + offset + count);
 +                std::lock_guard<std::mutex> commit(webrtc_output_mutex_);
-+                if (task->playback_epoch != webrtc_playback_epoch_.load()) break;
++                if (task->playback_epoch != webrtc_playback_epoch_.load()) {
++                    webrtc_inflight_samples_ = 0;
++                    break;
++                }
++                webrtc_last_submit_started_us_ = esp_timer_get_time();
 +                codec_->OutputData(chunk);
++                webrtc_last_submit_finished_us_ = esp_timer_get_time();
++                webrtc_submitted_samples_.fetch_add(count);
++                ++webrtc_submitted_calls_;
++                webrtc_inflight_samples_.fetch_sub(count);
 +            }
 +        } else
 +#endif
@@ -157,25 +213,45 @@
  
          /* Update the last output time */
          last_output_time_ = std::chrono::steady_clock::now();
-@@ -732,3 +782,32 @@
+@@ -675,6 +742,9 @@
+     timestamp_queue_.clear();
+     audio_decode_queue_.clear();
+     audio_playback_queue_.clear();
++#if CONFIG_STACKCHAN_WEBRTC_M15
++    webrtc_queued_samples_ = 0;
++#endif
+     audio_testing_queue_.clear();
+     audio_queue_cv_.notify_all();
+ }
+@@ -732,3 +802,50 @@
      return false;
  #endif
  }
 +
 +#if CONFIG_STACKCHAN_WEBRTC_M15
-+bool AudioService::PushWebRtcPcm(std::vector<int16_t>&& pcm, uint64_t epoch) {
-+    if (pcm.empty() || pcm.size() > 2880 || epoch == 0) return false;
++AudioService::WebRtcPcmAdmission AudioService::PushWebRtcPcm(std::vector<int16_t>&& pcm, uint64_t epoch) {
++    if (pcm.empty() || pcm.size() > 2880 || epoch == 0) return WebRtcPcmAdmission::Invalid;
 +    std::unique_lock<std::mutex> lock(audio_queue_mutex_, std::try_to_lock);
-+    if (!lock || service_stopped_ || epoch != webrtc_playback_epoch_.load() ||
-+        audio_playback_queue_.size() >= MAX_PLAYBACK_TASKS_IN_QUEUE) return false;
++    if (!lock) return WebRtcPcmAdmission::Contended;
++    if (service_stopped_) return WebRtcPcmAdmission::Stopped;
++    if (epoch != webrtc_playback_epoch_.load()) return WebRtcPcmAdmission::Stale;
++    if (audio_playback_queue_.size() >= MAX_PLAYBACK_TASKS_IN_QUEUE) return WebRtcPcmAdmission::Full;
 +    auto task = std::make_unique<AudioTask>();
 +    task->type = kAudioTaskTypeDecodeToPlaybackQueue;
 +    task->timestamp = 0;
 +    task->playback_epoch = epoch;
 +    task->pcm = std::move(pcm);
++    webrtc_queued_samples_.fetch_add(task->pcm.size());
 +    audio_playback_queue_.push_back(std::move(task));
 +    audio_queue_cv_.notify_all();
-+    return true;
++    return WebRtcPcmAdmission::Accepted;
++}
++
++AudioService::WebRtcPlaybackSnapshot AudioService::GetWebRtcPlaybackSnapshot() const {
++    return {webrtc_queued_samples_.load(), webrtc_inflight_samples_.load(),
++        webrtc_submitted_samples_.load(), webrtc_submitted_calls_.load(),
++        webrtc_last_submit_started_us_.load(), webrtc_last_submit_finished_us_.load(),
++        webrtc_stop_completed_us_.load()};
 +}
 +
 +void AudioService::StopWebRtcPlayback() {
@@ -184,9 +260,17 @@
 +    ++webrtc_playback_epoch_;
 +    std::lock_guard<std::mutex> lock(audio_queue_mutex_);
 +    for (auto it = audio_playback_queue_.begin(); it != audio_playback_queue_.end();) {
-+        if ((*it)->playback_epoch != 0) it = audio_playback_queue_.erase(it);
++        if ((*it)->playback_epoch != 0) {
++            webrtc_queued_samples_.fetch_sub((*it)->pcm.size());
++            it = audio_playback_queue_.erase(it);
++        }
 +        else ++it;
 +    }
++    // The commit lock excludes an active OutputData call; the epoch prevents
++    // remaining local PCM from being submitted. Already queued I2S DMA is not
++    // drained or measured here, so this timestamp is not acoustic silence.
++    webrtc_inflight_samples_ = 0;
++    webrtc_stop_completed_us_ = esp_timer_get_time();
 +    audio_queue_cv_.notify_all();
 +}
 +#endif

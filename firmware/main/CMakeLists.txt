@@ -300,10 +300,6 @@ if(CONFIG_STACKCHAN_WEBRTC_M1)
     message(STATUS "M1 probe fixture embedded: 3 PCM clips")
 endif()
 
-if(CONFIG_STACKCHAN_WEBRTC_M15)
-    list(APPEND M1_FIXTURE "hal/webrtc/fixture/zh_1.pcm")
-endif()
-
 # R2-4: observe the real RTP -> SRTP -> UDP boundaries.
 #
 # `srtp_protect` and `lwip_sendto` are unresolved externals in the matching
@@ -338,6 +334,7 @@ idf_component_register(SRCS ${SOURCES}
                         esp_netif
                         esp_driver_gpio
                         esp_driver_uart
+                        esp_driver_usb_serial_jtag
                         esp_driver_spi
                         esp_driver_i2c
                         esp_driver_i2s

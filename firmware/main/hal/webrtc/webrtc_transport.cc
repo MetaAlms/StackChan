@@ -683,6 +683,11 @@ esp_peer_state_t Transport::state() const
     return p->peer_state;
 }
 
+bool Transport::Stopped() const
+{
+    return impl_ == nullptr || impl_->released.load();
+}
+
 void Transport::Stop()
 {
     auto* p = impl_;

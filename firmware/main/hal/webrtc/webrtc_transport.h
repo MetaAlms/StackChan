@@ -105,6 +105,9 @@ public:
     /** Stop the sender via on_before_close, then tear everything down. */
     void Stop();
 
+    /** True only after every transport task has exited and resources closed. */
+    bool Stopped() const;
+
     /** Maximum single-packet payload the transport will accept, in bytes. */
     static int MaxPayloadBytes();
 
