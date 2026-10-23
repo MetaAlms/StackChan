@@ -431,10 +431,14 @@ RTP 与响应的关联仍未定义。不得据此宣告可用打断或 AEC 失�
    正式停止延迟验收仍需 §6.2 的测量，未测则明确标为未验证。
 
 本轮已实现显式命令、独立 run、预热后 t0、永久取消准入门、收发 pts、分原因准入计数与
-独立 input item 去重。**暂时每次上电只允许一轮**：STOP 后进入 Done/Failed 并拒绝再 START，
-重启仍回到 Idle，不会自行采集。原因是 AFE Stop 尚无 fetch/输出缓冲区 join；当前没有调用
-状态机的 Reset 接口去冒充安全重连。因此第 1–2 项的重复会话生命周期仍未完成。
-`STOP acknowledged` 只确认收到请求，须等待 FINAL 核对 transport_joined；软停止也不证明 DMA 无尾音。
+独立 input item 去重。`e956b4b` 的一轮/上电限制已在后续离线开发中替换为持久硬件任务、
+每轮独立媒体 owner：输入读取/AFE feed 与 Start/Stop 同锁并用 generation 拒绝旧迭代；
+AFE Stop 等待当前 fetch/回调结束并清输入/输出缓存，检查 ringbuf reset 返回值。
+新轮先实际读取丢弃120ms源音频、重置转换器和AFE，再等待预热回调建立t0。
+固定 worker 避免再次分配旧任务尚未回收的32KB栈；只有确认回调静止、transport join、
+reset无错误且RunBody日志/析构全部完成才允许显式 START 新ID。清理失败保留owner并拒绝重开。
+这使R0可重开路径具备离线实现与复核，**设备多轮、资源稳定性及自动重连尚未验收**。
+`STOP acknowledged` 只确认收到请求，须等待 FINAL/LIFECYCLE 和 STATUS Idle；软停止不证明 DMA 无尾音。
 详见 [重新开发交付记录](webrtc-media-redevelopment-2026-10-23.md)。
 
 M2 产品接入和 T3/T4 的响应归属前置仍未完成；受控入口离线检查通过仅允许准备下一轮，

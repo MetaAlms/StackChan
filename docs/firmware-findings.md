@@ -1214,16 +1214,26 @@ M1-3（完整三 clip + 5 分钟资源）与 M1.5 未跑；产品路径（M2）�
   本轮只离线开发验证；真机每轮等待用户“开始”，不自动复位、采集或重跑。
 
 
-### B43. AFE Stop 不能作为可重用会话的 join 边界（2026-10-23）
+### B43. 原生 AFE Stop 不能作为可重用会话的 join 边界（2026-10-23）
 
-**证据**：`xiaozhi-esp32/main/audio/processors/afe_audio_processor.cc` 的 Stop 只清运行标志、
+**证据基线**：`e956b4b` 的 `xiaozhi-esp32/main/audio/processors/afe_audio_processor.cc` Stop只清运行标志、
 reset AFE/input buffer；fetch task 独立运行，输出缓冲区没有在 Stop 时同步清空或确认退出。
 `AudioService::Stop()` 同样没有提供三类任务与 AFE 的完整 join。
 直接销毁/重建服务或清空全局队列再开新会话，不能证明旧回调和残留音频已隔离。
 
-**状态**：本轮受控入口默认 Idle，显式 START 后仅运行一轮，终态拒绝第二次 START；
-长寿命 owner 保留到重启，回调不会悬空。STOP 使用不可撤销 gate，迟到 Ready 不能重开；
-最终普通采集统计只在回调数归零后读取，否则标 unavailable。
-这解决当前单轮生命周期，不表示产品重连已实现。后续必须建立 AFE/输入/输出的 join
-或经验证的持久采集代际边界后，才能开放多轮与自动重连。
-离线 gate 竞争测试和两位独立只读复核见 [重新开发记录](webrtc-media-redevelopment-2026-10-23.md)。
+**状态**：`e956b4b`先以一轮/上电保留owner规避悬空回调；后续已补M15专用AFE迭代join、
+输入CaptureLifecycle锁/generation、稳定activeRun指针及固定worker。Stop返回后无当前Feed/fetch/回调在途，
+清理确认Transport join与reset成功后才能删除旧Run，允许新ID显式START；失败仍保留owner并要求重启。
+这是持久任务的迭代静止边界，不是销毁所有AudioService任务的完整join，也不宣称自动重连或真机多轮已通过。
+见 [重新开发记录](webrtc-media-redevelopment-2026-10-23.md)。
+
+### B44. 采集预热等待不会排空DMA，关闭IN也未必立即关RX（2026-10-23）
+
+**证据**：`audio_codec.h`的DMA为6×240帧，CoreS3输入24k（约60ms）；
+`esp_codec_dev/platform/audio_codec_data_i2s.c`的SOC_I2S_HW_VERSION_1分支在配对TX启用时延期关闭IN。
+旧AudioInputTask预热仅`vTaskDelay(120)`，这段时间并未读取/丢弃RX缓存；AFEStop单独重置也不能排掉ADC缓存。
+
+**状态**：M15新轮实际读出并丢弃12次10ms原始源采样（24k共2880帧，大于当前DMA容量），
+随后校验转换器reset及AFE ringbuf reset（接口返回1成功/-1失败），首AFE回调后才开放发送和计时。
+读取、reset、Feed和输入电源timer使用统一同步边界；转换/排空/reset失败单列并结束准备。
+已做代码复核、共享同步组件60项检查和两配置构建；设备新轮边界、DSP内部历史/实际尾音仍待实测。

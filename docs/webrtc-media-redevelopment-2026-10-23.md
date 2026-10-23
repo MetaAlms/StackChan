@@ -16,8 +16,14 @@
   仅显式 START 后才初始化网络、编解码器和音频任务。
 - USB Serial/JTAG 驱动读取命令，不假定主 UART 的 stdin 就是 USB；
   解析器只执行完整合法行，128 字节上限，超长行整行丢弃至换行。
-- 一个 worker 拥有状态机、媒体发送、编解码器、事件消费和清理；
-  采集与 peer 回调只移交拥有数据的有界队列。
+- 一个持久 worker 拥有状态机、媒体发送、编解码器、事件消费和清理；
+  第一次START时才创建32KB栈，后续从单元素命令队列接收新Run，避免自删除任务等待Idle回收造成峰值分配。
+  采集与 peer 回调只移交拥有数据的有界队列；AudioService/AFE任务持久存在且只初始化一次。
+- 输入任务在WaitBits前取generation，在同一CaptureLifecycle锁内重查当前位、读取、Feed；
+  Stop清运行位后等待旧读/Feed结束，再等待AFE fetch/回调退出，清输入/输出缓存。
+  硬件电源timer也使用此锁，输出开关/提交时刻与timer共用输出提交锁。
+- 新轮先实际读取丢弃12×10ms源音频（当前24k源共2880帧，DMA容量约1440帧），
+  然后重置输入转换器/AFE ringbuf；失败结束准备并计数，不打开媒体准入。
 - Preparing 设30秒准备期限，由 worker 在同步初始化/API调用返回后检查；它不是可抢占硬上界。
   配置核对成功后启动 AFE 预热并丢弃预热输出，
   观察到首次 AFE 回调后才设置 t0、开放准入并发布 RUNNING。
@@ -39,10 +45,15 @@
 
 ## 临时限制与未交付内容
 
-当前只允许**一轮/上电**。Done/Failed 后拒绝再次 START，必须重启；重启仍停在 Idle。
-AFE Stop 没有确认 fetch 线程退出或同步清空输出缓冲区，AudioService 也无完整 join。
-本轮故意不调用状态机的 Reset 去冒充安全重连；长寿命 owner 不会被悬空回调访问。
-因此 PLAN R0 的可重用生命周期、自动重连和返回 Idle 后多轮运行尚未完成。
+`e956b4b` 曾限制一轮/上电；当前离线代码已补安全重开边界。
+清理确认输入/AFE回调静止、Transport已join、ringbuf reset成功后，worker完成全部局部析构和FINAL日志，
+才发布可重开状态；STATUS返回Idle，此后可显式START一个新ID。旧Run在此前不会被删除。
+稳定采集sink只捕获全局atomic activeRun指针，不捕获会被释放的Run引用；Stop/AFE静止后先detach。
+每轮重新创建Transport/Codec/队列/媒体时钟/ASR集合，并对持久硬件统计取独立基线。
+join或reset失败则保留owner并要求重启；不自动重试或开始下一轮。
+
+这些结论是源码审查与共享同步组件的离线验证，**尚无设备连续多轮/资源证据**。
+保留DSP模型实例不等于清空NS/VAD模型内部历史；没有ADC绝对时戳或物理尾音的测量，不能外推到声学停止。
 
 R1 目前仅实现整轮 STOP 的本地隔离；没有把 speech_started 接成自动插话，
 没有实现同会话 response 取消/恢复及迟到旧 RTP 的归属。产品 Application 的 speaking
@@ -61,24 +72,30 @@ close/join失败的owner保留，最终标Failed，不能以等待时间代替jo
 2. AFE回调等待超时后普通统计读写竞态：只有永久关闭准入且回调归零才读取；否则报告 unavailable。
 3. 模型初始化吃掉短测试窗口：改为 Preparing 预热，首回调之后才记录 Running t0。
 4. 发送间隔采用编码前时刻：改为实际 SendAudio 调用时刻。
+5. 仅AFE Stop仍可能让旧输入读取跨轮Feed：加入读取generation/互斥和timer同步。
+6. 120ms睡眠未排空DMA，IN关闭还可能因TX工作而延期：改实际读出丢弃120ms，再reset。
+7. worker完成标记不代表自删除栈已回收：改为持久worker和命令队列，消除重开分配第二个32KB栈的路径。
+
+最后的输入/AFE/固定worker集成由独立只读复核确认无未关闭的可行动发现，未代替设备运行。
 
 原台账始终为 `/Users/amtf/.codex/dev-harness/tasks/stackchan-webrtc-media/ledger.sqlite`，
-在原used=21基础上 replan epoch8→9→10，未重建或清预算。三个cache=never原生二进制检查均通过：
+在原used=21基础上 replan epoch8→9→10→11，未重建或清预算。四个cache=never原生二进制检查均通过：
 
 | 检查 | 结果 | 台账 action |
 |---|---|---|
 | session-run-control | 194断言，状态/期限/独立item/重复/溢出隔离 | redevelop-session-1 |
 | console-command | 16651断言，分片/CRLF/非法字节/参数/超长整行拒绝 | redevelop-console-1 |
 | media-admission | 530断言，永久取消及128轮线程竞争 | redevelop-admission-1 |
+| capture-lifecycle | 60检查，读取/Stop/Start/Access实际线程互斥及旧generation隔离 | restart-capture-lifecycle-1 |
 
-台账当前used=24，limit=32。检查仅覆盖实际共享的可移植组件，
+台账当前used=25，limit=32。检查仅覆盖实际共享的可移植组件，
 不覆盖 USB 驱动、设备调度、音频库/硬件、网络或模型服务。
 编译与以下操作在控制器覆盖之外，单独记录：
 
-- ESP-IDF5.5.4 `idf.py reconfigure build`及最终增量构建通过：媒体应用 `0x3cada0`，分区余量23%。
+- ESP-IDF5.5.4 `idf.py reconfigure build`及最终增量构建通过：媒体应用 `0x3cb870`，分区余量23%。
 - 独立配置 WebSocket 回退构建通过：应用 `0x3a37a0`，分区余量26%。
-- dependency HEAD→vendor patch→Aliyun patch→media patch 重建两份 AudioService，与live逐字节一致。
-- 三个检查脚本 `bash -n`及源码/文档diff空白检查通过；统一patch的格式上下文单独由重建验证。
+- dependency HEAD→vendor→Aliyun→media→AFE lifecycle patch 重建两份AudioService及两份AFE源码，与live逐字节一致。
+- 四个检查脚本 `bash -n`及源码/文档diff空白检查通过；统一patch的格式上下文单独由重建验证。
 
 构建与运行日志保存在私有目录：
 `/Users/amtf/.codex/dev-harness/artifacts/stackchan-webrtc-media/m15-takeover/`。
@@ -101,4 +118,4 @@ STOP near_01
 ```
 
 双向模式为 `START duplex_01 duplex 60`，**不在首轮顺带运行**。
-还需完成AFE安全生命周期、真实输出停止测量、response/RTP边界与产品接入，才能推进正式T3/T4。
+还需验证设备多轮与真实输出停止、完成response/RTP边界与产品接入，才能推进正式T3/T4。

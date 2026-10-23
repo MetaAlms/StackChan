@@ -1,0 +1,87 @@
+--- a/main/audio/processors/afe_audio_processor.h
++++ b/main/audio/processors/afe_audio_processor.h
+@@ -10,6 +10,9 @@
+ #include <vector>
+ #include <functional>
+ #include <mutex>
++#if CONFIG_STACKCHAN_WEBRTC_M15
++#include <atomic>
++#endif
+ 
+ #include "audio_processor.h"
+ #include "audio_codec.h"
+@@ -24,6 +27,9 @@
+     void Start() override;
+     void Stop() override;
+     bool IsRunning() override;
++#if CONFIG_STACKCHAN_WEBRTC_M15
++    uint32_t WebRtcResetFailed() const { return reset_failed_.load(std::memory_order_relaxed); }
++#endif
+     void OnOutput(std::function<void(std::vector<int16_t>&& data)> callback) override;
+     void OnVadStateChange(std::function<void(bool speaking)> callback) override;
+     size_t GetFeedSize() override;
+@@ -41,6 +47,12 @@
+     std::vector<int16_t> input_buffer_;
+     std::mutex input_buffer_mutex_;
+     std::vector<int16_t> output_buffer_;
++#if CONFIG_STACKCHAN_WEBRTC_M15
++    // Callbacks run under this lock: they must not call Start()/Stop()
++    // synchronously. The owner must serialize lifecycle calls.
++    std::mutex fetch_mutex_;
++    std::atomic<uint32_t> reset_failed_{0};
++#endif
+ 
+     void AudioProcessorTask();
+ };
+--- a/main/audio/processors/afe_audio_processor.cc
++++ b/main/audio/processors/afe_audio_processor.cc
+@@ -114,10 +114,26 @@
+     xEventGroupClearBits(event_group_, PROCESSOR_RUNNING);
+ 
+     std::lock_guard<std::mutex> lock(input_buffer_mutex_);
++#if CONFIG_STACKCHAN_WEBRTC_M15
++    // Exclude Feed first, then wait for the current fetch/callback iteration.
++    std::lock_guard<std::mutex> fetch_lock(fetch_mutex_);
++#endif
+     if (afe_data_ != nullptr) {
++#if CONFIG_STACKCHAN_WEBRTC_M15
++        int result = afe_iface_->reset_buffer(afe_data_);
++        if (result != 1) {
++            reset_failed_.fetch_add(1, std::memory_order_relaxed);
++            ESP_LOGE(TAG, "AFE ring-buffer reset failed: %d", result);
++        }
++#else
+         afe_iface_->reset_buffer(afe_data_);
++#endif
+     }
+     input_buffer_.clear();
++#if CONFIG_STACKCHAN_WEBRTC_M15
++    output_buffer_.clear();
++    is_speaking_ = false;
++#endif
+ }
+ 
+ bool AfeAudioProcessor::IsRunning() {
+@@ -138,10 +154,22 @@
+     ESP_LOGI(TAG, "Audio communication task started, feed size: %d fetch size: %d",
+         feed_size, fetch_size);
+ 
++#if CONFIG_STACKCHAN_WEBRTC_M15
++    const TickType_t fetch_wait = pdMS_TO_TICKS(20) > 0 ? pdMS_TO_TICKS(20) : 1;
++#endif
+     while (true) {
+         xEventGroupWaitBits(event_group_, PROCESSOR_RUNNING, pdFALSE, pdTRUE, portMAX_DELAY);
+ 
++#if CONFIG_STACKCHAN_WEBRTC_M15
++        std::lock_guard<std::mutex> fetch_lock(fetch_mutex_);
++        // Stop may have cleared the bit while this iteration waited for the lock.
++        if (!IsRunning()) {
++            continue;
++        }
++        auto res = afe_iface_->fetch_with_delay(afe_data_, fetch_wait);
++#else
+         auto res = afe_iface_->fetch_with_delay(afe_data_, portMAX_DELAY);
++#endif
+         if ((xEventGroupGetBits(event_group_) & PROCESSOR_RUNNING) == 0) {
+             continue;
+         }

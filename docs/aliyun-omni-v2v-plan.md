@@ -11,7 +11,8 @@
 M2 产品音频/事件/UI/重连、T3/T4 所需响应归属规则仍未完成；顺序以
 [媒体 SPEC §4.8](webrtc-media-spec.md) 与 [媒体 PLAN R0–R3](webrtc-media-plan.md) 为准。
 本轮已实现默认 Idle 的受控命令入口、不可撤销 STOP 准入、预热后 t0、独立 item 去重及播放 API 提交观测。
-暂时一轮/上电；AFE join/安全重连、同会话插话与完整产品接入仍未交付。
+已补输入/AFE同步停止、源DMA排空与固定worker，cleanup安全时可显式START下一轮；
+多轮真机/自动重连、同会话插话与完整产品接入仍未验收。
 本轮只做离线开发验证；每轮真机测试先说明内容与时长，等用户明确说“开始”，不自动启动采集。
 离线交付与待做项见 [重新开发记录](webrtc-media-redevelopment-2026-10-23.md)。
 

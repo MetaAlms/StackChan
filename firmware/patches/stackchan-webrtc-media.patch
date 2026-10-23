@@ -1,16 +1,17 @@
 --- a/main/audio/audio_service.h
 +++ b/main/audio/audio_service.h
-@@ -2,6 +2,9 @@
+@@ -2,6 +2,10 @@
  #define AUDIO_SERVICE_H
  
  #include <memory>
 +#if CONFIG_STACKCHAN_WEBRTC_M15
 +#include <atomic>
++#include "hal/webrtc/capture_lifecycle.h"
 +#endif
  #include <deque>
  #include <condition_variable>
  #include <chrono>
-@@ -93,6 +96,9 @@
+@@ -93,6 +97,9 @@
      AudioTaskType type;
      std::vector<int16_t> pcm;
      uint32_t timestamp;
@@ -20,7 +21,7 @@
  };
  
  struct DebugStatistics {
-@@ -133,8 +139,41 @@
+@@ -133,8 +140,46 @@
      bool ReadAudioData(std::vector<int16_t>& data, int sample_rate, int samples);
      void ResetDecoder();
      void SetModelsList(srmodel_list_t* models_list);
@@ -40,6 +41,9 @@
 +    // Install before Start; sink must not block or retain borrowed storage.
 +    void SetWebRtcPcmSink(std::function<void(std::vector<int16_t>&&)> sink) { webrtc_pcm_sink_ = std::move(sink); }
 +    uint32_t WebRtcCaptureConversionFailed() const { return webrtc_capture_conversion_failed_.load(); }
++    uint32_t WebRtcCaptureDrainFailed() const { return webrtc_capture_drain_failed_.load(); }
++    uint32_t WebRtcCaptureDrainedFrames() const { return webrtc_capture_drained_frames_.load(); }
++    uint32_t WebRtcAfeResetFailed() const;
 +    uint64_t WebRtcPlaybackEpoch() const { return webrtc_playback_epoch_.load(); }
 +    WebRtcPcmAdmission PushWebRtcPcm(std::vector<int16_t>&& pcm, uint64_t epoch);
 +    // Nonblocking observations: fields can straddle a worker transition.
@@ -53,6 +57,8 @@
 +    std::function<void(std::vector<int16_t>&&)> webrtc_pcm_sink_;
 +    std::atomic<uint64_t> webrtc_playback_epoch_{1};
 +    std::atomic<uint32_t> webrtc_capture_conversion_failed_{0};
++    std::atomic<uint32_t> webrtc_capture_drain_failed_{0}, webrtc_capture_drained_frames_{0};
++    webrtc_media::CaptureLifecycle webrtc_capture_lifecycle_;
 +    std::atomic<uint64_t> webrtc_queued_samples_{0}, webrtc_inflight_samples_{0};
 +    std::atomic<uint64_t> webrtc_submitted_samples_{0}, webrtc_submitted_calls_{0};
 +    std::atomic<int64_t> webrtc_last_submit_started_us_{0}, webrtc_last_submit_finished_us_{0};
@@ -62,7 +68,7 @@
      AudioCodec* codec_ = nullptr;
      AudioServiceCallbacks callbacks_;
      std::unique_ptr<AudioProcessor> audio_processor_;
-@@ -192,4 +231,4 @@
+@@ -192,4 +237,4 @@
      void CheckAndUpdateAudioPowerState();
  };
  
@@ -170,7 +176,78 @@
              resampled.resize(actual_output * codec_->input_channels());
              data = std::move(resampled);
          }
-@@ -297,6 +337,12 @@
+@@ -229,6 +269,9 @@
+ 
+ void AudioService::AudioInputTask() {
+     while (true) {
++#if CONFIG_STACKCHAN_WEBRTC_M15
++        const auto generation = webrtc_capture_lifecycle_.generation();
++#endif
+         EventBits_t bits = xEventGroupWaitBits(event_group_, AS_EVENT_AUDIO_TESTING_RUNNING |
+             AS_EVENT_WAKE_WORD_RUNNING | AS_EVENT_AUDIO_PROCESSOR_RUNNING,
+             pdFALSE, pdFALSE, portMAX_DELAY);
+@@ -236,6 +279,52 @@
+         if (service_stopped_) {
+             break;
+         }
++#if CONFIG_STACKCHAN_WEBRTC_M15
++        (void)bits;
++        const bool input_ok = webrtc_capture_lifecycle_.Read(generation, [this]() {
++            // The cached wait result can belong to a previous run.
++            if (!(xEventGroupGetBits(event_group_) & AS_EVENT_AUDIO_PROCESSOR_RUNNING)) return false;
++            if (audio_input_need_warmup_) {
++                audio_input_need_warmup_ = false;
++                // CoreS3 RX DMA holds 6 * 240 frames at 24 kHz (60 ms).
++                // Consume 120 ms, rather than sleep while stale RX accumulates.
++                for (int i = 0; i < 12; ++i) {
++                    if (!(xEventGroupGetBits(event_group_) & AS_EVENT_AUDIO_PROCESSOR_RUNNING)) return false;
++                    std::vector<int16_t> discarded;
++                    if (!ReadAudioData(discarded, 16000, 160)) {
++                        ++webrtc_capture_drain_failed_;
++                        xEventGroupClearBits(event_group_, AS_EVENT_AUDIO_PROCESSOR_RUNNING);
++                        return false;
++                    }
++                    webrtc_capture_drained_frames_.fetch_add(codec_->input_sample_rate() / 100);
++                }
++                {
++                    std::lock_guard<std::mutex> lock(input_resampler_mutex_);
++                    if (input_resampler_ != nullptr && esp_ae_rate_cvt_reset(input_resampler_) != ESP_AE_ERR_OK) {
++                        ++webrtc_capture_conversion_failed_;
++                        xEventGroupClearBits(event_group_, AS_EVENT_AUDIO_PROCESSOR_RUNNING);
++                        return false;
++                    }
++                }
++                const auto reset_failed = WebRtcAfeResetFailed();
++                audio_processor_->Stop();
++                if (WebRtcAfeResetFailed() != reset_failed) {
++                    ++webrtc_capture_drain_failed_;
++                    xEventGroupClearBits(event_group_, AS_EVENT_AUDIO_PROCESSOR_RUNNING);
++                    return false;
++                }
++                if (!(xEventGroupGetBits(event_group_) & AS_EVENT_AUDIO_PROCESSOR_RUNNING)) return false;
++                audio_processor_->Start();
++            }
++            std::vector<int16_t> data;
++            if (!ReadAudioData(data, 16000, 160)) return false;
++            // Stop waits for this entire read/feed critical section.
++            if (!(xEventGroupGetBits(event_group_) & AS_EVENT_AUDIO_PROCESSOR_RUNNING)) return false;
++            audio_processor_->Feed(std::move(data));
++            return true;
++        });
++        if (!input_ok) vTaskDelay(pdMS_TO_TICKS(10));
++#else
+         if (audio_input_need_warmup_) {
+             audio_input_need_warmup_ = false;
+             vTaskDelay(pdMS_TO_TICKS(120));
+@@ -282,6 +371,7 @@
+ 
+         // Read timeout/error should not terminate the input task.
+         vTaskDelay(pdMS_TO_TICKS(10));
++#endif
+     }
+ 
+     ESP_LOGW(TAG, "Audio input task stopped");
+@@ -297,19 +387,64 @@
  
          auto task = std::move(audio_playback_queue_.front());
          audio_playback_queue_.pop_front();
@@ -183,11 +260,25 @@
          audio_queue_cv_.notify_all();
          lock.unlock();
  
-@@ -306,7 +352,28 @@
++#if CONFIG_STACKCHAN_WEBRTC_M15
++        {
++            std::lock_guard<std::mutex> commit(webrtc_output_mutex_);
++            if (task->playback_epoch != 0 && task->playback_epoch != webrtc_playback_epoch_.load()) {
++                webrtc_inflight_samples_ = 0;
++                continue;
++            }
++#endif
+         if (!codec_->output_enabled()) {
+             esp_timer_stop(audio_power_timer_);
+             esp_timer_start_periodic(audio_power_timer_, AUDIO_POWER_CHECK_INTERVAL_MS * 1000);
              codec_->EnableOutput(true);
          }
- 
+-
 -        codec_->OutputData(task->pcm);
++#if CONFIG_STACKCHAN_WEBRTC_M15
++        }
++#endif
++
 +#if CONFIG_STACKCHAN_WEBRTC_M15
 +        if (task->playback_epoch != 0) {
 +            for (size_t offset = 0; offset < task->pcm.size(); offset += 480) {
@@ -212,8 +303,60 @@
 +        }
  
          /* Update the last output time */
++#if CONFIG_STACKCHAN_WEBRTC_M15
++        {
++            std::lock_guard<std::mutex> commit(webrtc_output_mutex_);
++            last_output_time_ = std::chrono::steady_clock::now();
++        }
++#else
          last_output_time_ = std::chrono::steady_clock::now();
-@@ -675,6 +742,9 @@
++#endif
+         debug_statistics_.playback_count++;
+ 
+ #if CONFIG_USE_SERVER_AEC
+@@ -577,6 +712,24 @@
+ }
+ 
+ void AudioService::EnableVoiceProcessing(bool enable) {
++#if CONFIG_STACKCHAN_WEBRTC_M15
++    if (enable) {
++        const bool started = webrtc_capture_lifecycle_.Start([this]() {
++            if (!audio_processor_initialized_) {
++                audio_processor_->Initialize(codec_, OPUS_FRAME_DURATION_MS, models_list_);
++                audio_processor_initialized_ = true;
++            }
++            ResetDecoder();
++            audio_input_need_warmup_ = true;
++            xEventGroupSetBits(event_group_, AS_EVENT_AUDIO_PROCESSOR_RUNNING);
++            // The input task drains RX and resets the AFE before the first Feed.
++        });
++        if (!started) ++webrtc_capture_drain_failed_;
++    } else {
++        xEventGroupClearBits(event_group_, AS_EVENT_AUDIO_PROCESSOR_RUNNING);
++        webrtc_capture_lifecycle_.Stop([this]() { audio_processor_->Stop(); });
++    }
++#else
+     ESP_LOGD(TAG, "%s voice processing", enable ? "Enabling" : "Disabling");
+     if (enable) {
+         if (!audio_processor_initialized_) {
+@@ -601,7 +754,15 @@
+         audio_processor_->Stop();
+         xEventGroupClearBits(event_group_, AS_EVENT_AUDIO_PROCESSOR_RUNNING);
+     }
+-}
++#endif
++}
++
++#if CONFIG_STACKCHAN_WEBRTC_M15
++uint32_t AudioService::WebRtcAfeResetFailed() const {
++    return audio_processor_ == nullptr ? 0 :
++        static_cast<AfeAudioProcessor*>(audio_processor_.get())->WebRtcResetFailed();
++}
++#endif
+ 
+ void AudioService::EnableAudioTesting(bool enable) {
+     ESP_LOGI(TAG, "%s audio testing", enable ? "Enabling" : "Disabling");
+@@ -675,11 +836,18 @@
      timestamp_queue_.clear();
      audio_decode_queue_.clear();
      audio_playback_queue_.clear();
@@ -223,7 +366,26 @@
      audio_testing_queue_.clear();
      audio_queue_cv_.notify_all();
  }
-@@ -732,3 +802,50 @@
+ 
+ void AudioService::CheckAndUpdateAudioPowerState() {
++#if CONFIG_STACKCHAN_WEBRTC_M15
++    webrtc_capture_lifecycle_.Access([this]() {
++        std::lock_guard<std::mutex> commit(webrtc_output_mutex_);
++#endif
+     auto now = std::chrono::steady_clock::now();
+     auto input_elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_input_time_).count();
+     auto output_elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_output_time_).count();
+@@ -695,6 +863,9 @@
+     if (!codec_->input_enabled() && !codec_->output_enabled()) {
+         esp_timer_stop(audio_power_timer_);
+     }
++#if CONFIG_STACKCHAN_WEBRTC_M15
++    });
++#endif
+ }
+ 
+ void AudioService::SetModelsList(srmodel_list_t* models_list) {
+@@ -732,3 +903,50 @@
      return false;
  #endif
  }

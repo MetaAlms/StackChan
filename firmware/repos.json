@@ -21,7 +21,8 @@
         "patch": [
             "patches/xiaozhi-esp32.patch",
             "patches/stackchan-aliyun.patch",
-            "patches/stackchan-webrtc-media.patch"
+            "patches/stackchan-webrtc-media.patch",
+            "patches/stackchan-webrtc-afe-lifecycle.patch"
         ]
     },
     {

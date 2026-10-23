@@ -18,6 +18,7 @@
 #include <cstring>
 #include <cJSON.h>
 #include <driver/usb_serial_jtag.h>
+#include <freertos/queue.h>
 #include <esp_heap_caps.h>
 #include <esp_log.h>
 #include <esp_timer.h>
@@ -64,9 +65,10 @@ struct DownFrame {
 };
 struct Event { std::string json; uint16_t stream; int64_t received_us; };
 
-// AudioService/AFE do not provide a restart join. Keep owners alive, permit one
-// explicitly started run per boot, and never reuse queues or callbacks.
+// Persistent hardware/AFE tasks; each explicitly started run owns fresh media
+// queues and transport. The capture sink is detached only after AFE quiescence.
 AudioService g_audio;
+bool g_audio_initialized = false, g_network_initialized = false;
 struct Run {
     const webrtc_media::ConsoleCommand command;
     webrtc_media::SessionRunControl control;  // Owned only by the media worker.
@@ -76,6 +78,8 @@ struct Run {
     webrtc_media::SpscQueue<DownFrame, 8> down;
     webrtc_media::SpscQueue<Event, 8> events;
     std::atomic<RunState> state{RunState::Preparing};
+    std::atomic<bool> worker_finished{false};
+    bool reusable = false;  // Published by worker_finished after RunBody returns.
     webrtc_media::MediaAdmission capture_gate;
     std::atomic<bool> accept_peer{true}, stop_requested{false}, disconnected{false};
     std::atomic<int64_t> stop_requested_us{0};
@@ -94,10 +98,15 @@ struct Run {
     int64_t first_rx_us = 0, last_rx_us = 0, last_send_us = 0, max_send_gap_us = 0, max_mic_age_us = 0;
     int64_t run_stopped_us = 0;
     uint32_t initial_read_failed = 0, initial_write_failed = 0;
+    uint32_t initial_capture_cvt_failed = 0, initial_drain_failed = 0, initial_drained_frames = 0, initial_afe_reset_failed = 0;
+    AudioService::WebRtcPlaybackSnapshot initial_playback{};
     bool audio_started = false, configuration_ok = false, near_observed = false;
     explicit Run(const webrtc_media::ConsoleCommand& c) : command(c) {}
 };
-Run* g_run = nullptr;  // Console creates once; deliberately retained through boot.
+Run* g_run = nullptr;  // Only the console owns/replaces this pointer.
+QueueHandle_t g_run_commands = nullptr;
+TaskHandle_t g_worker = nullptr;  // One stack for all runs, created on first START.
+std::atomic<Run*> g_capture_run{nullptr};  // Detach only after capture/AFE join.
 
 unsigned KeywordBits(const cJSON* text) {
     if (!cJSON_IsString(text)) return 0;
@@ -243,7 +252,11 @@ void BeginCaptureWindow(Run& r) {
         r.command.mode == RunMode::Duplex, (long long)r.first_warm_afe_us.load());
 }
 void Report(Run& r, bool final) {
-    const auto p = r.audio_started ? g_audio.GetWebRtcPlaybackSnapshot() : AudioService::WebRtcPlaybackSnapshot{};
+    auto p = r.audio_started ? g_audio.GetWebRtcPlaybackSnapshot() : AudioService::WebRtcPlaybackSnapshot{};
+    p.submitted_samples -= r.initial_playback.submitted_samples;
+    p.submitted_calls -= r.initial_playback.submitted_calls;
+    if (!p.submitted_calls) p.last_submit_started_us = p.last_submit_finished_us = 0;
+    if (p.stop_completed_us <= r.initial_playback.stop_completed_us) p.stop_completed_us = 0;
     const int64_t now = esp_timer_get_time();
     ESP_LOGW(kTag, "%s run=%s state=%s reason=%s stage=%d session_tag=%08lx elapsed_ms=%lld config=%d transport_joined=%d",
         final ? "FINAL" : "PROGRESS", r.command.run_id.c_str(), StateName(r.control.state()), ReasonName(r.control.stop_reason()),
@@ -273,31 +286,49 @@ void Report(Run& r, bool final) {
             r.command.run_id.c_str(), (unsigned)r.control.asr_items(), (unsigned long)r.control.asr_missing_item(),
             (unsigned long)r.control.asr_invalid_item(), (unsigned long)r.control.asr_duplicates(), (unsigned long)r.control.asr_overflow(),
             r.control.keyword_mask(), r.near_observed, (unsigned long)r.speech, (unsigned long)r.responses, (unsigned long)r.asr_failed);
-        if (r.capture_callbacks.load() == 0) ESP_LOGW(kTag, "CAPTURE run=%s afe_us=%lld:%lld max_afe_gap_us=%lld afe_samples=%lu capture_callbacks=%u adc_timestamps_available=0 restart_requires_reboot=1",
+        if (r.capture_callbacks.load() == 0) ESP_LOGW(kTag, "CAPTURE run=%s afe_us=%lld:%lld max_afe_gap_us=%lld afe_samples=%lu capture_callbacks=%u adc_timestamps_available=0",
             r.command.run_id.c_str(), (long long)r.first_afe_us, (long long)r.last_afe_us, (long long)r.max_afe_gap_us,
             (unsigned long)(r.capture_pts_ms * 16), r.capture_callbacks.load());
         else ESP_LOGE(kTag, "CAPTURE run=%s snapshot_unavailable=1 callback_join_timeout=1", r.command.run_id.c_str());
     }
     if (r.audio_started) {
         auto* h = static_cast<CoreS3AudioCodec*>(Board::GetInstance().GetAudioCodec());
-        ESP_LOGW(kTag, "HARDWARE run=%s read_failed=%lu write_failed=%lu capture_cvt_failed=%lu dram=%u stack=%u",
+        ESP_LOGW(kTag, "HARDWARE run=%s read_failed=%lu write_failed=%lu capture_cvt_failed=%lu drain_failed=%lu drained_source_frames=%lu afe_reset_failed=%lu dram=%u stack=%u",
             r.command.run_id.c_str(), (unsigned long)(h->ReadFailed() - r.initial_read_failed),
-            (unsigned long)(h->WriteFailed() - r.initial_write_failed), (unsigned long)g_audio.WebRtcCaptureConversionFailed(),
+            (unsigned long)(h->WriteFailed() - r.initial_write_failed),
+            (unsigned long)(g_audio.WebRtcCaptureConversionFailed() - r.initial_capture_cvt_failed),
+            (unsigned long)(g_audio.WebRtcCaptureDrainFailed() - r.initial_drain_failed),
+            (unsigned long)(g_audio.WebRtcCaptureDrainedFrames() - r.initial_drained_frames),
+            (unsigned long)(g_audio.WebRtcAfeResetFailed() - r.initial_afe_reset_failed),
             (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT), (unsigned)uxTaskGetStackHighWaterMark(nullptr));
     }
 }
 void RunBody(Run& r) {
     r.control.Start(r.command.run_id, r.command.mode, r.command.duration_seconds, esp_timer_get_time());
-    Board::GetInstance().StartNetwork();
+    if (!g_network_initialized) {
+        Board::GetInstance().StartNetwork();
+        g_network_initialized = true;
+    }
     while (Continue(r) && !WifiManager::GetInstance().IsConnected()) vTaskDelay(pdMS_TO_TICKS(20));
     if (Continue(r) && !r.codec.Open()) { ++r.failures; Stop(r, StopReason::Error); }
     if (Continue(r)) {
         auto* h = static_cast<CoreS3AudioCodec*>(Board::GetInstance().GetAudioCodec());
         r.initial_read_failed = h->ReadFailed();
         r.initial_write_failed = h->WriteFailed();
-        g_audio.Initialize(h);
-        g_audio.SetWebRtcPcmSink([&r](std::vector<int16_t>&& pcm) { Capture(r, std::move(pcm)); });
-        g_audio.Start();
+        if (!g_audio_initialized) {
+            g_audio.Initialize(h);
+            g_audio.SetWebRtcPcmSink([](std::vector<int16_t>&& pcm) {
+                if (Run* active = g_capture_run.load()) Capture(*active, std::move(pcm));
+            });
+            g_audio.Start();
+            g_audio_initialized = true;
+        }
+        r.initial_capture_cvt_failed = g_audio.WebRtcCaptureConversionFailed();
+        r.initial_drain_failed = g_audio.WebRtcCaptureDrainFailed();
+        r.initial_drained_frames = g_audio.WebRtcCaptureDrainedFrames();
+        r.initial_afe_reset_failed = g_audio.WebRtcAfeResetFailed();
+        r.initial_playback = g_audio.GetWebRtcPlaybackSnapshot();
+        g_capture_run = &r;
         r.audio_started = true;
         std::string error;
         if (Continue(r) && !r.transport.Start({}, Callbacks(r), &error)) {
@@ -317,10 +348,15 @@ void RunBody(Run& r) {
         BeginCaptureWindow(r);
         if (!Continue(r)) break;
         const int64_t now = esp_timer_get_time();
+        if (r.audio_started && (g_audio.WebRtcCaptureDrainFailed() != r.initial_drain_failed ||
+            g_audio.WebRtcCaptureConversionFailed() != r.initial_capture_cvt_failed ||
+            g_audio.WebRtcAfeResetFailed() != r.initial_afe_reset_failed)) {
+            ++r.failures; Stop(r, StopReason::Error); break;
+        }
         if (r.control.state() == RunState::Running) {
             auto* h = static_cast<CoreS3AudioCodec*>(Board::GetInstance().GetAudioCodec());
             if (h->ReadFailed() != r.initial_read_failed || h->WriteFailed() != r.initial_write_failed ||
-                g_audio.WebRtcCaptureConversionFailed() || r.mic_invalid.load() || r.rx_invalid.load() ||
+                r.mic_invalid.load() || r.rx_invalid.load() ||
                 r.event_full.load() || r.event_invalid.load()) { ++r.failures; Stop(r, StopReason::Error); break; }
             MicFrame mic;
             if (now >= next_send_us && r.mic.Pop(mic)) {
@@ -363,11 +399,12 @@ void RunBody(Run& r) {
     r.accept_peer = false;
     PublishState(r);
     if (r.audio_started) {
-        g_audio.EnableVoiceProcessing(false);
+        g_audio.EnableVoiceProcessing(false);  // Joins input read/feed and AFE callbacks.
         g_audio.StopWebRtcPlayback();
     }
+    g_capture_run = nullptr;
     r.transport.Stop();  // Sole worker owns sends; join before closing codecs.
-    // The AFE callback is short and nonblocking. Never reset/reuse its storage.
+    // A nonzero count violates the AFE iteration join: retain the owner on failure.
     const int64_t join_deadline = esp_timer_get_time() + 1000000;
     while (r.capture_callbacks.load() && esp_timer_get_time() < join_deadline) vTaskDelay(1);
     MicFrame discarded_mic;
@@ -377,15 +414,25 @@ void RunBody(Run& r) {
     while (r.down.Pop(discarded_down)) ++r.stop_discard_down;
     while (r.events.Pop(discarded_event)) ++r.stop_discard_event;
     r.codec.Close();
-    const bool finished_cleanly = !r.failures && r.transport.Stopped() && !r.capture_callbacks.load() &&
+    const bool reset_ok = !r.audio_started || g_audio.WebRtcAfeResetFailed() == r.initial_afe_reset_failed;
+    const bool finished_cleanly = reset_ok && !r.failures && r.transport.Stopped() && !r.capture_callbacks.load() &&
         r.control.stop_reason() != StopReason::PrepareTimeout && r.control.stop_reason() != StopReason::Disconnected;
+    r.reusable = reset_ok && r.transport.Stopped() && !r.capture_callbacks.load();
     r.control.Finish(r.command.run_id, finished_cleanly);
     PublishState(r);
     Report(r, true);
+    ESP_LOGW(kTag, "LIFECYCLE run=%s capture_quiescent=%d transport_joined=%d reusable=%d physical_end_unknown=1",
+        r.command.run_id.c_str(), !r.capture_callbacks.load(), r.transport.Stopped(), r.reusable);
 }
-void Worker(void* arg) {
-    RunBody(*static_cast<Run*>(arg));
-    vTaskDelete(nullptr);
+void Worker(void*) {
+    while (true) {
+        Run* run = nullptr;
+        if (xQueueReceive(g_run_commands, &run, portMAX_DELAY) != pdTRUE) continue;
+        RunBody(*run);  // Locals and FINAL logs complete before publication.
+        run->worker_finished = true;
+        // Do not dereference run again: the console may delete it immediately.
+        // Keep this stack, so reopening does not await Idle task reclamation.
+    }
 }
 }  // namespace
 
@@ -398,7 +445,12 @@ void WebRtcM15Run() {
             while (true) { GetHAL().feedTheDog(); GetHAL().delay(100); }
         }
     }
-    ESP_LOGW(kTag, "IDLE; USB commands: START <run_id> near|duplex <5..180 seconds>, STOP <run_id>, STATUS; one run per boot");
+    g_run_commands = xQueueCreate(1, sizeof(Run*));
+    if (!g_run_commands) {
+        ESP_LOGE(kTag, "command queue unavailable; staying Idle");
+        while (true) { GetHAL().feedTheDog(); GetHAL().delay(100); }
+    }
+    ESP_LOGW(kTag, "IDLE; USB commands: START <run_id> near|duplex <5..180 seconds>, STOP <run_id>, STATUS; fresh run ID for each start");
     webrtc_media::ConsoleLineReader reader;
     while (true) {
         char bytes[64];
@@ -409,14 +461,28 @@ void WebRtcM15Run() {
             if (result != webrtc_media::ConsoleLineReader::Result::Command) continue;
             const auto& c = reader.last_command();
             if (c.kind == webrtc_media::CommandKind::Status) {
+                const bool finished = g_run && g_run->worker_finished.load();
+                const bool idle = !g_run || (finished && g_run->reusable);
                 ESP_LOGW(kTag, "STATUS run=%s state=%s restart_requires_reboot=%d", g_run ? g_run->command.run_id.c_str() : "none",
-                    g_run ? StateName(g_run->state.load()) : "Idle", g_run != nullptr);
+                    idle ? "Idle" : StateName(g_run->state.load()), finished && !g_run->reusable);
             } else if (c.kind == webrtc_media::CommandKind::Start) {
-                if (g_run) { ESP_LOGW(kTag, "START rejected: run already allocated; reboot required"); continue; }
+                if (g_run) {
+                    if (!g_run->worker_finished.load()) { ESP_LOGW(kTag, "START rejected: worker still active"); continue; }
+                    if (!g_run->reusable) { ESP_LOGW(kTag, "START rejected: cleanup not reusable; reboot required"); continue; }
+                    if (c.run_id == g_run->command.run_id) { ESP_LOGW(kTag, "START rejected: use a fresh run ID"); continue; }
+                    delete g_run;
+                }
                 g_run = new Run(c);
-                if (xTaskCreate(Worker, "webrtc_media", 32768, g_run, 5, nullptr) != pdPASS) {
+                if (!g_worker && xTaskCreate(Worker, "webrtc_media", 32768, nullptr, 5, &g_worker) != pdPASS) {
                     g_run->state = RunState::Failed;
+                    g_run->reusable = true;
+                    g_run->worker_finished = true;
                     ESP_LOGE(kTag, "FINAL run=%s state=Failed reason=task_creation no_capture=1", c.run_id.c_str());
+                } else if (xQueueSend(g_run_commands, &g_run, 0) != pdTRUE) {
+                    g_run->state = RunState::Failed;
+                    g_run->reusable = false;
+                    g_run->worker_finished = true;
+                    ESP_LOGE(kTag, "FINAL run=%s state=Failed reason=dispatch_failed", c.run_id.c_str());
                 } else ESP_LOGW(kTag, "PREPARING run=%s; wait for RUNNING before speech", c.run_id.c_str());
             } else if (c.kind == webrtc_media::CommandKind::Stop) {
                 if (!g_run || c.run_id != g_run->command.run_id ||

@@ -120,3 +120,13 @@ M5Stack-StackChan-Board: Init power save timer: sleep=300 s, shutdown=600 s
 
 电池供电且 5 分钟无操作会休眠、10 分钟关机。**调试串口时如果设备突然"失联"，
 先按电源键唤醒**，不是固件崩溃。
+
+
+### 4.5 CoreS3采集DMA与跨轮缓存边界
+
+当前`AudioCodec`配置6个DMA描述符、每描述符240帧；24kHz输入对应约60ms源音频容量
+（`audio/audio_codec.h`、`main/hal/board/cores3_audio_codec.cc`）。
+`esp_codec_dev/platform/audio_codec_data_i2s.c`在S3配对TX仍工作时可能延期关闭IN，因此不能把
+`EnableInput(false/true)`当作RX缓存已刷新；单纯等待也不会读空缓存。
+M15在新轮读取丢弃120ms源采样后重置转换器/AFE缓存，具体实现和验证边界见
+[findings B44](firmware-findings.md#b44-采集预热等待不会排空dma关闭in也未必立即关rx2026-10-23)。

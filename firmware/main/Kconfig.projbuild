@@ -5,7 +5,7 @@ config STACKCHAN_WEBRTC_M15
     help
         Real microphone via AFE 16k -> 48k Opus, downlink 48k -> 24k playback.
         Boots Idle. USB START selects near/duplex and a bounded time window.
-        One run per boot until the AFE lifecycle supports a restart join.
+        Fresh media owners for each run; restart only after capture and transport stop.
         Independent of the product UI; does not certify AEC or interruption.
 
 menu "StackChan Aliyun Realtime"
