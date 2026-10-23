@@ -4,13 +4,13 @@
 
 
 // PROBE_GUARD
-#if CONFIG_STACKCHAN_WEBRTC_M0 || CONFIG_STACKCHAN_WEBRTC_M1
+#if CONFIG_STACKCHAN_WEBRTC_M0 || CONFIG_STACKCHAN_WEBRTC_M1 || CONFIG_STACKCHAN_WEBRTC_M15
 
 /**
- * @brief Shared WebRTC transport for the M0/M1 probes.
+ * @brief Shared WebRTC transport for the M0/M1/M1.5 probes.
  *
  * Owns the esp_peer instance, the SDP exchange, the peer main loop and the
- * DataChannel bookkeeping that both probes need. Extracted from the verified M0
+ * DataChannel bookkeeping that the probes need. Extracted from the verified M0
  * implementation so that M1 does not carry a second copy of the transport
  * stack; the transport logic itself is unchanged from M0.
  *

@@ -1,3 +1,12 @@
+config STACKCHAN_WEBRTC_M15
+    bool "Boot into WebRTC bidirectional media probe (M1.5 prerequisites)"
+    default n
+    depends on !STACKCHAN_WEBRTC_M0 && !STACKCHAN_WEBRTC_M1 && USE_AUDIO_PROCESSOR
+    help
+        Real microphone via AFE 16k -> 48k Opus, downlink 48k -> 24k playback.
+        Runs a bounded probe, independent of the product UI. Does not certify
+        AEC, interruption or delayed RTP response association.
+
 menu "StackChan Aliyun Realtime"
 
 config STACKCHAN_WEBRTC_M1

@@ -346,36 +346,6 @@ extern "C" void __wrap_mbedtls_ssl_free(mbedtls_ssl_context* ssl)
     dtls_probe::WrapSslFree(ssl);
 }
 
-extern "C" int __real_mbedtls_ssl_conf_dtls_srtp_protection_profiles(
-        mbedtls_ssl_config* conf, const mbedtls_ssl_srtp_profile* profiles);
-
-/**
- * Narrow the DTLS-SRTP protection profiles to the one this stack can produce.
- *
- * esp_peer always installs the AES128_CM_HMAC_SHA1_80 policy, but offers
- * SHA1_32 and NULL profiles as well. The Aliyun gateway prefers SHA1_32 when
- * it is offered, then every media packet fails authentication on the server
- * and is dropped silently: local SRTP/UDP writes succeed, but nothing decodes
- * (findings B35, U1 设备实测)。Until the component selects its srtp policy per
- * negotiated profile, offer only the implemented one.
- */
-extern "C" int __wrap_mbedtls_ssl_conf_dtls_srtp_protection_profiles(
-        mbedtls_ssl_config* conf, const mbedtls_ssl_srtp_profile* profiles)
-{
-    static const mbedtls_ssl_srtp_profile kImplemented[] = {
-        MBEDTLS_TLS_SRTP_AES128_CM_HMAC_SHA1_80,
-        MBEDTLS_TLS_SRTP_UNSET,
-    };
-    int offered = 0;
-    while (profiles != nullptr && offered < 8 &&
-           profiles[offered] != MBEDTLS_TLS_SRTP_UNSET) {
-        ++offered;
-    }
-    ESP_LOGW(TAG, "SRTP offer narrowed to SHA1_80 (component offered %d profile(s); "
-                  "only the 80-bit policy is implemented)", offered);
-    return __real_mbedtls_ssl_conf_dtls_srtp_protection_profiles(conf, kImplemented);
-}
-
 extern "C" int __wrap_mbedtls_ssl_handshake(mbedtls_ssl_context* ssl)
 {
     const mbedtls_ssl_config* conf = (ssl != nullptr) ? mbedtls_ssl_context_get_config(ssl)

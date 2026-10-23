@@ -270,15 +270,33 @@ void CoreS3AudioCodec::EnableOutput(bool enable) {
 }
 
 int CoreS3AudioCodec::Read(int16_t* dest, int samples) {
+#if CONFIG_STACKCHAN_WEBRTC_M15
+    if (input_enabled_ && esp_codec_dev_read(input_dev_, dest, samples * sizeof(int16_t)) == ESP_OK) {
+        ++read_ok_;
+        return samples;
+    }
+    ++read_failed_;
+    return 0;
+#else
     if (input_enabled_) {
         ESP_ERROR_CHECK_WITHOUT_ABORT(esp_codec_dev_read(input_dev_, (void*)dest, samples * sizeof(int16_t)));
     }
     return samples;
+#endif
 }
 
 int CoreS3AudioCodec::Write(const int16_t* data, int samples) {
+#if CONFIG_STACKCHAN_WEBRTC_M15
+    if (output_enabled_ && esp_codec_dev_write(output_dev_, (void*)data, samples * sizeof(int16_t)) == ESP_OK) {
+        ++write_ok_;
+        return samples;
+    }
+    ++write_failed_;
+    return 0;
+#else
     if (output_enabled_) {
         ESP_ERROR_CHECK_WITHOUT_ABORT(esp_codec_dev_write(output_dev_, (void*)data, samples * sizeof(int16_t)));
     }
     return samples;
+#endif
 }

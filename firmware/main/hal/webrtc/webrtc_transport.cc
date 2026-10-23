@@ -1,7 +1,7 @@
 #include <sdkconfig.h>
 
 // PROBE_GUARD: Shared transport for the probes. Built only when a probe is enabled.
-#if CONFIG_STACKCHAN_WEBRTC_M0 || CONFIG_STACKCHAN_WEBRTC_M1
+#if CONFIG_STACKCHAN_WEBRTC_M0 || CONFIG_STACKCHAN_WEBRTC_M1 || CONFIG_STACKCHAN_WEBRTC_M15
 
 #include "webrtc_transport.h"
 

@@ -10,9 +10,9 @@
 #include <apps/apps.h>
 #include <hal/hal.h>
 
-// Both probes need the board/Wi-Fi/log headers; only the probe entry points
+// Probe modes need the board/Wi-Fi/log headers; only the probe entry points
 // themselves are per-probe.
-#if CONFIG_STACKCHAN_WEBRTC_M0 || CONFIG_STACKCHAN_WEBRTC_M1
+#if CONFIG_STACKCHAN_WEBRTC_M0 || CONFIG_STACKCHAN_WEBRTC_M1 || CONFIG_STACKCHAN_WEBRTC_M15
 #include <board.h>
 #include <wifi_manager.h>
 #include <esp_log.h>
@@ -22,6 +22,10 @@
 #endif
 #if CONFIG_STACKCHAN_WEBRTC_M1
 #include <hal/webrtc/webrtc_m1.h>
+#endif
+
+#if CONFIG_STACKCHAN_WEBRTC_M15
+#include <hal/webrtc/webrtc_m15.h>
 #endif
 
 using namespace mooncake;
@@ -82,6 +86,15 @@ extern "C" void app_main(void)
             GetHAL().delay(1000);
         }
     }
+#endif
+
+#if CONFIG_STACKCHAN_WEBRTC_M15
+    Board::GetInstance().StartNetwork();
+    while (!WifiManager::GetInstance().IsConnected()) {
+        GetHAL().feedTheDog();
+        GetHAL().delay(500);
+    }
+    WebRtcM15Run();
 #endif
 
     // Setup ui hal

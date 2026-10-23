@@ -1,0 +1,159 @@
+--- a/main/audio/audio_service.h
++++ b/main/audio/audio_service.h
+@@ -2,6 +2,9 @@
+ #define AUDIO_SERVICE_H
+ 
+ #include <memory>
++#if CONFIG_STACKCHAN_WEBRTC_M15
++#include <atomic>
++#endif
+ #include <deque>
+ #include <condition_variable>
+ #include <chrono>
+@@ -93,6 +96,9 @@
+     AudioTaskType type;
+     std::vector<int16_t> pcm;
+     uint32_t timestamp;
++#if CONFIG_STACKCHAN_WEBRTC_M15
++    uint64_t playback_epoch = 0;  // zero belongs to the original playback path
++#endif
+ };
+ 
+ struct DebugStatistics {
+@@ -133,8 +139,23 @@
+     bool ReadAudioData(std::vector<int16_t>& data, int sample_rate, int samples);
+     void ResetDecoder();
+     void SetModelsList(srmodel_list_t* models_list);
++#if CONFIG_STACKCHAN_WEBRTC_M15
++    // Install before Start; sink must not block or retain borrowed storage.
++    void SetWebRtcPcmSink(std::function<void(std::vector<int16_t>&&)> sink) { webrtc_pcm_sink_ = std::move(sink); }
++    uint32_t WebRtcCaptureConversionFailed() const { return webrtc_capture_conversion_failed_.load(); }
++    uint64_t WebRtcPlaybackEpoch() const { return webrtc_playback_epoch_.load(); }
++    bool PushWebRtcPcm(std::vector<int16_t>&& pcm, uint64_t epoch);
++    // Worker only: synchronizes against hardware submission, not a network callback.
++    void StopWebRtcPlayback();
++#endif
+ 
+ private:
++#if CONFIG_STACKCHAN_WEBRTC_M15
++    std::function<void(std::vector<int16_t>&&)> webrtc_pcm_sink_;
++    std::atomic<uint64_t> webrtc_playback_epoch_{1};
++    std::atomic<uint32_t> webrtc_capture_conversion_failed_{0};
++    std::mutex webrtc_output_mutex_;
++#endif
+     AudioCodec* codec_ = nullptr;
+     AudioServiceCallbacks callbacks_;
+     std::unique_ptr<AudioProcessor> audio_processor_;
+--- a/main/audio/audio_service.cc
++++ b/main/audio/audio_service.cc
+@@ -99,6 +99,12 @@
+ #endif
+ 
+     audio_processor_->OnOutput([this](std::vector<int16_t>&& data) {
++#if CONFIG_STACKCHAN_WEBRTC_M15
++        if (webrtc_pcm_sink_) {
++            webrtc_pcm_sink_(std::move(data));
++            return;
++        }
++#endif
+         PushTaskToEncodeQueue(kAudioTaskTypeEncodeToSendQueue, std::move(data));
+     });
+ 
+@@ -193,15 +199,40 @@
+         if (!codec_->InputData(data)) {
+             return false;
+         }
++#if CONFIG_STACKCHAN_WEBRTC_M15
++        if (input_resampler_ == nullptr) {
++            ++webrtc_capture_conversion_failed_;
++            ESP_LOGE(TAG, "WebRTC capture converter unavailable");
++            return false;
++        }
++#endif
+         if (input_resampler_ != nullptr) {
+             std::lock_guard<std::mutex> lock(input_resampler_mutex_);
+             uint32_t in_sample_num = data.size() / codec_->input_channels();
+             uint32_t output_samples = 0;
+-            esp_ae_rate_cvt_get_max_out_sample_num(input_resampler_, in_sample_num, &output_samples);
++            const auto capacity_rc = esp_ae_rate_cvt_get_max_out_sample_num(input_resampler_, in_sample_num, &output_samples);
++#if CONFIG_STACKCHAN_WEBRTC_M15
++            if (capacity_rc != ESP_AE_ERR_OK || output_samples == 0 || output_samples > 8192) {
++                ++webrtc_capture_conversion_failed_;
++                ESP_LOGE(TAG, "WebRTC capture conversion capacity failed: %d", capacity_rc);
++                return false;
++            }
++#else
++            (void)capacity_rc;
++#endif
+             auto resampled = std::vector<int16_t>(output_samples * codec_->input_channels());
+             uint32_t actual_output = output_samples;
+-            esp_ae_rate_cvt_process(input_resampler_, (esp_ae_sample_t)data.data(), in_sample_num,
++            const auto process_rc = esp_ae_rate_cvt_process(input_resampler_, (esp_ae_sample_t)data.data(), in_sample_num,
+                                    (esp_ae_sample_t)resampled.data(), &actual_output);
++#if CONFIG_STACKCHAN_WEBRTC_M15
++            if (process_rc != ESP_AE_ERR_OK || actual_output == 0 || actual_output > output_samples) {
++                ++webrtc_capture_conversion_failed_;
++                ESP_LOGE(TAG, "WebRTC capture conversion failed: %d", process_rc);
++                return false;
++            }
++#else
++            (void)process_rc;
++#endif
+             resampled.resize(actual_output * codec_->input_channels());
+             data = std::move(resampled);
+         }
+@@ -306,7 +337,20 @@
+             codec_->EnableOutput(true);
+         }
+ 
+-        codec_->OutputData(task->pcm);
++#if CONFIG_STACKCHAN_WEBRTC_M15
++        if (task->playback_epoch != 0) {
++            for (size_t offset = 0; offset < task->pcm.size(); offset += 480) {
++                const size_t count = std::min(size_t(480), task->pcm.size() - offset);
++                std::vector<int16_t> chunk(task->pcm.begin() + offset, task->pcm.begin() + offset + count);
++                std::lock_guard<std::mutex> commit(webrtc_output_mutex_);
++                if (task->playback_epoch != webrtc_playback_epoch_.load()) break;
++                codec_->OutputData(chunk);
++            }
++        } else
++#endif
++        {
++            codec_->OutputData(task->pcm);
++        }
+ 
+         /* Update the last output time */
+         last_output_time_ = std::chrono::steady_clock::now();
+@@ -732,3 +776,32 @@
+     return false;
+ #endif
+ }
++
++#if CONFIG_STACKCHAN_WEBRTC_M15
++bool AudioService::PushWebRtcPcm(std::vector<int16_t>&& pcm, uint64_t epoch) {
++    if (pcm.empty() || pcm.size() > 2880 || epoch == 0) return false;
++    std::unique_lock<std::mutex> lock(audio_queue_mutex_, std::try_to_lock);
++    if (!lock || service_stopped_ || epoch != webrtc_playback_epoch_.load() ||
++        audio_playback_queue_.size() >= MAX_PLAYBACK_TASKS_IN_QUEUE) return false;
++    auto task = std::make_unique<AudioTask>();
++    task->type = kAudioTaskTypeDecodeToPlaybackQueue;
++    task->timestamp = 0;
++    task->playback_epoch = epoch;
++    task->pcm = std::move(pcm);
++    audio_playback_queue_.push_back(std::move(task));
++    audio_queue_cv_.notify_all();
++    return true;
++}
++
++void AudioService::StopWebRtcPlayback() {
++    // Output never holds queue mutex while taking commit mutex.
++    std::lock_guard<std::mutex> commit(webrtc_output_mutex_);
++    ++webrtc_playback_epoch_;
++    std::lock_guard<std::mutex> lock(audio_queue_mutex_);
++    for (auto it = audio_playback_queue_.begin(); it != audio_playback_queue_.end();) {
++        if ((*it)->playback_epoch != 0) it = audio_playback_queue_.erase(it);
++        else ++it;
++    }
++    audio_queue_cv_.notify_all();
++}
++#endif

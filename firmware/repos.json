@@ -20,7 +20,8 @@
         "branch": "v2.2.4",
         "patch": [
             "patches/xiaozhi-esp32.patch",
-            "patches/stackchan-aliyun.patch"
+            "patches/stackchan-aliyun.patch",
+            "patches/stackchan-webrtc-media.patch"
         ]
     },
     {

@@ -479,3 +479,12 @@ Review5498100335与本地/PR full b45aaa7 HEAD已重新核对一致。
 - 记录：[U1-4 结论](webrtc-media-u1-4-decision.md)；
   日志 `docs/device_diag_evidence/2026-10-22-u1/arm-a-1.5.5-fixed.log`、
   `arm-b-1.5.7-fixed.log`。
+
+## 2026-10-23 — Codex接替开发
+
+- 用户指定DSH会话 **查看 stackchan worktree 开发进展** 已读取，接替HEAD `253fcf5`。
+- 复核并放行M1上行范围、接受1.5.7基线；具体证据与限制见
+  [接替记录](webrtc-media-takeover-2026-10-23.md)。后续由Codex直接实现。
+- M1.5基础双向探针已编译并开始设备验证；前两轮定位并修复pacing累计漂移、
+  输入转换保护误用max capacity；任务析构和转换错误处理已独立复核。
+- 仅基础双向前置开发中；不宣称T1–T4、AEC、打断或产品接入完成。

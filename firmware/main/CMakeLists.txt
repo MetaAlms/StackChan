@@ -300,6 +300,10 @@ if(CONFIG_STACKCHAN_WEBRTC_M1)
     message(STATUS "M1 probe fixture embedded: 3 PCM clips")
 endif()
 
+if(CONFIG_STACKCHAN_WEBRTC_M15)
+    list(APPEND M1_FIXTURE "hal/webrtc/fixture/zh_1.pcm")
+endif()
+
 # R2-4: observe the real RTP -> SRTP -> UDP boundaries.
 #
 # `srtp_protect` and `lwip_sendto` are unresolved externals in the matching
@@ -320,10 +324,7 @@ if(CONFIG_STACKCHAN_WEBRTC_M1)
         "-Wl,--wrap=mbedtls_ssl_config_free"
         "-Wl,--wrap=mbedtls_ssl_free"
         "-Wl,--wrap=mbedtls_ssl_config_defaults"
-        "-Wl,--wrap=mbedtls_ssl_conf_transport"
-        # B35: the component offers SRTP profiles it cannot produce; keep the
-        # offer to the SHA1_80 policy it actually installs.
-        "-Wl,--wrap=mbedtls_ssl_conf_dtls_srtp_protection_profiles")
+        "-Wl,--wrap=mbedtls_ssl_conf_transport")
     message(STATUS "M1 probe: RTP/SRTP/UDP send observation enabled")
 endif()
 
@@ -585,4 +586,11 @@ if(CONFIG_STACKCHAN_WEBRTC_M1)
     if(_srtp_lib)
         target_link_libraries(${COMPONENT_LIB} INTERFACE ${_srtp_lib})
     endif()
+endif()
+
+# B35 is a media correctness fix, not an M1 diagnostic. Keep this separate
+# so later probe/product modes do not need to enable observation wrappers.
+if(CONFIG_STACKCHAN_WEBRTC_M0 OR CONFIG_STACKCHAN_WEBRTC_M1 OR CONFIG_STACKCHAN_WEBRTC_M15)
+    target_link_options(${COMPONENT_LIB} INTERFACE
+        "-Wl,--wrap=mbedtls_ssl_conf_dtls_srtp_protection_profiles")
 endif()
