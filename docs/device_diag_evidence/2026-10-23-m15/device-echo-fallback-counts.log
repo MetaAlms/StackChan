@@ -1,0 +1,38 @@
+# Sanitized counters only; excludes SDP, credentials and utterance text.
+W (7757) M1.5: prerequisite sent=0 decoded=0 failures=0 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (7757) M1.5: observations speech_started=0 asr_completed=0 responses=0 answer_transcripts=0 asr_texts=0 echo_matches=0
+W (7777) M1.5: hardware read_ok=0 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=0 dram=22455 stack=27296
+W (12767) M1.5: prerequisite sent=0 decoded=0 failures=0 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (12767) M1.5: observations speech_started=0 asr_completed=0 responses=0 answer_transcripts=0 asr_texts=0 echo_matches=0
+W (12767) M1.5: hardware read_ok=0 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=0 dram=29919 stack=27296
+W (17767) M1.5: prerequisite sent=0 decoded=0 failures=0 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (17767) M1.5: observations speech_started=0 asr_completed=0 responses=0 answer_transcripts=0 asr_texts=0 echo_matches=0
+W (17767) M1.5: hardware read_ok=0 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=0 dram=29911 stack=27296
+W (22767) M1.5: prerequisite sent=0 decoded=0 failures=0 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (22767) M1.5: observations speech_started=0 asr_completed=0 responses=0 answer_transcripts=0 asr_texts=0 echo_matches=0
+W (22767) M1.5: hardware read_ok=0 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=0 dram=29947 stack=27296
+W (27777) M1.5: prerequisite sent=0 decoded=0 failures=0 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (27777) M1.5: observations speech_started=0 asr_completed=0 responses=0 answer_transcripts=0 asr_texts=0 echo_matches=0
+W (27777) M1.5: hardware read_ok=0 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=0 dram=29911 stack=27296
+W (32787) M1.5: prerequisite sent=0 decoded=0 failures=0 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (32787) M1.5: observations speech_started=0 asr_completed=0 responses=0 answer_transcripts=0 asr_texts=0 echo_matches=0
+W (32787) M1.5: hardware read_ok=0 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=0 dram=29911 stack=27296
+W (37787) M1.5: prerequisite sent=0 decoded=0 failures=0 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (37787) M1.5: observations speech_started=0 asr_completed=0 responses=0 answer_transcripts=0 asr_texts=0 echo_matches=0
+W (37787) M1.5: hardware read_ok=0 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=0 dram=29947 stack=27296
+W (42787) M1.5: prerequisite sent=0 decoded=0 failures=0 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (42787) M1.5: observations speech_started=0 asr_completed=0 responses=0 answer_transcripts=0 asr_texts=0 echo_matches=0
+W (42787) M1.5: hardware read_ok=0 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=0 dram=29947 stack=27296
+W (47787) M1.5: prerequisite sent=0 decoded=0 failures=0 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (47787) M1.5: observations speech_started=0 asr_completed=0 responses=0 answer_transcripts=0 asr_texts=0 echo_matches=0
+W (47787) M1.5: hardware read_ok=0 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=0 dram=29967 stack=27296
+W (52787) M1.5: prerequisite sent=0 decoded=0 failures=0 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (52787) M1.5: observations speech_started=0 asr_completed=0 responses=0 answer_transcripts=0 asr_texts=0 echo_matches=0
+W (52787) M1.5: hardware read_ok=0 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=0 dram=29967 stack=27296
+W (57797) M1.5: prerequisite sent=0 decoded=0 failures=0 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (57797) M1.5: observations speech_started=0 asr_completed=0 responses=0 answer_transcripts=0 asr_texts=0 echo_matches=0
+W (57797) M1.5: hardware read_ok=0 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=0 dram=29967 stack=27296
+W (62797) M1.5: prerequisite sent=0 decoded=0 failures=0 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (62797) M1.5: observations speech_started=0 asr_completed=0 responses=0 answer_transcripts=0 asr_texts=0 echo_matches=0
+W (62797) M1.5: hardware read_ok=0 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=0 dram=29931 stack=27296
+W (68077) M1.5: bounded probe ended; T1-T4 NOT RUN; no AEC/interruption verdict

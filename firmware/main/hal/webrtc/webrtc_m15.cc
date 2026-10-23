@@ -21,6 +21,11 @@
 
 namespace {
 constexpr const char* kTag = "M1.5";
+#if CONFIG_STACKCHAN_WEBRTC_M15_NEAR_END_CONTROL
+constexpr bool kNearEndControl = true;
+#else
+constexpr bool kNearEndControl = false;
+#endif
 extern const uint8_t zh_1_pcm[] asm("zh_1_pcm");
 extern const uint32_t zh_1_pcm_length asm("zh_1_pcm_length");
 struct MicFrame { std::array<int16_t, 320> pcm; uint32_t pts; };
@@ -80,6 +85,7 @@ void RunMediaBody()
             StringIs(type, "conversation.item.input_audio_transcription.failed") ||
             StringIs(type, "response.created") || StringIs(type, "response.done") ||
             StringIs(type, "response.audio.done") || StringIs(type, "response.audio_transcript.done") ||
+            StringIs(type, "response.content_part.done") ||
             StringIs(type, "error");
         cJSON_Delete(root);
         if (relevant && !g_events.Push(Event{json, stream})) ++g_event_drop;
@@ -105,17 +111,28 @@ void RunMediaBody()
         return;
     }
     bool ready = false;
-    size_t stimulus_offset = 0;
+    size_t stimulus_offset = kNearEndControl ? zh_1_pcm_length : 0;
     uint64_t playback_epoch = g_audio.WebRtcPlaybackEpoch();
     const int64_t started = esp_timer_get_time();
     int64_t next_send = 0, next_report = started;
     uint32_t sent = 0, decoded = 0, failures = 0, playback_drop = 0;
     uint32_t speech_started = 0, asr_completed = 0, responses = 0, echo_matches = 0;
     std::deque<std::string> recent_answers;
+    uint32_t answer_transcripts = 0, asr_texts = 0;
+    unsigned near_keywords = 0;
+    auto remember_answer = [&](const cJSON* text) {
+        if (!cJSON_IsString(text)) return;
+        const std::string normalized = NormalizeTranscript(text->valuestring);
+        if (normalized.size() < 9 || normalized.size() > 512) return;
+        if (!recent_answers.empty() && recent_answers.back() == normalized) return;
+        if (recent_answers.size() == 4) recent_answers.pop_front();
+        recent_answers.push_back(normalized);
+        ++answer_transcripts;
+    };
     std::vector<uint8_t> packet;
     std::vector<int16_t> pcm;
     // This is the transport/codec/hardware prerequisite, not T1-T4 acceptance.
-    while (!g_disconnected.load() && esp_timer_get_time() - started < 60000000) {
+    while (!g_disconnected.load() && esp_timer_get_time() - started < (kNearEndControl ? 180000000 : 60000000) && !(near_keywords == 7 && asr_completed >= 3)) {
         Event event;
         if (g_events.Pop(event)) {
             cJSON* root = cJSON_ParseWithLength(event.json.data(), event.json.size());
@@ -136,7 +153,8 @@ void RunMediaBody()
                 ESP_LOGW(kTag, "session config verified=%d", ready);
                 if (ready && !g_accept.exchange(true)) {
                     g_audio.EnableVoiceProcessing(true);  // once: stays on during playback
-                    ESP_LOGW(kTag, "initial fixture stimulus, then continuous microphone (fixture ASR is not microphone ASR evidence)");
+                    if (kNearEndControl) ESP_LOGW(kTag, "NEAR-END CONTROL ready: real microphone only; speaker submissions suppressed; say three test sentences");
+                    else ESP_LOGW(kTag, "initial fixture stimulus, then continuous microphone (fixture ASR is not microphone ASR evidence)");
                 }
             } else if (cJSON_IsString(type)) {
                 // Do not log raw events (credentials/transcripts). Event names only.
@@ -144,22 +162,42 @@ void RunMediaBody()
                 if (StringIs(type, "error")) ++failures;
                 if (StringIs(type, "input_audio_buffer.speech_started")) ++speech_started;
                 if (StringIs(type, "response.audio_transcript.done")) {
-                    const cJSON* transcript = Field(root, "transcript");
-                    const std::string normalized = NormalizeTranscript(cJSON_IsString(transcript) ? transcript->valuestring : nullptr);
-                    if (normalized.size() >= 9 && normalized.size() <= 512) {
-                        if (recent_answers.size() == 4) recent_answers.pop_front();
-                        recent_answers.push_back(normalized);
+                    remember_answer(Field(root, "transcript"));
+                } else if (StringIs(type, "response.content_part.done")) {
+                    const cJSON* part = Field(root, "part");
+                    remember_answer(Field(part, "transcript"));
+                    remember_answer(Field(part, "text"));
+                } else if (StringIs(type, "response.done")) {
+                    // Some gateways omit audio_transcript.done. The final
+                    // response contains message content instead; generation
+                    // completion still does not establish playback completion.
+                    const cJSON* item = nullptr;
+                    cJSON_ArrayForEach(item, Field(Field(root, "response"), "output")) {
+                        const cJSON* part = nullptr;
+                        cJSON_ArrayForEach(part, Field(item, "content")) {
+                            remember_answer(Field(part, "transcript"));
+                            remember_answer(Field(part, "text"));
+                        }
                     }
                 }
                 if (StringIs(type, "conversation.item.input_audio_transcription.completed")) {
                     ++asr_completed;
                     const cJSON* transcript = Field(root, "transcript");
                     const std::string normalized = NormalizeTranscript(cJSON_IsString(transcript) ? transcript->valuestring : nullptr);
+                    if (!normalized.empty()) ++asr_texts;
+                    if (kNearEndControl) {
+                        if (normalized.find("测试") != std::string::npos && normalized.find("语音") != std::string::npos && normalized.find("连接") != std::string::npos) near_keywords |= 1;
+                        if (normalized.find("蓝色") != std::string::npos && normalized.find("书") != std::string::npos) near_keywords |= 2;
+                        if ((normalized.find("一加一") != std::string::npos || normalized.find("1加1") != std::string::npos ||
+                             (cJSON_IsString(transcript) && strstr(transcript->valuestring, "1+1"))) &&
+                            normalized.find("等于") != std::string::npos) near_keywords |= 4;
+                        ESP_LOGW(kTag, "NEAR-END CONTROL recognized keyword mask=%u/7 (transcript omitted)", near_keywords);
+                    }
                     const auto* hardware = static_cast<CoreS3AudioCodec*>(Board::GetInstance().GetAudioCodec());
                     if (stimulus_offset == zh_1_pcm_length && hardware->WriteOk() > 0 &&
                         normalized.size() >= 9 && std::find(recent_answers.begin(), recent_answers.end(), normalized) != recent_answers.end()) {
                         ++echo_matches;
-                        ESP_LOGW(kTag, "ASR matches a previous device response (normalized exact match; transcript omitted)");
+                        ESP_LOGW(kTag, "ASR text overlaps a previous answer (normalized exact match; acoustic attribution unverified; transcript omitted)");
                     }
                 }
                 if (StringIs(type, "response.created")) ++responses;
@@ -190,7 +228,7 @@ void RunMediaBody()
             if (!codec.Decode(packet.data(), packet.size(), pcm)) ++failures;
             else {
                 ++decoded;
-                if (!pcm.empty() && !g_audio.PushWebRtcPcm(std::move(pcm), playback_epoch)) ++playback_drop;
+                if (!kNearEndControl && !pcm.empty() && !g_audio.PushWebRtcPcm(std::move(pcm), playback_epoch)) ++playback_drop;
             }
         }
         if (now >= next_report) {
@@ -198,8 +236,8 @@ void RunMediaBody()
                 (unsigned long)sent, (unsigned long)decoded, (unsigned long)failures,
                 (unsigned long)g_mic_drop.load(), (unsigned long)g_down_drop.load(),
                 (unsigned long)playback_drop, (unsigned long)g_event_drop.load());
-            ESP_LOGW(kTag, "observations speech_started=%lu asr_completed=%lu responses=%lu echo_matches=%lu",
-                (unsigned long)speech_started, (unsigned long)asr_completed, (unsigned long)responses, (unsigned long)echo_matches);
+            ESP_LOGW(kTag, "observations speech_started=%lu asr_completed=%lu responses=%lu answer_transcripts=%lu asr_texts=%lu echo_matches=%lu",
+                (unsigned long)speech_started, (unsigned long)asr_completed, (unsigned long)responses, (unsigned long)answer_transcripts, (unsigned long)asr_texts, (unsigned long)echo_matches);
             auto* hardware = static_cast<CoreS3AudioCodec*>(Board::GetInstance().GetAudioCodec());
             ESP_LOGW(kTag, "hardware read_ok=%lu read_failed=%lu write_ok=%lu write_failed=%lu capture_cvt_failed=%lu dram=%u stack=%u",
                 (unsigned long)hardware->ReadOk(), (unsigned long)hardware->ReadFailed(),
@@ -211,12 +249,14 @@ void RunMediaBody()
         }
         vTaskDelay(1);
     }
+    if (kNearEndControl) ESP_LOGW(kTag, "NEAR-END CONTROL ended: keyword mask=%u/7", near_keywords);
     g_accept = false;
     g_audio.StopWebRtcPlayback();
     g_audio.EnableVoiceProcessing(false);
     g_transport.Stop();  // same worker owns all sends; joins peer before codec closes
     codec.Close();
-    ESP_LOGW(kTag, "bounded probe ended; T1-T4 NOT RUN; no AEC/interruption verdict");
+    if (kNearEndControl) ESP_LOGW(kTag, "bounded probe ended; T1 keyword observations only; T2-T4 NOT RUN");
+    else ESP_LOGW(kTag, "bounded probe ended; T1-T4 NOT RUN; no AEC/interruption verdict");
 }
 
 void RunMedia(void*)

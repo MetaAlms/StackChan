@@ -46,7 +46,25 @@
      std::unique_ptr<AudioProcessor> audio_processor_;
 --- a/main/audio/audio_service.cc
 +++ b/main/audio/audio_service.cc
-@@ -99,6 +99,12 @@
+@@ -63,6 +63,9 @@
+     codec_ = codec;
+     codec_->Start();
+ 
++#if !CONFIG_STACKCHAN_WEBRTC_M15
++    // The isolated M1.5 probe owns its codec worker and sends owned PCM to
++    // AudioOutputTask; do not allocate the unused WebSocket codecs as well.
+     esp_opus_dec_cfg_t opus_dec_cfg = OPUS_DEC_CFG(codec->output_sample_rate(), OPUS_FRAME_DURATION_MS);
+     auto ret = esp_opus_dec_open(&opus_dec_cfg, sizeof(esp_opus_dec_cfg_t), &opus_decoder_);
+     if (opus_decoder_ == nullptr) {
+@@ -83,6 +86,7 @@
+         encoder_frame_size_ = encoder_frame_size_ / sizeof(int16_t);
+     }
+ 
++#endif
+     if (codec->input_sample_rate() != 16000) {
+         esp_ae_rate_cvt_cfg_t input_resampler_cfg = RATE_CVT_CFG(
+             codec->input_sample_rate(), ESP_AUDIO_SAMPLE_RATE_16K, codec->input_channels());
+@@ -99,6 +103,12 @@
  #endif
  
      audio_processor_->OnOutput([this](std::vector<int16_t>&& data) {
@@ -59,7 +77,22 @@
          PushTaskToEncodeQueue(kAudioTaskTypeEncodeToSendQueue, std::move(data));
      });
  
-@@ -193,15 +199,40 @@
+@@ -158,12 +168,14 @@
+     }, "audio_output", 2048, this, 4, &audio_output_task_handle_);
+ #endif
+ 
++#if !CONFIG_STACKCHAN_WEBRTC_M15
+     /* Start the opus codec task */
+     xTaskCreate([](void* arg) {
+         AudioService* audio_service = (AudioService*)arg;
+         audio_service->OpusCodecTask();
+         vTaskDelete(NULL);
+     }, "opus_codec", 2048 * 12, this, 2, &opus_codec_task_handle_);
++#endif
+ }
+ 
+ void AudioService::Stop() {
+@@ -193,15 +205,40 @@
          if (!codec_->InputData(data)) {
              return false;
          }
@@ -102,7 +135,7 @@
              resampled.resize(actual_output * codec_->input_channels());
              data = std::move(resampled);
          }
-@@ -306,7 +337,20 @@
+@@ -306,7 +343,20 @@
              codec_->EnableOutput(true);
          }
  
@@ -124,7 +157,7 @@
  
          /* Update the last output time */
          last_output_time_ = std::chrono::steady_clock::now();
-@@ -732,3 +776,32 @@
+@@ -732,3 +782,32 @@
      return false;
  #endif
  }

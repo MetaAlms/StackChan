@@ -9,6 +9,16 @@ config STACKCHAN_WEBRTC_M15
 
 menu "StackChan Aliyun Realtime"
 
+config STACKCHAN_WEBRTC_M15_NEAR_END_CONTROL
+    bool "M1.5 near-end positive control (no fixture, no speaker output)"
+    default n
+    depends on STACKCHAN_WEBRTC_M15
+    help
+        For SPEC T1 only: forwards real microphone PCM from the first frame,
+        suppresses remote PCM submission to the speaker, and observes three
+        known spoken sentences. The bounded test ends after all three keyword
+        sets match, or after 180 seconds. This is not the full-duplex test.
+
 config STACKCHAN_WEBRTC_M1
     bool "Boot into the M1 media-uplink probe"
     default n

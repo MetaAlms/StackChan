@@ -1,0 +1,92 @@
+# Sanitized counters only; excludes SDP, credentials and utterance text.
+W (7740) M1.5: prerequisite sent=0 decoded=0 failures=0 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (7740) M1.5: observations speech_started=0 asr_completed=0 responses=0 answer_transcripts=0 asr_texts=0 echo_matches=0
+W (7760) M1.5: hardware read_ok=0 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=0 dram=47387 stack=27172
+W (9800) M1.5: NEAR-END CONTROL ready: real microphone only; speaker submissions suppressed; say three test sentences
+W (12750) M1.5: prerequisite sent=136 decoded=0 failures=0 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (12760) M1.5: observations speech_started=0 asr_completed=0 responses=0 answer_transcripts=0 asr_texts=0 echo_matches=0
+W (12760) M1.5: hardware read_ok=281 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=0 dram=49579 stack=9396
+W (14710) M1.5: NEAR-END CONTROL recognized keyword mask=0/7 (transcript omitted)
+W (15310) M1.5: NEAR-END CONTROL recognized keyword mask=0/7 (transcript omitted)
+W (17120) M1.5: NEAR-END CONTROL recognized keyword mask=0/7 (transcript omitted)
+W (17750) M1.5: prerequisite sent=387 decoded=34 failures=0 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (17750) M1.5: observations speech_started=3 asr_completed=3 responses=1 answer_transcripts=1 asr_texts=3 echo_matches=0
+W (17760) M1.5: hardware read_ok=781 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=0 dram=46323 stack=9396
+W (19630) M1.5: NEAR-END CONTROL recognized keyword mask=0/7 (transcript omitted)
+W (22770) M1.5: prerequisite sent=637 decoded=51 failures=0 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (22770) M1.5: observations speech_started=5 asr_completed=4 responses=2 answer_transcripts=2 asr_texts=4 echo_matches=0
+W (22780) M1.5: hardware read_ok=1283 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=0 dram=44575 stack=9396
+W (26980) M1.5: NEAR-END CONTROL recognized keyword mask=0/7 (transcript omitted)
+W (27770) M1.5: prerequisite sent=888 decoded=51 failures=0 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (27770) M1.5: observations speech_started=6 asr_completed=5 responses=3 answer_transcripts=2 asr_texts=5 echo_matches=0
+W (27780) M1.5: hardware read_ok=1783 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=0 dram=44367 stack=9396
+W (32720) M1.5: NEAR-END CONTROL recognized keyword mask=0/7 (transcript omitted)
+W (32770) M1.5: prerequisite sent=1137 decoded=51 failures=0 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (32770) M1.5: observations speech_started=6 asr_completed=6 responses=4 answer_transcripts=2 asr_texts=6 echo_matches=0
+W (32770) M1.5: hardware read_ok=2282 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=0 dram=44367 stack=9396
+W (36580) M1.5: NEAR-END CONTROL recognized keyword mask=0/7 (transcript omitted)
+W (37780) M1.5: prerequisite sent=1388 decoded=51 failures=0 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (37790) M1.5: observations speech_started=8 asr_completed=7 responses=4 answer_transcripts=3 asr_texts=7 echo_matches=0
+W (37790) M1.5: hardware read_ok=2784 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=0 dram=44547 stack=9396
+W (40920) M1.5: NEAR-END CONTROL recognized keyword mask=0/7 (transcript omitted)
+W (42790) M1.5: NEAR-END CONTROL recognized keyword mask=0/7 (transcript omitted)
+W (42800) M1.5: prerequisite sent=1639 decoded=89 failures=0 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (42800) M1.5: observations speech_started=9 asr_completed=9 responses=5 answer_transcripts=3 asr_texts=9 echo_matches=0
+W (42810) M1.5: hardware read_ok=3286 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=0 dram=42971 stack=9396
+W (44670) M1.5: NEAR-END CONTROL recognized keyword mask=0/7 (transcript omitted)
+W (47800) M1.5: prerequisite sent=1889 decoded=89 failures=0 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (47810) M1.5: observations speech_started=11 asr_completed=10 responses=5 answer_transcripts=3 asr_texts=10 echo_matches=0
+W (47810) M1.5: hardware read_ok=3786 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=0 dram=43363 stack=9396
+W (48700) M1.5: NEAR-END CONTROL recognized keyword mask=0/7 (transcript omitted)
+W (49930) M1.5: NEAR-END CONTROL recognized keyword mask=0/7 (transcript omitted)
+W (51280) M1.5: NEAR-END CONTROL recognized keyword mask=0/7 (transcript omitted)
+W (52480) M1.5: NEAR-END CONTROL recognized keyword mask=0/7 (transcript omitted)
+W (52810) M1.5: prerequisite sent=2139 decoded=102 failures=0 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (52810) M1.5: observations speech_started=14 asr_completed=14 responses=7 answer_transcripts=4 asr_texts=13 echo_matches=0
+W (52820) M1.5: hardware read_ok=4286 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=0 dram=43235 stack=9396
+W (56280) M1.5: NEAR-END CONTROL recognized keyword mask=0/7 (transcript omitted)
+W (57350) M1.5: NEAR-END CONTROL recognized keyword mask=0/7 (transcript omitted)
+W (57830) M1.5: prerequisite sent=2390 decoded=154 failures=0 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (57830) M1.5: observations speech_started=16 asr_completed=16 responses=8 answer_transcripts=5 asr_texts=15 echo_matches=0
+W (57840) M1.5: hardware read_ok=4789 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=0 dram=43571 stack=9396
+W (59260) M1.5: NEAR-END CONTROL recognized keyword mask=0/7 (transcript omitted)
+W (60970) M1.5: NEAR-END CONTROL recognized keyword mask=0/7 (transcript omitted)
+W (62830) M1.5: prerequisite sent=2640 decoded=211 failures=0 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (62830) M1.5: observations speech_started=19 asr_completed=18 responses=10 answer_transcripts=7 asr_texts=17 echo_matches=0
+W (62840) M1.5: hardware read_ok=5288 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=0 dram=43467 stack=9396
+W (66650) M1.5: NEAR-END CONTROL recognized keyword mask=0/7 (transcript omitted)
+W (67830) M1.5: prerequisite sent=2891 decoded=211 failures=0 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (67830) M1.5: observations speech_started=20 asr_completed=19 responses=10 answer_transcripts=7 asr_texts=18 echo_matches=0
+W (67840) M1.5: hardware read_ok=5789 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=0 dram=43427 stack=9396
+W (67940) M1.5: NEAR-END CONTROL recognized keyword mask=0/7 (transcript omitted)
+W (69170) M1.5: NEAR-END CONTROL recognized keyword mask=0/7 (transcript omitted)
+W (71880) M1.5: NEAR-END CONTROL recognized keyword mask=0/7 (transcript omitted)
+W (72860) M1.5: prerequisite sent=3141 decoded=233 failures=0 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (72860) M1.5: observations speech_started=22 asr_completed=22 responses=12 answer_transcripts=7 asr_texts=21 echo_matches=0
+W (72870) M1.5: hardware read_ok=6292 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=0 dram=43199 stack=9396
+W (74080) M1.5: NEAR-END CONTROL recognized keyword mask=0/7 (transcript omitted)
+W (75630) M1.5: NEAR-END CONTROL recognized keyword mask=0/7 (transcript omitted)
+W (77880) M1.5: prerequisite sent=3392 decoded=334 failures=0 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (77880) M1.5: observations speech_started=24 asr_completed=24 responses=12 answer_transcripts=7 asr_texts=23 echo_matches=0
+W (77890) M1.5: hardware read_ok=6794 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=0 dram=43063 stack=9396
+W (82880) M1.5: prerequisite sent=3641 decoded=582 failures=0 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (82880) M1.5: observations speech_started=24 asr_completed=24 responses=12 answer_transcripts=7 asr_texts=23 echo_matches=0
+W (82890) M1.5: hardware read_ok=7294 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=0 dram=43195 stack=9396
+W (87880) M1.5: prerequisite sent=3890 decoded=703 failures=0 mic_drop=1 rx_drop=0 playback_drop=0 event_drop=0
+W (87890) M1.5: observations speech_started=24 asr_completed=24 responses=13 answer_transcripts=7 asr_texts=23 echo_matches=0
+W (87890) M1.5: hardware read_ok=7794 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=0 dram=44211 stack=9396
+W (92880) M1.5: prerequisite sent=4140 decoded=703 failures=0 mic_drop=1 rx_drop=0 playback_drop=0 event_drop=0
+W (92880) M1.5: observations speech_started=24 asr_completed=24 responses=13 answer_transcripts=7 asr_texts=23 echo_matches=0
+W (92890) M1.5: hardware read_ok=8294 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=0 dram=44211 stack=9396
+W (97900) M1.5: prerequisite sent=4391 decoded=703 failures=0 mic_drop=1 rx_drop=0 playback_drop=0 event_drop=0
+W (97900) M1.5: observations speech_started=24 asr_completed=24 responses=13 answer_transcripts=7 asr_texts=23 echo_matches=0
+W (97910) M1.5: hardware read_ok=8796 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=0 dram=44419 stack=9396
+W (100880) M1.5: NEAR-END CONTROL recognized keyword mask=0/7 (transcript omitted)
+W (102900) M1.5: prerequisite sent=4641 decoded=703 failures=0 mic_drop=1 rx_drop=0 playback_drop=0 event_drop=0
+W (102910) M1.5: observations speech_started=26 asr_completed=25 responses=13 answer_transcripts=7 asr_texts=24 echo_matches=0
+W (102910) M1.5: hardware read_ok=9296 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=0 dram=44231 stack=9396
+W (103640) M1.5: NEAR-END CONTROL recognized keyword mask=1/7 (transcript omitted)
+W (105790) M1.5: NEAR-END CONTROL recognized keyword mask=3/7 (transcript omitted)
+W (107650) M1.5: NEAR-END CONTROL recognized keyword mask=7/7 (transcript omitted)
+W (107670) M1.5: NEAR-END CONTROL ended: keyword mask=7/7
+W (107740) M1.5: bounded probe ended; T1 keyword observations only; T2-T4 NOT RUN
