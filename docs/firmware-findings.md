@@ -1236,7 +1236,10 @@ reset AFE/input buffer；fetch task 独立运行，输出缓冲区没有在 Stop
 **状态**：M15新轮实际读出并丢弃12次10ms原始源采样（24k共2880帧，大于当前DMA容量），
 随后校验转换器reset及AFE ringbuf reset（接口返回1成功/-1失败），首AFE回调后才开放发送和计时。
 读取、reset、Feed和输入电源timer使用统一同步边界；转换/排空/reset失败单列并结束准备。
-已做代码复核、共享同步组件60项检查和两配置构建；设备新轮边界、DSP内部历史/实际尾音仍待实测。
+已做代码复核、共享同步组件60项检查和两配置构建。694b695的near_20261023_02单轮已报告
+drained_source_frames=2880、drain_failed=0、afe_reset_failed=0，RUNNING建立于首个预热回调之后；
+只证明该轮执行了源采样排空/reset路径，不证明多轮无残留、DSP内部历史已清空或实际尾音边界。
+证据见[nano-near-02-counts.log](device_diag_evidence/2026-10-23-m15/nano-near-02-counts.log)。
 
 
 ### B45. StackChan手动下载模式与写后ROM停留（2026-10-23）
@@ -1256,7 +1259,10 @@ reset AFE/input buffer；fetch task 独立运行，输出缓冲区没有在 Stop
 不能根据这类字段推断配置、时间或播放计数。见[脱敏日志](device_diag_evidence/2026-10-23-m15/restart-near-01-counts.log)。
 
 **状态**：M15改固定栈缓冲十进制转换和%s，补read_ok/write_ok增量；离线41项边界/相邻参数检查及独立复核通过。
-固件重新构建通过，尚未刷入设备。只修观测，不声称修复DTLS。
+固件重新构建通过，交付694b695。随后获新“开始”授权的near_20261023_02中，
+`t0_us=52914616`、`elapsed_ms=60000`、播放样本/后续参数均正常十进制；read_ok=6020、write_ok=0。
+只修观测，不把该轮DTLS建连成功归因于日志修复，也不外推多轮或声学验证。
+证据见[nano-near-02-counts.log](device_diag_evidence/2026-10-23-m15/nano-near-02-counts.log)。
 
 ### B47. 首轮受控启动DTLS阶段未完成，媒体未运行（2026-10-23）
 
@@ -1264,3 +1270,33 @@ reset AFE/input buffer；fetch task 独立运行，输出缓冲区没有在 Stop
 25次-0x6900是WANT_READ；准备超时安全结束，sent/decoded/ASR/drain均0，LIFECYCLE三项为1，STATUS回Idle。
 旧echo-fallback日志已有同形态，不能单轮归因为此次生命周期重构，也不将WANT_READ单独当作致命错误。
 **本轮只支持启动门/超时清理观察；没有近端/T1或AEC结论。** 后续设备诊断须新“开始”，不自动重跑。
+
+
+### B48. 同步完整统计日志扰动20ms媒体发送（2026-10-23）
+
+**证据**：694b695的near_20261023_02在同一发送worker每5秒同步输出完整Report；
+Running每组5行、约1KB，PROGRESS到HARDWARE日志跨度约50–70ms，
+最大实际SendAudio间隔90471us；mic_full在大多数5秒间隔增加4帧。
+60秒共sent2948、mic_full46、停止排空6，合计3000帧，与AFE输出960000样本一致。
+同worker日志阻塞与积压/丢帧的节奏吻合，但尚无缩短日志后的设备对照，不能把所有丢帧唯一归因于日志。
+见[nano-near-02-counts.log](device_diag_evidence/2026-10-23-m15/nano-near-02-counts.log)。
+
+**处置/状态**：离线最小修复把Running的每5秒完整Report改为一条LIVE短计数，FINAL保留完整统计；
+不改队列/调度/编解码/期限，既有“迟于计划超过60ms则重置发送计划”策略也未改。
+按115200 baud、8N1和短行字节数估算线速约14ms，只是字节传输估算，不含调度/锁/格式化/驱动等待，
+**不是执行上界，也不是丢帧已消除的证据**。ESP-IDF5.5.4构建通过（应用0x3cbba0，余23%），
+尚未刷入设备；原台账epoch12/used26/limit32不变，下一轮必须重新等用户“开始”。
+本轮ASR/speech/responses均0；用户随后明确当时正在开发别的、没有看到消息。
+先START倒计时再提示读句，没有同步到有效近端刺激，不构成近端正对照，不能据此判采音/识别/AEC失败。
+后续须把设备准备/刷写与说话测试分开对表；准备后Idle，真正START之前先弹窗Q，
+等用户看到并明确点“开始”后才START采集/倒计时，再于RUNNING后提示读句。本轮结束无追加设备动作。
+
+### B49. 写后分区校验异常，读回一致后复位恢复，原因未定（2026-10-23）
+
+**证据**：694b695的app写入/hash校验成功，随后启动曾报分区校验错误。
+esptool读回0x8000起4096字节，前3072字节与本地partition bin逐字节一致，其余均FF；
+第二次watchdog_reset后正常从应用启动到Idle，并完成单轮60秒near及清理。
+
+**状态**：启动已恢复，原因未定；没有改分区表。app写入校验与分区读回一致是不同检查，
+不能据一次一致读回断言所有启动链路正确，也不能将短暂校验异常定性为已定位的分区损坏。
+本轮结束串口已关闭，无自动复位或后续START。该单轮不代表连续重启/多轮稳定性通过。

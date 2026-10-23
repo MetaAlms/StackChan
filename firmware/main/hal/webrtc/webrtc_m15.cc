@@ -400,7 +400,17 @@ void RunBody(Run& r) {
                 }
             }
         }
-        if (now >= next_report_us) { Report(r, false); next_report_us = now + 5000000; }
+        if (now >= next_report_us) {
+            // Full reports block this sender on the 115200-baud console long
+            // enough to build a persistent mic backlog. Keep live I/O short;
+            // Report below emits all statistics after media has stopped.
+            if (r.control.state() == RunState::Running) {
+                ESP_LOGW(kTag, "LIVE run=%s sent=%lu decoded=%lu mic_full=%lu failures=%lu",
+                    r.command.run_id.c_str(), (unsigned long)r.sent, (unsigned long)r.decoded,
+                    (unsigned long)r.mic_full.load(), (unsigned long)r.failures);
+            } else Report(r, false);
+            next_report_us = now + 5000000;
+        }
         vTaskDelay(1);
     }
     r.capture_gate.Cancel();
