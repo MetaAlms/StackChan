@@ -42,6 +42,7 @@ void Codec::Close()
 bool Codec::Open()
 {
     Close();
+    downlink_stats_ = {};
     esp_opus_enc_config_t enc = ESP_OPUS_ENC_CONFIG_DEFAULT();
     enc.sample_rate = 48000;
     enc.channel = 1;
@@ -133,6 +134,25 @@ bool Codec::Decode(const uint8_t* packet, size_t bytes, std::vector<int16_t>& pc
         return false;
     }
     pcm24.resize(written);
+    downlink_stats_.decoded_samples_48k += samples;
+    downlink_stats_.converted_samples_24k += written;
+    size_t bucket = 7;
+    switch (samples) {
+        case 120: bucket = 0; break;
+        case 240: bucket = 1; break;
+        case 480: bucket = 2; break;
+        case 960: bucket = 3; break;
+        case 1920: bucket = 4; break;
+        case 2880: bucket = 5; break;
+        case 5760: bucket = 6; break;
+    }
+    ++downlink_stats_.decoded_samples_histogram[bucket];
+    for (const int16_t sample : pcm24) {
+        const int32_t value = sample;
+        const uint32_t magnitude = value < 0 ? -value : value;
+        if (magnitude > downlink_stats_.pcm24_max_abs) downlink_stats_.pcm24_max_abs = magnitude;
+        if (value == -32768 || value == 32767) ++downlink_stats_.pcm24_endpoint_samples;
+    }
     return true;
 }
 

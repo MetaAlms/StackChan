@@ -62,12 +62,15 @@
  }
  
  bool AfeAudioProcessor::IsRunning() {
-@@ -138,10 +154,22 @@
+@@ -138,10 +154,25 @@
      ESP_LOGI(TAG, "Audio communication task started, feed size: %d fetch size: %d",
          feed_size, fetch_size);
  
 +#if CONFIG_STACKCHAN_WEBRTC_M15
-+    const TickType_t fetch_wait = pdMS_TO_TICKS(20) > 0 ? pdMS_TO_TICKS(20) : 1;
++    // Cover a 512-sample / 16 kHz block (32 ms) plus scheduling time.
++    // Keep fetch finite so Stop can join this iteration; callback and
++    // lock scheduling are additional, so this is not a Stop deadline.
++    const TickType_t fetch_wait = pdMS_TO_TICKS(100) > 0 ? pdMS_TO_TICKS(100) : 1;
 +#endif
      while (true) {
          xEventGroupWaitBits(event_group_, PROCESSOR_RUNNING, pdFALSE, pdTRUE, portMAX_DELAY);
