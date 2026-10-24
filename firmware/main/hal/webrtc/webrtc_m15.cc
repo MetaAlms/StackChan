@@ -668,12 +668,21 @@ void RunChannelAudit(uint32_t seconds) {
     // I2S reads/writes block and yield, so the idle-task TWDT stays fed without
     // Hal::feedTheDog() (which is vTaskDelay(1) = 10 ms at 100 Hz and would
     // stretch every 20 ms slot). Drain the DMA path before the measured phases.
-    for (uint32_t i = 0; i < kDrainSlots; ++i) {
+    // The deadline is a soft bound: a single I2S call can block up to 1 s, so
+    // it is checked before every blocking call, including the drain pre-roll.
+    for (uint32_t i = 0; i < kDrainSlots && !aborted; ++i) {
+        if (esp_timer_get_time() >= deadline_us) {
+            aborted = true;
+            break;
+        }
         std::memset(out.data(), 0, out.size() * sizeof(int16_t));
-        codec->AuditWrite(out.data(), static_cast<int>(kFrameSamples));
-        for (int half = 0; half < 2; ++half) codec->AuditRead(in.data(), static_cast<int>(kReadSamples));
+        if (codec->AuditWrite(out.data(), static_cast<int>(kFrameSamples)) != static_cast<int>(kFrameSamples)) ++write_fail;
+        for (int half = 0; half < 2; ++half) {
+            if (codec->AuditRead(in.data(), static_cast<int>(kReadSamples)) != static_cast<int>(kReadSamples)) ++read_fail;
+        }
+        if (write_fail + read_fail > kMaxFailures) aborted = true;
     }
-    for (uint32_t slot = 0; slot < slots; ++slot) {
+    for (uint32_t slot = 0; slot < slots && !aborted; ++slot) {
         if (esp_timer_get_time() >= deadline_us) {
             aborted = true;
             break;
@@ -711,6 +720,10 @@ void RunChannelAudit(uint32_t seconds) {
 
     ESP_LOGW(kTag, "AUDIT seconds=%u slots=%u write_fail=%u read_fail=%u aborted=%d volume=unchanged tone_amp=1024",
         (unsigned)seconds, (unsigned)slots, (unsigned)write_fail, (unsigned)read_fail, aborted ? 1 : 0);
+    if (tone1.samples[0] == 0) {
+        ESP_LOGW(kTag, "AUDIT aborted before measurement; no per-phase statistics");
+        return;
+    }
     const struct { const char* name; const webrtc_media::ChannelAuditStats* stats; } phases[] = {
         {"tone1", &tone1}, {"silence", &silent}, {"tone2", &tone2},
     };

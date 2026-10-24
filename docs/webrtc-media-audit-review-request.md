@@ -27,9 +27,9 @@
 | `firmware/tests/channel_audit_check.cc`（新） | 26 断言：音调频率/幅度/相位连续、统计/静音/满幅/通道数 |
 | `firmware/tests/console_command_check.cc` | 新增 AUDIT 合法/非法边界（总计 17153 断言） |
 
-`AUDIT` 的三段结构：tone1 → silence → tone2（各段间 100 ms 保护），
+`AUDIT` 的三段结构：tone1 → silence → tone2（各段间 200 ms 保护，另有 200 ms 预热丢弃），
 输出每通道 `db10/peak` 与 `tone1 - silence` 差；不联网、不开 AFE、不启 AEC，
-结束恢复输出音量并关闭输入/输出；循环内喂看门狗。
+不改持久化音量（tone 幅度 1024 ≈ -30 dBFS），结束关闭输入/输出；不调用 `feedTheDog()`（其实现为 10 ms 延时），I2S 阻塞调用自身让出 CPU。
 
 ## 3. 验证
 
@@ -49,7 +49,7 @@
    slot_mask=0x3`，4-slot 初始化不生效。证据：原理图第4页、`set_drv_fs()` 代码、
    当前 `EnableInput()` 参数。
 2. **AFE `"MR"` 实际把 MIC2 当参考**：`AUDIO_INPUT_REFERENCE=true` 生成 `"MR"`，
-   而 2-slot 采集的 ch1 是 MIC2；这与历史“开 AEC 把用户语音一起消掉”一致。
+   而 2-slot 采集的 ch1 按 TDM 顺序应为 MIC2（按 ES7210 TDM 顺序应为 MIC2；实板 slot 映射未测）；这与历史“开 AEC 把用户语音一起消掉”一致。
 3. **“最多 2 通道”撤回**：库只拒绝 0/奇数通道；4ch 合法，但 RX 4×16bit 与
    TX 2×16bit 共享 BCLK/WS 不同频，AW88298 也是 16-bit 立体声，故本轮不启用。
 4. **#303/#308 不适用**：其 fs/2 镜像音来自 M5Unified 的 32-bit 打包；本项目走
@@ -69,8 +69,8 @@
    不是持久化值。AUDIT 现在**完全不改音量**，tone 幅度降为 1024（约 -30 dBFS）。
 3. **DMA/保护段**：保护段 100 ms → **200 ms**（双向 DMA 约 60 ms×2），并在测量前
    预热丢弃 200 ms 源音频。
-4. **阻塞上界**：增加 `seconds + 2` 硬时限与 10 次失败中止，避免控制台被长时间占用；
-   `aborted` 单独上报。
+4. **阻塞上界**：`seconds + 2` 软时限（每次阻塞调用前检查）与 10 次失败中止，
+   覆盖预热与测量两段；`aborted` 单独上报，未测得任何相位时不再打印空统计。
 5. **文档限定**：所有“MIC3 从未被读”均改为“按 TDM 顺序不在 2-slot 读取范围，
    **实板线上 slot 映射仍未实测**”，消除与“未证”章节的矛盾。
 

@@ -398,7 +398,8 @@ STOP near_01
 
 新增 M15 USB 命令 `AUDIT <3..10>`：本地 1 kHz 正弦（-18 dBFS，音量 40）+
 现有 2ch 采集，三段 tone/silence/tone，输出每通道 RMS(dBFS×10)/peak 与
-`tone1 - silence` 差；不联网、不开 AFE、不启 AEC，结束恢复音量/关闭 IO。
+`tone1 - silence` 差；不联网、不开 AFE、不启 AEC，不改持久化音量、结束关闭 IO；
+200 ms 保护段 + 200 ms 预热、`seconds+2` 软时限、10 次失败中止。
 纯逻辑 `channel_audit.h`；命令解析只接受 3..10。
 
 ### 离线验证与构建

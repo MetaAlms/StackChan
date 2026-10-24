@@ -1423,7 +1423,7 @@ AW88298 SPK_VOP/VON经电阻/电容网络接AEC_P/N，再接ES7210 MIC3P/N；MIC
    在 `channel=2` 打开时重写 `total_slot=fs->channel(2)`、`ws_width=16`、
    `slot_mask=0x3`。**初始化里的 4 个 slot 从未生效**。
 4. 因此当前上行只含 MIC1/MIC2；按 TDM 顺序 MIC3 参考不在数据里（按 ES7210 TDM 顺序与 2-slot 重配推断；实板线上 slot 映射仍未实测）；而 `AUDIO_INPUT_REFERENCE=true`
-   让 AFE 用 `"MR"`，把 ch1 当参考——实际 ch1 是 MIC2。开启设备 AEC 时会把
+   让 AFE 用 `"MR"`，把 ch1 当参考——按 TDM 顺序 ch1 应为 MIC2（按 ES7210 TDM 顺序应为 MIC2；实板 slot 映射未测）。开启设备 AEC 时会把
    用户语音一起消掉（历史实测峰值 4036→120）。
 
 **边界**：`esp_codec_dev` 只拒绝 0/奇数通道；4ch 在库层合法（`total_slot=fs->channel`），
@@ -1439,14 +1439,16 @@ M1.5 的双向循环不能归因于“参考串入”，因为参考根本没有
 
 **实现**：M15 诊断固件新增 USB 命令 `AUDIT <3..10>`：本地播放 1 kHz 正弦
 （幅度 1024 ≈ -30 dBFS，**不改持久化音量**），用现有 2 通道路径采集，三段
-tone/silence/tone（各段间 100 ms 保护），输出每通道 RMS（dBFS×10）与 peak，
-以及 `tone1 - silence` 的 dB 差。不联网、不开 AFE、不启 AEC，结束恢复音量并关闭输入输出。
+tone/silence/tone（各段间 200 ms 保护，另有 200 ms 预热丢弃），输出每通道 RMS（dBFS×10）与 peak，
+以及 `tone1 - silence` 的 dB 差。不联网、不开 AFE、不启 AEC；不改持久化音量，
+结束关闭输入输出。
 保护段 200 ms、预热丢弃 200 ms、总时限 seconds+2、失败 10 次中止。
 纯逻辑在 `firmware/main/hal/webrtc/channel_audit.h`，离线检查 `channel-audit`
 （26 断言，cache=never）；命令解析在 `console_command.h`（只接受 3..10）。
 **约束**：只在首次媒体运行前可用（`g_audio_initialized` 为真时拒绝；AudioService 的
 15 s 空闲电源定时器可能在审计中途关闭 codec，需重启获得干净状态）；缓冲堆分配
-（主任务栈 8 KB）；循环内喂看门狗；≤10 s。
+（主任务栈 8 KB）；不调用 `feedTheDog()`（实现为 10 ms 延时），I2S 阻塞调用自身让出 CPU；
+`seconds + 2` 软时限与 10 次失败中止。
 
 **边界**：只测当前 2 通道里的声学+电气总耦合，不能单独区分两者；参考通道不在流内。
 M5Unified #303/#308 的 fs/2 镜像音来自其 32-bit 打包，本项目走 esp_codec_dev 原生
