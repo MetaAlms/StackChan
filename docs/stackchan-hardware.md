@@ -101,7 +101,7 @@ ES7210 采集 24kHz；当前只读 2 个 TDM slot = MIC1/MIC2（MIC3 参考未�
 但当前驱动把 ES7210 配成 `MIC1|MIC2|MIC3`（3 麦 ⇒ TDM 模式），
 I2S RX 初始化虽写 `SLOT0..3`，`esp_codec_dev` 打开 2 通道时会重写
 `total_slot=2 / ws_width=16`，**4-slot 初始化不生效**。结果：
-- 上行只有 MIC1/MIC2，**MIC3（参考）从未被读**；
+- 上行只有 MIC1/MIC2，**按 TDM 顺序 MIC3（参考）不在读取范围**（按 ES7210 TDM 顺序与 2-slot 重配推断；实板线上 slot 映射仍未实测）；
 - AFE 按 `AUDIO_INPUT_REFERENCE=true` 生成 `"MR"`，把 ch1 当参考，
   实际 ch1 是 MIC2；
 - 开启设备侧 AEC 时会拿 MIC2 当参考，把用户语音一起消掉

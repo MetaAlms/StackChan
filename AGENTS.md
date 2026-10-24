@@ -55,7 +55,7 @@ origin  git@github.com:MetaAlms/StackChan.git     ← 我们的 fork
    「回声消除/降噪：无，需客户端自行处理」，而 ESP32 只能用 WebSocket
    （AOQ 仅限 Android/iOS/HarmonyOS）。设备侧：官方 C156 原理图确有
    `SPK→AEC_P/N→ES7210 MIC3` 参考通路，但**当前 2 通道采集只读 MIC1/MIC2，
-   MIC3 从未进入上行**，AFE 的 `"MR"` 实际把 MIC2 当参考；历史“最多 2 通道”
+   MIC3 不在读取范围**（按 ES7210 TDM 顺序与 2-slot 重配推断；实板线上 slot 映射仍未实测），AFE 的 `"MR"` 实际把 MIC2 当参考；历史“最多 2 通道”
    是 `esp_codec_dev` 对奇数通道的限制，4ch TDM 在库层可行，但受共享 I2S
    帧宽/功放格式约束。**不要直接启 AEC、改通道或加 swap**，先按
    [硬件/驱动审计](docs/webrtc-media-hardware-driver-audit-2026-10-24.md) 验证。

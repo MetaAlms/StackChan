@@ -383,7 +383,7 @@ STOP near_01
 - 官方 C156 页面所链原理图第4页：`SPK_VOP/VON` 经 150K/1%+22pF+1uF 形成
   `AEC_P/AEC_N` 接 ES7210 `MIC3P(31)/MIC3N(32)`；MIC1/2 为物理麦，MIC4 短接 GND；
   无 MAX98357/其他功放/扬声器连接器。官方固件 `eff0d6b5` 与本项目 codec 同源。
-- **MIC3 参考从未进入上行**：ES7210 因选 3 麦进入 TDM；I2S RX 初始化虽写 4 slot，
+- **MIC3 参考不在 2-slot 读取范围**（按 ES7210 TDM 顺序与 2-slot 重配推断；实板线上 slot 映射仍未实测）：ES7210 因选 3 麦进入 TDM；I2S RX 初始化虽写 4 slot，
   `esp_codec_dev 1.5.11` 在 `channel=2` 打开时把 `total_slot=2, ws_width=16,
   slot_mask=0x3` 重写，4-slot 初始化是死配置。AFE `input_reference=true` ⇒
   `"MR"`，实际把 ch1（MIC2）当参考；设备 AEC 曾把用户语音一起消掉（峰值 4036→120）。

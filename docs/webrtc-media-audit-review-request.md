@@ -45,7 +45,7 @@
 
 ## 4. 需要评审确认的审计结论
 
-1. **MIC3 参考从未进入上行**：ES7210 因 3 麦进入 TDM；I2S RX 初始化写 4 slot，
+1. **MIC3 参考不在 2-slot 读取范围**（按 ES7210 TDM 顺序与 2-slot 重配推断；实板线上 slot 映射仍未实测）：ES7210 因 3 麦进入 TDM；I2S RX 初始化写 4 slot，
    但 `esp_codec_dev 1.5.11` 打开 2 通道时重写 `total_slot=2 / ws_width=16 /
    slot_mask=0x3`，4-slot 初始化不生效。证据：原理图第4页、`set_drv_fs()` 代码、
    当前 `EnableInput()` 参数。

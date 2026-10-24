@@ -4,7 +4,7 @@
 
 **2026-10-24 硬件前提纠正**：历史“无扬声器回采”和“驱动最多2通道”不能继续作为硬件/SDK绝对限制。
 官方 C156 原理图第4页确有 `SPK→AEC_P/N→ES7210 MIC3` 参考通路；
-但当前 2 通道采集被 `esp_codec_dev` 重配成 2 个 TDM slot，**MIC3 从未被读**，
+但当前 2 通道采集被 `esp_codec_dev` 重配成 2 个 TDM slot，**MIC3 不在读取范围**（按 ES7210 TDM 顺序与 2-slot 重配推断；实板线上 slot 映射仍未实测），
 AFE 的 `"MR"` 实际把 MIC2 当参考。4ch 在库层可行，但受共享 I2S 帧宽/功放格式约束，
 未经实板验证不能直接启 AEC 或改通道。详见
 [硬件/驱动审计](webrtc-media-hardware-driver-audit-2026-10-24.md)。
@@ -114,7 +114,7 @@ E (12088) I2S_IF: Not support channel 3
 真正的限制在驱动组合：RX 初始化声明 `SLOT0..3`，但 `EnableInput()` 以
 `channel=2, mask=0x3` 打开时，`set_drv_fs()` 会重写
 `total_slot = fs->channel(2)`、`ws_width = 16`，**4-slot 初始化是死配置**。
-因此当前上行只含 MIC1/MIC2；MIC3（AEC_P/N 参考）没有被读。
+因此当前上行只含 MIC1/MIC2；按 TDM 顺序 MIC3（AEC_P/N 参考）不在读取范围（按 ES7210 TDM 顺序与 2-slot 重配推断；实板线上 slot 映射仍未实测）。
 
 ### 3.3 反证：当前第 2 通道是 MIC2，不是参考
 

@@ -632,7 +632,11 @@ void RunChannelAudit(uint32_t seconds) {
     constexpr size_t kFrameSamples = 480;  // 20 ms at 24 kHz.
     constexpr size_t kReadSamples = 480;   // 240 stereo frames = 10 ms.
     constexpr uint32_t kSlotsPerSecond = 50;
-    constexpr uint32_t kGuardSlots = 5;
+    // 200 ms guard: the RX/TX DMA path is 6 x 240 frames (~60 ms each way),
+    // so a shorter guard can smear the tone into the silence denominator.
+    constexpr uint32_t kGuardSlots = 10;
+    constexpr uint32_t kDrainSlots = 10;  // pre-roll: discard stale DMA audio
+    constexpr uint32_t kMaxFailures = 10;
     const uint32_t slots = seconds * kSlotsPerSecond;
     if (slots < 3 * kGuardSlots + 3) {
         ESP_LOGE(kTag, "AUDIT rejected: window too short");
@@ -644,24 +648,36 @@ void RunChannelAudit(uint32_t seconds) {
     const uint32_t tone2_begin = silent_end + kGuardSlots;
     const uint32_t tone2_end = std::min(slots, tone2_begin + phase);
 
-    const int previous_volume = codec->output_volume();
-    codec->SetOutputVolume(40);
+    // Do not touch the persisted volume here: AudioCodec::SetOutputVolume()
+    // writes NVS, and output_volume() in RAM is not the stored value. The
+    // tone amplitude is reduced instead, so the user's setting is untouched.
     codec->EnableOutput(true);
     codec->EnableInput(true);
     webrtc_media::ChannelAuditStats tone1, silent, tone2;
     tone1.Configure(2);
     silent.Configure(2);
     tone2.Configure(2);
-    webrtc_media::ToneGenerator tone(1000.0, 4096.0, kSampleRate);
+    webrtc_media::ToneGenerator tone(1000.0, 1024.0, kSampleRate);  // ~-30 dBFS
     // Heap-backed: the main task stack is 8 KB and already carries the console
     // and logging paths. These buffers are only alive for the bounded audit.
     std::vector<int16_t> out(kFrameSamples);
     std::vector<int16_t> in(kReadSamples);
     uint32_t write_fail = 0, read_fail = 0;
+    bool aborted = false;
+    const int64_t deadline_us = esp_timer_get_time() + (static_cast<int64_t>(seconds) + 2) * 1000000;
+    // I2S reads/writes block and yield, so the idle-task TWDT stays fed without
+    // Hal::feedTheDog() (which is vTaskDelay(1) = 10 ms at 100 Hz and would
+    // stretch every 20 ms slot). Drain the DMA path before the measured phases.
+    for (uint32_t i = 0; i < kDrainSlots; ++i) {
+        std::memset(out.data(), 0, out.size() * sizeof(int16_t));
+        codec->AuditWrite(out.data(), static_cast<int>(kFrameSamples));
+        for (int half = 0; half < 2; ++half) codec->AuditRead(in.data(), static_cast<int>(kReadSamples));
+    }
     for (uint32_t slot = 0; slot < slots; ++slot) {
-        // The console task feeds the watchdog on its own loop; this bounded
-        // local run must not starve it for the duration of the tone.
-        GetHAL().feedTheDog();
+        if (esp_timer_get_time() >= deadline_us) {
+            aborted = true;
+            break;
+        }
         webrtc_media::ChannelAuditStats* target = nullptr;
         bool play_tone = false;
         if (slot >= tone1_begin && slot < tone1_end) {
@@ -685,13 +701,16 @@ void RunChannelAudit(uint32_t seconds) {
             if (target == nullptr) continue;
             for (size_t f = 0; f + 2 <= static_cast<size_t>(got); f += 2) target->AddFrame(&in[f]);
         }
+        if (write_fail + read_fail > kMaxFailures) {
+            aborted = true;
+            break;
+        }
     }
     codec->EnableInput(false);
     codec->EnableOutput(false);
-    codec->SetOutputVolume(previous_volume);
 
-    ESP_LOGW(kTag, "AUDIT seconds=%u slots=%u write_fail=%u read_fail=%u",
-        (unsigned)seconds, (unsigned)slots, (unsigned)write_fail, (unsigned)read_fail);
+    ESP_LOGW(kTag, "AUDIT seconds=%u slots=%u write_fail=%u read_fail=%u aborted=%d volume=unchanged tone_amp=1024",
+        (unsigned)seconds, (unsigned)slots, (unsigned)write_fail, (unsigned)read_fail, aborted ? 1 : 0);
     const struct { const char* name; const webrtc_media::ChannelAuditStats* stats; } phases[] = {
         {"tone1", &tone1}, {"silence", &silent}, {"tone2", &tone2},
     };

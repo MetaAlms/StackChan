@@ -480,7 +480,7 @@ M2 产品接入和 T3/T4 的响应归属前置仍未完成；受控入口离线�
 
 **2026-10-24 DSH 接续审计**：官方 C156 原理图第4页确认 `SPK→AEC_P/N→ES7210 MIC3`
 参考通路；但当前 `channel=2` 打开时 `esp_codec_dev` 把 RX 重配为 2 slot，
-**MIC3 参考从未被读**，AFE 的 `"MR"` 实际把 MIC2 当参考（见 findings B54）。
+**MIC3 参考不在 2-slot 读取范围**（按 ES7210 TDM 顺序与 2-slot 重配推断；实板线上 slot 映射仍未实测），AFE 的 `"MR"` 实际把 MIC2 当参考（见 findings B54）。
 4ch TDM 在库层可行，但 RX 4×16bit 与 TX 2×16bit 共享 BCLK/WS 不同频，本轮不启用。
 新增本地 `AUDIT <3..10>` 命令量化扬声器到当前上行的耦合（不联网/不启 AEC），
 用于下一轮区分声学与电气输入；实机测试仍须新弹窗 Q。M1.5/T2–T4 结论不变。
