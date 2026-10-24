@@ -1443,6 +1443,9 @@ tone/silence/tone（各段间 100 ms 保护），输出每通道 RMS（dBFS×10�
 以及 `tone1 - silence` 的 dB 差。不联网、不开 AFE、不启 AEC，结束恢复音量并关闭输入输出。
 纯逻辑在 `firmware/main/hal/webrtc/channel_audit.h`，离线检查 `channel-audit`
 （26 断言，cache=never）；命令解析在 `console_command.h`（只接受 3..10）。
+**约束**：只在首次媒体运行前可用（`g_audio_initialized` 为真时拒绝；AudioService 的
+15 s 空闲电源定时器可能在审计中途关闭 codec，需重启获得干净状态）；缓冲堆分配
+（主任务栈 8 KB）；循环内喂看门狗；≤10 s。
 
 **边界**：只测当前 2 通道里的声学+电气总耦合，不能单独区分两者；参考通道不在流内。
 M5Unified #303/#308 的 fs/2 镜像音来自其 32-bit 打包，本项目走 esp_codec_dev 原生

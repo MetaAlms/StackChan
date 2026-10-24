@@ -615,6 +615,14 @@ void RunChannelAudit(uint32_t seconds) {
         ESP_LOGW(kTag, "AUDIT rejected: media run active");
         return;
     }
+    // AudioService creates its periodic idle power timer on Initialize(); after
+    // the first run it may close the codec 15 s after the last service-level IO
+    // and would race a local audit that bypasses AudioService. Require a clean
+    // boot so the timer does not exist.
+    if (g_audio_initialized) {
+        ESP_LOGW(kTag, "AUDIT rejected: audio service initialized; reboot for a clean local audit");
+        return;
+    }
     auto* codec = static_cast<CoreS3AudioCodec*>(Board::GetInstance().GetAudioCodec());
     if (codec == nullptr) {
         ESP_LOGE(kTag, "AUDIT rejected: codec unavailable");
@@ -645,8 +653,10 @@ void RunChannelAudit(uint32_t seconds) {
     silent.Configure(2);
     tone2.Configure(2);
     webrtc_media::ToneGenerator tone(1000.0, 4096.0, kSampleRate);
-    int16_t out[kFrameSamples];
-    int16_t in[kReadSamples];
+    // Heap-backed: the main task stack is 8 KB and already carries the console
+    // and logging paths. These buffers are only alive for the bounded audit.
+    std::vector<int16_t> out(kFrameSamples);
+    std::vector<int16_t> in(kReadSamples);
     uint32_t write_fail = 0, read_fail = 0;
     for (uint32_t slot = 0; slot < slots; ++slot) {
         // The console task feeds the watchdog on its own loop; this bounded
@@ -663,11 +673,11 @@ void RunChannelAudit(uint32_t seconds) {
             target = &tone2;
             play_tone = true;
         }
-        if (play_tone) tone.Fill(out, kFrameSamples);
-        else std::memset(out, 0, sizeof(out));
-        if (codec->AuditWrite(out, static_cast<int>(kFrameSamples)) != static_cast<int>(kFrameSamples)) ++write_fail;
+        if (play_tone) tone.Fill(out.data(), kFrameSamples);
+        else std::memset(out.data(), 0, out.size() * sizeof(int16_t));
+        if (codec->AuditWrite(out.data(), static_cast<int>(kFrameSamples)) != static_cast<int>(kFrameSamples)) ++write_fail;
         for (int half = 0; half < 2; ++half) {
-            const int got = codec->AuditRead(in, static_cast<int>(kReadSamples));
+            const int got = codec->AuditRead(in.data(), static_cast<int>(kReadSamples));
             if (got != static_cast<int>(kReadSamples)) {
                 ++read_fail;
                 continue;
