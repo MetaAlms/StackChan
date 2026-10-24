@@ -1489,5 +1489,11 @@ AUDIT echo_delta_db10 ch0=237 ch1=273 aec=undetermined local_only=1
 `echo_delta` 从 +23.7/+27.3 变为 **+28.9/+32.8 dB**。
 硬质反射面贴近麦克风会产生约 **+6 dB 压力加倍**，量级与此吻合；
 这更像“麦克风在脸后、听到声学路径”，而不是电气串扰（电气路径不应被纸/手改变）。
-**仍需吸声材料复测**（厚布/海绵）才能定论；本轮数值不能当“遮挡后减小”的对照。
-证据：`docs/device_diag_evidence/2026-10-24-m15/audit-06-face-covered-reflective.log`。
+**吸声复测（厚布/毛巾）**：tone 为 -25.1/-22.7 dBFS，silence 为 -53.5/-55.4 dBFS，
+`echo_delta` +28.4/+32.7 dB。与无遮挡相比，**tone 只降 2–3 dB，而环境底噪降 7–8 dB**。
+若 1 kHz 是经脸部/麦克风孔进入的空气声，厚布应把 tone 衰减远大于 2–3 dB；
+因此该 tone 很可能**不是（或不只是）脸部空气路径**：可能是结构传导，或 MIC3 参考/电气
+路径已以某种方式混入当前 2 通道（slot 映射未实测，不能排除）。
+证据：`audit-06-face-covered-reflective.log`、`audit-06-face-covered-absorbent.log`。
+下一对照：遮住**扬声器**（机身出音口）而保持麦克风暴露——若 tone 明显下降 ⇒ 空气声；
+基本不变 ⇒ 电气/参考或结构路径。

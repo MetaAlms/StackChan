@@ -424,5 +424,9 @@ STOP near_01
 - 用户用纸/手轻遮 CoreS3 正面后复测：tone1 ch0 -22.8→-16.0 dBFS、ch1 -19.8→-14.6，
   耦合反而 +5~7 dB（接近硬质反射面的 +6 dB 压力加倍）；静音底噪不变。
   这更像麦克风在脸后、声学路径，电气串扰不会因纸/手改变；需吸声材料复测确认。
-- 脱敏日志：`docs/device_diag_evidence/2026-10-24-m15/audit-06-idle.log`、
-  `audit-06-face-covered-reflective.log`；详见 findings B56。
+- 吸声复测（厚布遮脸）：tone -25.1/-22.7 dBFS、silence -53.5/-55.4 dBFS，
+  **tone 只降 2~3 dB 而底噪降 7~8 dB**；说明 tone 不是单纯经脸部空气路径，
+  可能是结构传导或参考/电气路径混入（slot 映射未测，不能排除）。
+- 脱敏日志：`docs/device_diag_evidence/2026-10-24-m15/` 下
+  `audit-06-idle.log`、`audit-06-face-covered-reflective.log`、
+  `audit-06-face-covered-absorbent.log`；详见 findings B56。
