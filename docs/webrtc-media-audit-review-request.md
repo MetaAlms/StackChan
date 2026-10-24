@@ -1,8 +1,9 @@
 # REVIEW REQUEST：M1.5 硬件/驱动审计与 AUDIT 候选（2026-10-24）
 
-**Reviewed exact HEAD**：`c524f15fc42fc89830e41cbced80889455693cad`
+**Reviewed exact HEAD**：`97864efefd0c8627da1c1d93e39b5f393c23f01e`
 （本请求文档是其后的 doc-only 提交；实现范围以该 SHA 为准。
-此前的 `49fac21`、`5cb1bdd`、`dc429ff` 已被 `c524f15` 取代，后者包含两轮独立评审后的收口，见 §4.1。）
+此前的 `49fac21`、`5cb1bdd`、`dc429ff`、`c524f15` 已被 `97864ef` 取代，
+后者包含三轮独立评审后的收口，见 §4.1。）
 **分支/PR**：`feat/aliyun-omni-v2v` / [Draft PR #1](https://github.com/MetaAlms/StackChan/pull/1)
 **本轮性质**：接续任务，非新需求；无虚构 Review ID。无设备操作。
 
@@ -38,7 +39,7 @@
 | 离线台账（原路径，epoch 13） | `channel-audit` PASS（26 断言，cache=never）；`console-command` PASS（17153 断言） |
 | 预算 | **used 28 / 32**，`replan` 新增检查、未 recover/新建/清预算 |
 | 编译/执行边界 | 编译在控制器外（脚本 `--build-only`），执行通过控制器；二进制在工作区外 |
-| IDF v5.5.4 M15 构建 | 通过；app `0x3cd830`（`c524f15`），分区余 23% |
+| IDF v5.5.4 M15 构建 | 通过；app `0x3cd8f0`（`97864ef`），分区余 23% |
 | WebSocket 回退构建 | 通过；app `0x3a37a0`，分区余 26%（与历史一致） |
 | 生成源码补丁 | 本轮未改 `xiaozhi-esp32`/`managed_components`，无需重生成补丁 |
 
@@ -75,7 +76,7 @@
    **实板线上 slot 映射仍未实测**”，消除与“未证”章节的矛盾。
 
 `channel_audit.h` / `console_command.h` 未变，epoch 13 的两项离线检查仍适用；
-IDF 重新构建通过（app `0x3cd830`）。复审记录见
+IDF 重新构建通过（app `0x3cd8f0`）。复审记录见
 [独立评审结果](webrtc-media-audit-review-result.md)。
 
 第二轮复审（无 BLOCKER，2 MAJOR）后的收口（`c524f15`）：
@@ -87,6 +88,14 @@ IDF 重新构建通过（app `0x3cd830`）。复审记录见
    `AUDIT aborted before measurement`，不再给出 -1200/ frames=0 的误导行。
 3. **文档残留清理**：删除“100 ms 保护/结束恢复音量/循环内喂看门狗”等过期描述；
    `ch1=MIC2` 统一加“按 TDM 顺序；实板 slot 映射未测”限定。
+
+第三轮复审（无 code BLOCKER；2 MAJOR 文档 + 3 MINOR）后的收口（`97864ef`）：
+
+1. 删除审计文档残留的“各段间 100ms 保护”，与代码/其余段落统一为 200 ms。
+2. 更正 I2S 超时口径：`DEFAULT_WAIT_TIMEOUT = 1000` ticks，100 Hz 下约 10 s；
+   `seconds + 2` 是软上界，最坏多出约 3×10 s（每个 slot 的 write + 2×read）。
+3. 部分测量中止时按相位跳过空统计；`tone1`/`silence` 不完整时不输出 `echo_delta`。
+4. 清理 redevelopment 的 `-18 dBFS/音量 40` 残留，并限定 `ch1（MIC2）` 为 TDM 推断。
 
 ## 5. 未证 / 风险
 
