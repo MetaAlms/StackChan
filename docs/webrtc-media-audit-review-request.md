@@ -1,9 +1,8 @@
 # REVIEW REQUEST：M1.5 硬件/驱动审计与 AUDIT 候选（2026-10-24）
 
-**Reviewed exact HEAD**：`5cb1bdd541bce8ea3ab5fe80c3fddac2cb378f42`
+**Reviewed exact HEAD**：`dc429ffaeed271bbadb935528b974e30cfd2bedd`
 （本请求文档是其后的 doc-only 提交；实现范围以该 SHA 为准。
-前一个实现提交 `49fac21` 已被 `5cb1bdd` 取代：后者只加“首次媒体运行前才允许 AUDIT”
-守卫与堆缓冲，见下。）
+此前的 `49fac21`、`5cb1bdd` 已被 `dc429ff` 取代，后者包含独立评审后的加固，见 §4.1。）
 **分支/PR**：`feat/aliyun-omni-v2v` / [Draft PR #1](https://github.com/MetaAlms/StackChan/pull/1)
 **本轮性质**：接续任务，非新需求；无虚构 Review ID。无设备操作。
 
@@ -39,7 +38,7 @@
 | 离线台账（原路径，epoch 13） | `channel-audit` PASS（26 断言，cache=never）；`console-command` PASS（17153 断言） |
 | 预算 | **used 28 / 32**，`replan` 新增检查、未 recover/新建/清预算 |
 | 编译/执行边界 | 编译在控制器外（脚本 `--build-only`），执行通过控制器；二进制在工作区外 |
-| IDF v5.5.4 M15 构建 | 通过；app `0x3cd690`（`5cb1bdd`），分区余 23% |
+| IDF v5.5.4 M15 构建 | 通过；app `0x3cd760`（`dc429ff`），分区余 23% |
 | WebSocket 回退构建 | 通过；app `0x3a37a0`，分区余 26%（与历史一致） |
 | 生成源码补丁 | 本轮未改 `xiaozhi-esp32`/`managed_components`，无需重生成补丁 |
 
@@ -58,14 +57,26 @@
 5. 因此双向循环不能归因“参考串入”；当前最简约解释仍是声学耦合 + 无设备 AEC +
    服务端 AEC 未证。**未定位根因，未修复。**
 
-## 4.1 `5cb1bdd` 相对 `49fac21` 的修正
+## 4.1 独立评审后的修正（`dc429ff`）
 
-- **电源定时器竞态**：`AudioService::Initialize()` 启动 15 s 空闲电源定时器，可能在
-  ≤10 s 的本地审计中途关闭 codec。现在只有在首次媒体运行前（`g_audio_initialized`
-  为假）才允许 AUDIT，否则拒绝并提示重启。
-- **栈占用**：主任务栈 8 KB，AUDIT 的 2 个 480 样本缓冲改为堆分配；循环内继续喂看门狗。
-- 这两处不改变 `channel_audit.h` / `console_command.h`，因此 epoch 13 的两项离线检查
-  结果仍适用于同一纯逻辑；IDF 重新构建通过（`0x3cd690`）。
+独立只读评审（2026-10-24）对 `5cb1bdd` 给出 **CHANGES REQUESTED**：1 BLOCKER + 4 MAJOR。
+`dc429ff` 逐项修复：
+
+1. **BLOCKER**：`Hal::feedTheDog()` 实际是 `vTaskDelay(1)`（100 Hz 下 10 ms），
+   每个 20 ms 时隙被拉长且不喂 TWDT。已从 AUDIT 循环移除；I2S 读写本身阻塞让出 CPU，
+   idle-task TWDT 仍被喂。
+2. **音量**：`AudioCodec::SetOutputVolume()` 会写 NVS，且 `output_volume()` 的 RAM 值
+   不是持久化值。AUDIT 现在**完全不改音量**，tone 幅度降为 1024（约 -30 dBFS）。
+3. **DMA/保护段**：保护段 100 ms → **200 ms**（双向 DMA 约 60 ms×2），并在测量前
+   预热丢弃 200 ms 源音频。
+4. **阻塞上界**：增加 `seconds + 2` 硬时限与 10 次失败中止，避免控制台被长时间占用；
+   `aborted` 单独上报。
+5. **文档限定**：所有“MIC3 从未被读”均改为“按 TDM 顺序不在 2-slot 读取范围，
+   **实板线上 slot 映射仍未实测**”，消除与“未证”章节的矛盾。
+
+`channel_audit.h` / `console_command.h` 未变，epoch 13 的两项离线检查仍适用；
+IDF 重新构建通过（app `0x3cd760`）。复审记录见
+[独立评审结果](webrtc-media-audit-review-result.md)。
 
 ## 5. 未证 / 风险
 
