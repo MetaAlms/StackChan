@@ -1,8 +1,8 @@
 # REVIEW REQUEST：M1.5 硬件/驱动审计与 AUDIT 候选（2026-10-24）
 
-**Reviewed exact HEAD**：`dc429ffaeed271bbadb935528b974e30cfd2bedd`
+**Reviewed exact HEAD**：`c524f15fc42fc89830e41cbced80889455693cad`
 （本请求文档是其后的 doc-only 提交；实现范围以该 SHA 为准。
-此前的 `49fac21`、`5cb1bdd` 已被 `dc429ff` 取代，后者包含独立评审后的加固，见 §4.1。）
+此前的 `49fac21`、`5cb1bdd`、`dc429ff` 已被 `c524f15` 取代，后者包含两轮独立评审后的收口，见 §4.1。）
 **分支/PR**：`feat/aliyun-omni-v2v` / [Draft PR #1](https://github.com/MetaAlms/StackChan/pull/1)
 **本轮性质**：接续任务，非新需求；无虚构 Review ID。无设备操作。
 
@@ -38,7 +38,7 @@
 | 离线台账（原路径，epoch 13） | `channel-audit` PASS（26 断言，cache=never）；`console-command` PASS（17153 断言） |
 | 预算 | **used 28 / 32**，`replan` 新增检查、未 recover/新建/清预算 |
 | 编译/执行边界 | 编译在控制器外（脚本 `--build-only`），执行通过控制器；二进制在工作区外 |
-| IDF v5.5.4 M15 构建 | 通过；app `0x3cd760`（`dc429ff`），分区余 23% |
+| IDF v5.5.4 M15 构建 | 通过；app `0x3cd830`（`c524f15`），分区余 23% |
 | WebSocket 回退构建 | 通过；app `0x3a37a0`，分区余 26%（与历史一致） |
 | 生成源码补丁 | 本轮未改 `xiaozhi-esp32`/`managed_components`，无需重生成补丁 |
 
@@ -75,8 +75,17 @@
    **实板线上 slot 映射仍未实测**”，消除与“未证”章节的矛盾。
 
 `channel_audit.h` / `console_command.h` 未变，epoch 13 的两项离线检查仍适用；
-IDF 重新构建通过（app `0x3cd760`）。复审记录见
+IDF 重新构建通过（app `0x3cd830`）。复审记录见
 [独立评审结果](webrtc-media-audit-review-result.md)。
+
+第二轮复审（无 BLOCKER，2 MAJOR）后的收口（`c524f15`）：
+
+1. **预热段也受时限/失败约束**：`seconds + 2` 的检查与 10 次失败中止覆盖
+   drain 预热的 10 个 slot（每次阻塞调用前检查；单次 I2S 可阻塞 1 s，属软上界）。
+2. **未测得相位时不打印空统计**：drain 阶段中止时输出
+   `AUDIT aborted before measurement`，不再给出 -1200/ frames=0 的误导行。
+3. **文档残留清理**：删除“100 ms 保护/结束恢复音量/循环内喂看门狗”等过期描述；
+   `ch1=MIC2` 统一加“按 TDM 顺序；实板 slot 映射未测”限定。
 
 ## 5. 未证 / 风险
 
