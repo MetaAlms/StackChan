@@ -411,3 +411,14 @@ STOP near_01
 - 编译与 IDF 构建在控制器覆盖外，单独记录（见[审计评审请求](webrtc-media-audit-review-request.md)）。
 - **未做设备运行**；下一轮须新弹窗 Q：`AUDIT 6`，以及正常双向 vs 遮住 MIC1/MIC2
   出声孔的对照，再决定 4ch/电气路径。
+
+## 2026-10-24 候选刷入与 AUDIT 6 首次实测
+
+- 刷入 `97864ef`（M15 + AUDIT，app `0x3cd8f0`）到 app 分区；bootloader/分区/NVS 未动。
+  复位后 `IDLE; USB commands: ... AUDIT <3..10 seconds>` 可见，设备 Idle。
+- 用户在新弹窗中点“开始”后执行 `AUDIT 6`（本地 1 kHz，幅度 1024，不改音量）：
+  tone1 ch0 -22.8 dBFS / ch1 -19.8 dBFS，silence -46.5 / -47.1 dBFS，
+  `echo_delta=+23.7/+27.3 dB`，读写失败 0，结束回 Idle，未联网。
+- 结论：扬声器输出显著进入当前 2ch 上行，支持“无 AEC 时播放导致新 turn”的回路；
+  声学 vs 电气仍未定，下一步用“遮住 MIC1/MIC2 出声孔后重跑 AUDIT”区分。
+- 脱敏日志：`docs/device_diag_evidence/2026-10-24-m15/audit-06-idle.log`；详见 findings B56。

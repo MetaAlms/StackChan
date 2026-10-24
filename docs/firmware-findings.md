@@ -1457,3 +1457,28 @@ M5Unified #303/#308 的 fs/2 镜像音来自其 32-bit 打包，本项目走 esp
 **状态**：代码/离线检查/构建完成，**未做设备运行**（HOLD）。下一轮须新弹窗 Q：
 先 `AUDIT 6`，再做正常双向与“遮住 MIC1/MIC2 出声孔”的对照；若遮麦后 turn_detected
 消失则指向声学路径，否则再查电气/噪声/服务端。
+
+### B56. AUDIT 6 实测：扬声器输出显著进入当前 2ch 上行（+24~27 dB over silence）
+
+**证据**：2026-10-24 刷入 `97864ef` 候选（M15 + AUDIT，app `0x3cd8f0`），
+Idle 下执行 `AUDIT 6`（1 kHz，幅度 1024，不改音量），脱敏日志
+`docs/device_diag_evidence/2026-10-24-m15/audit-06-idle.log`：
+
+```
+AUDIT seconds=6 slots=300 write_fail=0 read_fail=0 aborted=0 volume=unchanged tone_amp=1024
+AUDIT tone1 frames=43200 ch0_db10=-228 ch0_peak=4314 ch1_db10=-198 ch1_peak=5425
+AUDIT silence frames=43200 ch0_db10=-465 ch0_peak=528 ch1_db10=-471 ch1_peak=522
+AUDIT tone2 frames=43200 ch0_db10=-228 ch0_peak=4337 ch1_db10=-197 ch1_peak=5411
+AUDIT echo_delta_db10 ch0=237 ch1=273 aec=undetermined local_only=1
+```
+
+结束回 Idle，未联网、无 POST/peer 会话；输入/输出已关闭。
+
+**解读**：扬声器输出确实显著进入了当前 2 通路上行（tone 比静音底噪高约 24–27 dB），
+足以在助手播放 TTS 时被服务端 VAD 当成新语音并取消回答；这与 B50/B52 的
+“turn_detected 取消”现象一致。**但不能区分声学耦合与电气/串扰**：
+- 本轮只测到 MIC1/MIC2 的合计耦合，MIC3 参考仍不在 2-slot 读取范围；
+- 遮住麦克风出声孔后重跑 AUDIT 是最小区分实验：差值骤降 ⇒ 声学为主；
+  基本不变 ⇒ 电气/其他路径。
+
+**状态**：设备已刷入候选并回 Idle；未做 duplex/云端测试，M1.5/T2 仍未通过。
