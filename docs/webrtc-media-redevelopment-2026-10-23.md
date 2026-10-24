@@ -386,7 +386,8 @@ STOP near_01
 - **MIC3 参考不在 2-slot 读取范围**（按 ES7210 TDM 顺序与 2-slot 重配推断；实板线上 slot 映射仍未实测）：ES7210 因选 3 麦进入 TDM；I2S RX 初始化虽写 4 slot，
   `esp_codec_dev 1.5.11` 在 `channel=2` 打开时把 `total_slot=2, ws_width=16,
   slot_mask=0x3` 重写，4-slot 初始化是死配置。AFE `input_reference=true` ⇒
-  `"MR"`，实际把 ch1（MIC2）当参考；设备 AEC 曾把用户语音一起消掉（峰值 4036→120）。
+  `"MR"`，把 ch1 当参考（按 TDM 顺序应为 MIC2；实板 slot 映射未测）；
+设备 AEC 曾把用户语音一起消掉（峰值 4036→120）。
 - 撤回“最多2通道”：库只拒绝 0/奇数通道；4ch 合法，但 RX 4×16bit（64 bit/帧）与
   TX 2×16bit 共享 BCLK/WS 不同频，AW88298 也是 16-bit 立体声，故本轮不启用 4ch。
 - #303/#308 的 fs/2 镜像音来自 M5Unified 自己的 32-bit 打包，本项目原生 16-bit 写入，
@@ -396,7 +397,7 @@ STOP near_01
 
 ### 最小诊断候选
 
-新增 M15 USB 命令 `AUDIT <3..10>`：本地 1 kHz 正弦（-18 dBFS，音量 40）+
+新增 M15 USB 命令 `AUDIT <3..10>`：本地 1 kHz 正弦（1024 ≈ -30 dBFS，不改音量）+
 现有 2ch 采集，三段 tone/silence/tone，输出每通道 RMS(dBFS×10)/peak 与
 `tone1 - silence` 差；不联网、不开 AFE、不启 AEC，不改持久化音量、结束关闭 IO；
 200 ms 保护段 + 200 ms 预热、`seconds+2` 软时限、10 次失败中止。

@@ -728,17 +728,25 @@ void RunChannelAudit(uint32_t seconds) {
         {"tone1", &tone1}, {"silence", &silent}, {"tone2", &tone2},
     };
     for (const auto& p : phases) {
+        if (p.stats->samples[0] == 0) {
+            ESP_LOGW(kTag, "AUDIT %s no samples", p.name);
+            continue;
+        }
         ESP_LOGW(kTag, "AUDIT %s frames=%s ch0_db10=%d ch0_peak=%u ch1_db10=%d ch1_peak=%u",
             p.name, UnsignedDecimal(p.stats->samples[0]).c_str(),
             webrtc_media::ChannelAuditStats::Dbfs10(*p.stats, 0), (unsigned)p.stats->peak[0],
             webrtc_media::ChannelAuditStats::Dbfs10(*p.stats, 1), (unsigned)p.stats->peak[1]);
     }
-    const int delta0 = webrtc_media::ChannelAuditStats::Dbfs10(tone1, 0) -
-        webrtc_media::ChannelAuditStats::Dbfs10(silent, 0);
-    const int delta1 = webrtc_media::ChannelAuditStats::Dbfs10(tone1, 1) -
-        webrtc_media::ChannelAuditStats::Dbfs10(silent, 1);
-    ESP_LOGW(kTag, "AUDIT echo_delta_db10 ch0=%d ch1=%d aec=undetermined local_only=1",
-        delta0, delta1);
+    if (tone1.samples[0] > 0 && silent.samples[0] > 0) {
+        const int delta0 = webrtc_media::ChannelAuditStats::Dbfs10(tone1, 0) -
+            webrtc_media::ChannelAuditStats::Dbfs10(silent, 0);
+        const int delta1 = webrtc_media::ChannelAuditStats::Dbfs10(tone1, 1) -
+            webrtc_media::ChannelAuditStats::Dbfs10(silent, 1);
+        ESP_LOGW(kTag, "AUDIT echo_delta_db10 ch0=%d ch1=%d aec=undetermined local_only=1",
+            delta0, delta1);
+    } else {
+        ESP_LOGW(kTag, "AUDIT echo_delta unavailable: incomplete phases");
+    }
 }
 
 void WebRtcM15Run() {
