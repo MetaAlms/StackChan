@@ -12,6 +12,9 @@
 对应 [webrtc-media-spec.md](webrtc-media-spec.md)。
 评审请求：[webrtc-media-review-request.md](webrtc-media-review-request.md)。
 
+**2026-10-24 接续安排**：双向仍未调通，按用户要求整理[DSH交接](webrtc-media-dsh-handoff-2026-10-24.md)。
+优先核真实硬件/驱动和旧前提，再做针对性修复及受控验证；不无改动重跑，不越过M1.5进入M2。
+
 | 项 | 值 |
 |---|---|
 | 修订基线 | `02917f425c415a21063bfca15638fda69bf9cc85` |
@@ -205,7 +208,11 @@ T2–T4/M1.5整体/AEC未通过，无双向/插话/同进程多轮/产品结论�
 原台账仍epoch12/26of32，两构建与重建单独记于控制器外。
 实现4d5fa0b已推送并刷入：首次自动复位无数据，用户确认手动下载后no_reset写入/hash通过，
 RTS停ROM下载，watchdog复位后正常Idle；20秒无START/POST/peer/AFE，只是启动/Idle准备，不声称声音修复。
-当前弹窗Q等待明确开始，预定duplex05仅30秒；尚未START，不作完整T2验收。
+随后05/06各获新弹窗开始：05停stage4准备超时；同串口/进程无reset的新START06运行30.002秒后Idle，串口已关。
+06的3响应均cancelled/turn_detected，与新speech接收相差0/5/1ms，证实新turn取消；用户确认读后一直安静无其他音源，仍反复“从前”、3次后没声音。
+停止时刻与窗口对齐不清；日志三cancelled与30.002秒run_timeout不能当AI正常结束。输入来源未定，已按用户要求暂停新测试核对硬件/官方实现。
+AFE等待错误日志本轮0；下行48k115200→24k57600比例闭合，上行1497帧与当前分项1496差1帧，不能伪闭合。
+正式T2仍未验，不代表长期多轮稳定；不自动重跑。证据与计数见重新开发记录/B52，代码不变、台账26/32。
 具体入口、证据及后续次序见 [重新开发记录](webrtc-media-redevelopment-2026-10-23.md)。
 
 现有硬件 `write_ok` 仅表示写入 API 成功调用次数，

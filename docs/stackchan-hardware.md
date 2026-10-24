@@ -2,6 +2,12 @@
 
 后续开发的事实底稿。**结论优先来自官方文档**，代码取值来自本仓库，两者不一致的地方单独标注。
 
+**2026-10-24 审计纠正**：下表和§4.1的“没有扬声器回采参考”是历史过强断言，不再作为硬件事实使用。
+[StackChan Core C156官方页面](https://docs.m5stack.com/en/core/StackChan_Core)所链接的
+[原理图第4页](https://m5stack-doc.oss-cn-shenzhen.aliyuncs.com/490/Sch_M5_CoreS3_v1.0.pdf)显示喇叭信号接ES7210 MIC3。
+官方设计存在通路；用户实板revision、有效参考波形及当前驱动slot映射仍待确认，不等于AEC已经可用。
+历史3通道失败也不证明驱动最多2通道；接续审计见[DSH交接](webrtc-media-dsh-handoff-2026-10-24.md)。
+
 来源：
 - [M5Stack StackChan 产品文档](https://docs.m5stack.com/en/StackChan)
 - [Zephyr 板级文档 m5stack_stackchan](https://docs.zephyrproject.org/latest/boards/m5stack/m5stack_stackchan/doc)（硬件描述最完整）

@@ -44,6 +44,10 @@ $ grep CONFIG_USE_SERVER_AEC sdkconfig
 
 ### A2. 开启设备侧 AEC 会消掉用户语音（因为"参考通道"其实是第二只麦克风）
 
+**2026-10-24 纠正**：下述电平下降仍为历史观测，但“硬件没有扬声器回采”的推断撤回。
+官方C156页面链接原理图存在MIC3喇叭参考通路；当前所选两通道没有取得有效参考，不等于硬件不存在。
+实板revision、slot与参考波形待核实，见B53和[DSH交接](webrtc-media-dsh-handoff-2026-10-24.md)。
+
 **现象**：开启 `CONFIG_USE_DEVICE_AEC=y` 后，AFE 输出电平骤降 20dB，完全听不见人声。
 
 **证据**：
@@ -1342,7 +1346,7 @@ TURN初稿共享essential队列的问题已修为独立8项诊断队列，满仅
 FNV32仅供诊断，不作RTP归属。结束后报告48k/24k样本、直方图、accepted/submitted样本与峰值/端点。
 只观察`response.done.response.status`；`status_details`实际返回才记录，两个会话bool为三态观测不改配置。
 媒体/WS构建与四源码补丁重建通过，详见重新开发记录；实现4d5fa0b已推送并刷入，
-只完成启动/20秒Idle准备，尚无媒体效果验证，不声称声音已修复。
+随后完成05准备超时与06短诊断，观测到turn_detected取消，声音/输入根因仍未定，不声称声音已修复。
 
 ### B51. M15的20ms AFE等待短于32ms音频块，产生高频失败日志（2026-10-23）
 
@@ -1359,9 +1363,49 @@ running检查、input/fetch锁、Stop迭代静止边界；普通模式仍portMAX
 root从xiaozhi HEAD e77dedb1309153bb63fed285772962c920c97dd4依次应用vendor/Aliyun/media/AFE四补丁，
 AudioService h/cc与AFE h/cc均和live逐字节一致。IDF5.5.4媒体构建通过（0x3ccc30，余23%），
 独立WebSocket回退构建通过（0x3a37a0，余26%）；两构建/重建在控制器外，原台账epoch12/26of32不变。
-实现4d5fa0b已推送并刷入；只完成启动/20秒Idle准备，尚未START、无媒体效果验证，
-不能声称高频日志已在设备消失或“从前+电流声”已修复。当前弹窗Q等待用户开始，预定duplex05仅30秒诊断。
+实现4d5fa0b已推送并刷入，05/06分别获新弹窗确认后执行；05准备超时，06运行30.002秒。
+06实际AFE `Error code:-1`为0，100ms等待改善已有本轮证据，不承诺所有条件均不超时，亦不证明声音已修复。
 
 **本次刷写准备记录**：首次default_reset无串口数据；用户弹窗确认手动下载后，no_reset刷写/hash通过。
 RTS硬复位停ROM下载，单独watchdog_reset chip_id后正常Idle；观察20秒无START/POST/peer/AFE。
 该操作只验证候选启动/Idle，不改变分区，也不定位历史启动或声音异常根因。
+
+
+### B52. 三个回答被turn_detected取消，输入来源仍未定（2026-10-24）
+
+**证据**：4d5fa0b的duplex05获新弹窗开始后stage4准备超时，无RUNNING/媒体，回Idle。
+再获新弹窗开始后，同串口/同进程、无reset/重刷的duplex06运行30002ms并回Idle，串口已关。
+首条ASR在22.075秒；全轮4个独立ASR、4speech、3response，TURN存22项、丢弃/溢出0。
+3个不同response标签均done.status=cancelled、detail_reason=turn_detected，与相邻新speech_started接收相差0/5/1ms；
+create_response/interrupt_response回显均true，客户端无主动cancel发送代码。
+本轮可确定新turn检测取消了回答，不能据此唯一定位声学回声、电气串扰、噪声或服务端缺陷。
+用户已确认本轮读完后一直安静，无其他说话/音源；仍听到“从前从前”，说3次后没声音。
+停止时间与30秒窗口对齐不清楚；日志为三个cancelled/turn_detected及30.002秒run_timeout，不能当AI正常结束。
+未打印正文的item不推定为已验证故事文本，触发输入来源仍未定。用户要求禁止新测试，先核对真实StackChan硬件/官方实现。
+
+下行10×480+115×960=115200个48k样本，转换/准入/提交24k均57600（2.4秒累计API音频），
+write125/错误0、max_abs11161/端点0；这不是无噪声或连续播放证明。
+上行AFE479040/320=1497帧，而1490发送+3满+3停止排空=1496，1帧未单列；
+可能涉及转换预热空包或Pop后Continue超时，源码允许但本轮未实证，不伪闭合。
+硬件read3018/write125、源排空2880，硬件/转换/reset错误0，LIFECYCLE三项1、STATUS Idle。
+
+**状态**：新turn取消机制有事件实据，根因未定；正式T2仍未验收，不改声音、VAD或cancel策略掩盖现象。
+05准备失败→06有效运行仅为一次同进程重开观测，不代表长期多轮稳定。代码不变，台账26/32。
+见[05日志](device_diag_evidence/2026-10-23-m15/duplex-05-counts.log)与[06日志](device_diag_evidence/2026-10-23-m15/duplex-06-counts.log)。
+
+### B53. 旧“无喇叭回采 / 最多2通道”前提应撤回，先交DSH核实映射（2026-10-24）
+
+**证据**：[StackChan Core C156官方页面](https://docs.m5stack.com/en/core/StackChan_Core)当前链接的
+[原理图第4页](https://m5stack-doc.oss-cn-shenzhen.aliyuncs.com/490/Sch_M5_CoreS3_v1.0.pdf)显示
+AW88298 SPK_VOP/VON经电阻/电容网络接AEC_P/N，再接ES7210 MIC3P/N；MIC1/2接物理麦克风。
+因此A2、“硬件清单”及config.h中无喇叭回采的表述过强，不能再作硬件不存在的证明。
+该PDF仍名CoreS3_v1.0，用户实板revision、有效参考波形和当前slot映射未实证，不宣称设备AEC已可用。
+
+当前managed esp_codec_dev的`audio_codec_data_i2s.c::_i2s_valid_fmt`拒绝0/奇数通道，
+历史3ch报错不证明最多2ch或4ch TDM不可能。此处只撤回绝对上限，不现场改通道或启用AEC。
+本地音频引脚/初始化与官方StackChan同路也不证明实际音质正确；M5Unified #303的样本对顺序修复，
+须对照实际IDF+esp_codec_dev路径才能判断适用性，不能盲加swap。
+
+**状态**：用户授权整理文档交DSH接续开发；本次无代码/构建/设备操作。
+下一步先完成硬件/驱动对照与单变量修复，实际测试仍须新Q点击开始；M1.5/T2及产品未验收。
+完整坐标、证据、退出条件与边界见[DSH交接](webrtc-media-dsh-handoff-2026-10-24.md)。
