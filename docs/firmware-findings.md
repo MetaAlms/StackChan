@@ -1409,3 +1409,45 @@ AW88298 SPK_VOP/VON经电阻/电容网络接AEC_P/N，再接ES7210 MIC3P/N；MIC
 **状态**：用户授权整理文档交DSH接续开发；本次无代码/构建/设备操作。
 下一步先完成硬件/驱动对照与单变量修复，实际测试仍须新Q点击开始；M1.5/T2及产品未验收。
 完整坐标、证据、退出条件与边界见[DSH交接](webrtc-media-dsh-handoff-2026-10-24.md)。
+
+### B54. MIC3 参考通路存在，但 2 通道采集从未读取它；4-slot 初始化是死配置
+
+**证据**（详见[硬件/驱动审计](webrtc-media-hardware-driver-audit-2026-10-24.md)）：
+1. 官方 C156 页面所链[原理图第4页](https://m5stack-doc.oss-cn-shenzhen.aliyuncs.com/490/Sch_M5_CoreS3_v1.0.pdf)
+   显示 `SPK_VOP/VON` 经 `150K/1% + 22pF + 1uF` 成为 `AEC_P/AEC_N`，接
+   ES7210 `MIC3P(31)/MIC3N(32)`；MIC1/MIC2 才是物理麦克风，MIC4 短接 GND。
+2. 官方固件与本项目都把 ES7210 配成 `MIC1|MIC2|MIC3`；驱动在 `mic_num>=3` 时写
+   `REG12=0x02` 进入 TDM 模式（`device/es7210/es7210.c`）。
+3. I2S RX 初始化写 `slot_mask=SLOT0..3`、`total_slot=AUTO`，但
+   `esp_codec_dev 1.5.11` 的 `platform/audio_codec_data_i2s.c::set_drv_fs()`
+   在 `channel=2` 打开时重写 `total_slot=fs->channel(2)`、`ws_width=16`、
+   `slot_mask=0x3`。**初始化里的 4 个 slot 从未生效**。
+4. 因此当前上行只含 MIC1/MIC2，MIC3 参考不在数据里；而 `AUDIO_INPUT_REFERENCE=true`
+   让 AFE 用 `"MR"`，把 ch1 当参考——实际 ch1 是 MIC2。开启设备 AEC 时会把
+   用户语音一起消掉（历史实测峰值 4036→120）。
+
+**边界**：`esp_codec_dev` 只拒绝 0/奇数通道；4ch 在库层合法（`total_slot=fs->channel`），
+历史 `Not support channel 3` 不是“最多 2 通道”。但 4ch+播放受共享 I2S 帧宽
+（RX 4×16bit vs TX 2×16bit）与 AW88298 16-bit 立体声格式约束，本轮未启用。
+
+**状态**：设计/驱动事实已核实；实板 revision、TDM 实际帧长/slot 对齐、AEC_P/N 幅度、
+MIC3 增益仍未示波器验证。**不要据此直接启 AEC、改通道或加 swap。**
+M1.5 的双向循环不能归因于“参考串入”，因为参考根本没有被读；最简约解释仍是
+声学耦合 + 无设备 AEC + 服务端 AEC 未证。
+
+### B55. `AUDIT` 本地命令：量化扬声器到当前上行的耦合，不替代 AEC 验收
+
+**实现**：M15 诊断固件新增 USB 命令 `AUDIT <3..10>`：本地播放 1 kHz 正弦
+（幅度 4096 ≈ -18 dBFS，音量临时 40），用现有 2 通道路径采集，三段
+tone/silence/tone（各段间 100 ms 保护），输出每通道 RMS（dBFS×10）与 peak，
+以及 `tone1 - silence` 的 dB 差。不联网、不开 AFE、不启 AEC，结束恢复音量并关闭输入输出。
+纯逻辑在 `firmware/main/hal/webrtc/channel_audit.h`，离线检查 `channel-audit`
+（26 断言，cache=never）；命令解析在 `console_command.h`（只接受 3..10）。
+
+**边界**：只测当前 2 通道里的声学+电气总耦合，不能单独区分两者；参考通道不在流内。
+M5Unified #303/#308 的 fs/2 镜像音来自其 32-bit 打包，本项目走 esp_codec_dev 原生
+16-bit 写入，**不能照搬 swap**；#303 仍开着，用户报告的“电流声”来源未定。
+
+**状态**：代码/离线检查/构建完成，**未做设备运行**（HOLD）。下一轮须新弹窗 Q：
+先 `AUDIT 6`，再做正常双向与“遮住 MIC1/MIC2 出声孔”的对照；若遮麦后 turn_detected
+消失则指向声学路径，否则再查电气/噪声/服务端。

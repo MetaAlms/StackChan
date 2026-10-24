@@ -73,6 +73,15 @@ void ValidCommandsAndFragments()
         CHECK(FeedLine(reader, "START boundary near " + std::to_string(seconds) + "\n") == Result::Command);
         CHECK(reader.last_command().duration_seconds == seconds);
     }
+    for (uint32_t seconds : {3u, 4u, 9u, 10u}) {
+        CHECK(FeedLine(reader, "AUDIT " + std::to_string(seconds) + "\n") == Result::Command);
+        CHECK(reader.last_command().kind == CommandKind::Audit);
+        CHECK(reader.last_command().audit_seconds == seconds);
+        CHECK(reader.last_command().run_id.empty());
+        CHECK(reader.last_command().duration_seconds == 0);
+    }
+    CHECK(FeedLine(reader, "AUDIT 5\r\n") == Result::Command);
+    CHECK(reader.last_command().kind == CommandKind::Audit);
 }
 
 void InvalidLines()
@@ -89,7 +98,11 @@ void InvalidLines()
             "START r near 1000", "START r near 05", "START r near 005", "START r near +5",
             "START r near -5", "START r near 5.0", "START r near 5e0", "START r near 0x5",
             "START r near 5x", "START r near 5;STATUS", "START r near 4294967301",
-            "START r near 5\rSTATUS", "START r near 5\r\r", "STATUS\rjunk", "\tSTATUS"}) {
+            "START r near 5\rSTATUS", "START r near 5\r\r", "STATUS\rjunk", "\tSTATUS",
+            "AUDIT", "AUDIT ", " AUDIT 5", "AUDIT 0", "AUDIT 1", "AUDIT 2", "AUDIT 11",
+            "AUDIT 99", "AUDIT 05", "AUDIT 005", "AUDIT +5", "AUDIT -5", "AUDIT 5.0",
+            "AUDIT 5e0", "AUDIT 0x5", "AUDIT 5x", "AUDIT 5 6", "AUDIT 5 extra",
+            "AUDIT r 5", "audit 5", "AUDIT\t5"}) {
         CHECK(FeedLine(reader, text + "\n") == Result::Rejected);
         CHECK(reader.last_command().kind == CommandKind::None);
     }

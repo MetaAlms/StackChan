@@ -31,6 +31,10 @@ private:
 #endif
 public:
 #if CONFIG_STACKCHAN_WEBRTC_M15
+    // Audit accessors: Read/Write stay the single hardware path, including the
+    // M15 success/failure counters. The audit does not bypass them.
+    int AuditRead(int16_t* dst, int samples) { return Read(dst, samples); }
+    int AuditWrite(const int16_t* src, int samples) { return Write(src, samples); }
     uint32_t ReadOk() const { return read_ok_.load(); }
     uint32_t ReadFailed() const { return read_failed_.load(); }
     uint32_t WriteOk() const { return write_ok_.load(); }

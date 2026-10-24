@@ -10,13 +10,15 @@
 
 namespace webrtc_media {
 
-enum class CommandKind { None, Start, Stop, Status };
+enum class CommandKind { None, Start, Stop, Status, Audit };
 
 struct ConsoleCommand {
     CommandKind kind = CommandKind::None;
     std::string run_id;  // Populated only after validation; at most 32 bytes.
     RunMode mode = RunMode::NearEnd;
     uint32_t duration_seconds = 0;
+    // AUDIT is a local hardware/channel check; it never opens the network.
+    uint32_t audit_seconds = 0;
 };
 
 // One owner feeds bytes and consumes Command results. No command is exposed
@@ -69,6 +71,20 @@ private:
         return true;
     }
 
+    // Local audit is bounded shorter than a media run: it plays a known tone.
+    static bool AuditDuration(std::string_view text, uint32_t& seconds)
+    {
+        if (text.empty() || text.size() > 2 || text.front() == '0') return false;
+        uint32_t value = 0;
+        for (unsigned char ch : text) {
+            if (ch < '0' || ch > '9') return false;
+            value = value * 10 + ch - '0';
+        }
+        if (value < 3 || value > 10) return false;
+        seconds = value;
+        return true;
+    }
+
     static bool Duration(std::string_view text, uint32_t& seconds)
     {
         if (text.empty() || text.size() > 3 || text.front() == '0') return false;
@@ -95,6 +111,12 @@ private:
         }
         if (count == 1 && tokens[0] == "STATUS") {
             last_command_.kind = CommandKind::Status;
+            return true;
+        }
+        uint32_t audit_seconds = 0;
+        if (count == 2 && tokens[0] == "AUDIT" && AuditDuration(tokens[1], audit_seconds)) {
+            last_command_.kind = CommandKind::Audit;
+            last_command_.audit_seconds = audit_seconds;
             return true;
         }
         if (count == 2 && tokens[0] == "STOP" && ValidRunId(tokens[1])) {

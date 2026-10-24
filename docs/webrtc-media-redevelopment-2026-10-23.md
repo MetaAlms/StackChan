@@ -371,3 +371,41 @@ STOP near_01
 
 双向模式为 `START duplex_01 duplex 60`，**不在首轮顺带运行**。
 还需验证设备多轮与真实输出停止、完成response/RTP边界与产品接入，才能推进正式T3/T4。
+
+## 2026-10-24 DSH 接续：硬件/驱动审计与 AUDIT 候选（无设备操作）
+
+用户授权按[DSH交接](webrtc-media-dsh-handoff-2026-10-24.md)接续；坐标
+`feat/aliyun-omni-v2v`、HEAD `da4df168a9c89ae31e62e117977e1f7819fe4f19`、工作树干净。
+本轮**不打开串口、不刷机、不 START**，只做离线对照、文档、最小诊断候选与构建。
+
+### 审计结果
+
+- 官方 C156 页面所链原理图第4页：`SPK_VOP/VON` 经 150K/1%+22pF+1uF 形成
+  `AEC_P/AEC_N` 接 ES7210 `MIC3P(31)/MIC3N(32)`；MIC1/2 为物理麦，MIC4 短接 GND；
+  无 MAX98357/其他功放/扬声器连接器。官方固件 `eff0d6b5` 与本项目 codec 同源。
+- **MIC3 参考从未进入上行**：ES7210 因选 3 麦进入 TDM；I2S RX 初始化虽写 4 slot，
+  `esp_codec_dev 1.5.11` 在 `channel=2` 打开时把 `total_slot=2, ws_width=16,
+  slot_mask=0x3` 重写，4-slot 初始化是死配置。AFE `input_reference=true` ⇒
+  `"MR"`，实际把 ch1（MIC2）当参考；设备 AEC 曾把用户语音一起消掉（峰值 4036→120）。
+- 撤回“最多2通道”：库只拒绝 0/奇数通道；4ch 合法，但 RX 4×16bit（64 bit/帧）与
+  TX 2×16bit 共享 BCLK/WS 不同频，AW88298 也是 16-bit 立体声，故本轮不启用 4ch。
+- #303/#308 的 fs/2 镜像音来自 M5Unified 自己的 32-bit 打包，本项目原生 16-bit 写入，
+  **不能照搬 swap**；#303 仍开，“电流声”仍无解释。
+- 因此双向循环不能归因“参考串入”（参考未被读）；最简约仍是声学耦合 + 无设备 AEC +
+  服务端 AEC 未证。实板 revision/帧长/slot 对齐/参考幅度仍未示波器验证。
+
+### 最小诊断候选
+
+新增 M15 USB 命令 `AUDIT <3..10>`：本地 1 kHz 正弦（-18 dBFS，音量 40）+
+现有 2ch 采集，三段 tone/silence/tone，输出每通道 RMS(dBFS×10)/peak 与
+`tone1 - silence` 差；不联网、不开 AFE、不启 AEC，结束恢复音量/关闭 IO。
+纯逻辑 `channel_audit.h`；命令解析只接受 3..10。
+
+### 离线验证与构建
+
+- 原台账 `/Users/amtf/.codex/dev-harness/tasks/stackchan-webrtc-media/ledger.sqlite`
+  经 `replan` 新增 `channel-audit`（26 断言，cache=never），`console-command` 复跑
+  （17153 断言）；**epoch 13，used 28/32**，未 recover/新建/清预算。
+- 编译与 IDF 构建在控制器覆盖外，单独记录（见[审计评审请求](webrtc-media-audit-review-request.md)）。
+- **未做设备运行**；下一轮须新弹窗 Q：`AUDIT 6`，以及正常双向 vs 遮住 MIC1/MIC2
+  出声孔的对照，再决定 4ch/电气路径。

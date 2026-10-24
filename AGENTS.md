@@ -51,12 +51,15 @@ origin  git@github.com:MetaAlms/StackChan.git     ← 我们的 fork
 1. **`firmware/main/Kconfig.projbuild` 才是生效的 Kconfig**，
    `firmware/xiaozhi-esp32/main/Kconfig.projbuild` **从不被读取**（xiaozhi 源码是编进 main 组件的）
 2. **ES7210 增益上限 37.5dB**，`input_gain_` 写超过的值会被静默钳位
-3. **本方案无法支持语音打断**：阿里 WebSocket 协议官方规格为
+3. **当前实现无法支持语音打断**：阿里 WebSocket 协议官方规格为
    「回声消除/降噪：无，需客户端自行处理」，而 ESP32 只能用 WebSocket
-   （AOQ 仅限 Android/iOS/HarmonyOS）。设备侧补 AEC 又因
-   `esp_codec_dev` 最多 2 通道而拿不到第 3 路回采参考。
-   **这是规格限制，不要再当作 bug 去修。** 详见
-   [docs/aec-limitation.md](docs/aec-limitation.md)
+   （AOQ 仅限 Android/iOS/HarmonyOS）。设备侧：官方 C156 原理图确有
+   `SPK→AEC_P/N→ES7210 MIC3` 参考通路，但**当前 2 通道采集只读 MIC1/MIC2，
+   MIC3 从未进入上行**，AFE 的 `"MR"` 实际把 MIC2 当参考；历史“最多 2 通道”
+   是 `esp_codec_dev` 对奇数通道的限制，4ch TDM 在库层可行，但受共享 I2S
+   帧宽/功放格式约束。**不要直接启 AEC、改通道或加 swap**，先按
+   [硬件/驱动审计](docs/webrtc-media-hardware-driver-audit-2026-10-24.md) 验证。
+   详见 [docs/aec-limitation.md](docs/aec-limitation.md)
 
 ## 构建
 

@@ -73,7 +73,7 @@
 **采样率链路**（容易踩坑，记清楚）：
 
 ```
-ES7210 采集 24kHz 2ch
+ES7210 采集 24kHz；当前只读 2 个 TDM slot = MIC1/MIC2（MIC3 参考未读）
   └─ I2S 传输 24kHz（日志：STD Mode 1 bits:16/16 channel:2 sample_rate:24000）
       └─ AudioService::ReadAudioData 重采样 24k → 16k
           └─ AFE 处理，输出 16kHz 单声道，60ms = 960 样本
@@ -87,22 +87,29 @@ ES7210 采集 24kHz 2ch
 
 ## 4. ⚠️ 硬件陷阱（开发前必读）
 
-### 4.1 "双麦克风"被当成"麦克风 + 回声参考"
+### 4.1 参考通路存在，但当前 2 通道采集读不到它
 
 ```c
 // config.h
 #define AUDIO_INPUT_REFERENCE true
 ```
 
-这个命名会让人以为 ES7210 上有一路扬声器回采。**实际上官方文档写明是"双麦克风"**，
-第 2 个通道是**第二只麦克风**，不是参考信号。
+官方 C156 原理图第 4 页确认：`SPK_VOP/VON` 经 `150K/1% + 22pF + 1uF` 形成
+`AEC_P/AEC_N`，接到 **ES7210 MIC3P/N**；MIC1/MIC2 才是物理麦克风。
+所以“硬件没有回采”是错的。
 
-影响：
-- 输入格式被 AFE 推成 `"MR"`（1 麦 + 1 假参考），第二只麦克风被浪费
-- **一旦开启设备侧 AEC，它会拿"另一只麦克风听到的同一段人声"当回声去抵消**，
-  把用户的语音一起消掉（实测 AFE 输出峰值 4036 → 120）
+但当前驱动把 ES7210 配成 `MIC1|MIC2|MIC3`（3 麦 ⇒ TDM 模式），
+I2S RX 初始化虽写 `SLOT0..3`，`esp_codec_dev` 打开 2 通道时会重写
+`total_slot=2 / ws_width=16`，**4-slot 初始化不生效**。结果：
+- 上行只有 MIC1/MIC2，**MIC3（参考）从未被读**；
+- AFE 按 `AUDIO_INPUT_REFERENCE=true` 生成 `"MR"`，把 ch1 当参考，
+  实际 ch1 是 MIC2；
+- 开启设备侧 AEC 时会拿 MIC2 当参考，把用户语音一起消掉
+  （实测 AFE 输出峰值 4036 → 120）。
 
-详见 [firmware-findings.md](firmware-findings.md) 第 1 节。
+4 通道 TDM 在库层可行，但 RX 4×16bit 与 TX 2×16bit 共享 BCLK/WS 不同频，
+AW88298 当前也是 16-bit 立体声；需先对齐帧宽或做仅 RX 的静默采集。
+详见 [硬件/驱动审计](webrtc-media-hardware-driver-audit-2026-10-24.md)。
 
 ### 4.2 ES7210 增益的量程上限是 37.5 dB
 

@@ -5,6 +5,7 @@
 #include "media_admission.h"
 #include "bounded_media_queue.h"
 #include "console_command.h"
+#include "channel_audit.h"
 #include "decimal_log_value.h"
 #include "session_run_control.h"
 #include "webrtc_transport.h"
@@ -606,6 +607,98 @@ void Worker(void*) {
 }
 }  // namespace
 
+// Local channel audit: play a known tone and measure how much of it reaches
+// the current two-slot uplink. No network, no AFE, no AEC. Guard slots keep
+// DMA latency from smearing phase attribution.
+void RunChannelAudit(uint32_t seconds) {
+    if (g_run && !g_run->worker_finished.load()) {
+        ESP_LOGW(kTag, "AUDIT rejected: media run active");
+        return;
+    }
+    auto* codec = static_cast<CoreS3AudioCodec*>(Board::GetInstance().GetAudioCodec());
+    if (codec == nullptr) {
+        ESP_LOGE(kTag, "AUDIT rejected: codec unavailable");
+        return;
+    }
+    constexpr uint32_t kSampleRate = 24000;
+    constexpr size_t kFrameSamples = 480;  // 20 ms at 24 kHz.
+    constexpr size_t kReadSamples = 480;   // 240 stereo frames = 10 ms.
+    constexpr uint32_t kSlotsPerSecond = 50;
+    constexpr uint32_t kGuardSlots = 5;
+    const uint32_t slots = seconds * kSlotsPerSecond;
+    if (slots < 3 * kGuardSlots + 3) {
+        ESP_LOGE(kTag, "AUDIT rejected: window too short");
+        return;
+    }
+    const uint32_t phase = (slots - 3 * kGuardSlots) / 3;
+    const uint32_t tone1_begin = kGuardSlots, tone1_end = tone1_begin + phase;
+    const uint32_t silent_begin = tone1_end + kGuardSlots, silent_end = silent_begin + phase;
+    const uint32_t tone2_begin = silent_end + kGuardSlots;
+    const uint32_t tone2_end = std::min(slots, tone2_begin + phase);
+
+    const int previous_volume = codec->output_volume();
+    codec->SetOutputVolume(40);
+    codec->EnableOutput(true);
+    codec->EnableInput(true);
+    webrtc_media::ChannelAuditStats tone1, silent, tone2;
+    tone1.Configure(2);
+    silent.Configure(2);
+    tone2.Configure(2);
+    webrtc_media::ToneGenerator tone(1000.0, 4096.0, kSampleRate);
+    int16_t out[kFrameSamples];
+    int16_t in[kReadSamples];
+    uint32_t write_fail = 0, read_fail = 0;
+    for (uint32_t slot = 0; slot < slots; ++slot) {
+        // The console task feeds the watchdog on its own loop; this bounded
+        // local run must not starve it for the duration of the tone.
+        GetHAL().feedTheDog();
+        webrtc_media::ChannelAuditStats* target = nullptr;
+        bool play_tone = false;
+        if (slot >= tone1_begin && slot < tone1_end) {
+            target = &tone1;
+            play_tone = true;
+        } else if (slot >= silent_begin && slot < silent_end) {
+            target = &silent;
+        } else if (slot >= tone2_begin && slot < tone2_end) {
+            target = &tone2;
+            play_tone = true;
+        }
+        if (play_tone) tone.Fill(out, kFrameSamples);
+        else std::memset(out, 0, sizeof(out));
+        if (codec->AuditWrite(out, static_cast<int>(kFrameSamples)) != static_cast<int>(kFrameSamples)) ++write_fail;
+        for (int half = 0; half < 2; ++half) {
+            const int got = codec->AuditRead(in, static_cast<int>(kReadSamples));
+            if (got != static_cast<int>(kReadSamples)) {
+                ++read_fail;
+                continue;
+            }
+            if (target == nullptr) continue;
+            for (size_t f = 0; f + 2 <= static_cast<size_t>(got); f += 2) target->AddFrame(&in[f]);
+        }
+    }
+    codec->EnableInput(false);
+    codec->EnableOutput(false);
+    codec->SetOutputVolume(previous_volume);
+
+    ESP_LOGW(kTag, "AUDIT seconds=%u slots=%u write_fail=%u read_fail=%u",
+        (unsigned)seconds, (unsigned)slots, (unsigned)write_fail, (unsigned)read_fail);
+    const struct { const char* name; const webrtc_media::ChannelAuditStats* stats; } phases[] = {
+        {"tone1", &tone1}, {"silence", &silent}, {"tone2", &tone2},
+    };
+    for (const auto& p : phases) {
+        ESP_LOGW(kTag, "AUDIT %s frames=%s ch0_db10=%d ch0_peak=%u ch1_db10=%d ch1_peak=%u",
+            p.name, UnsignedDecimal(p.stats->samples[0]).c_str(),
+            webrtc_media::ChannelAuditStats::Dbfs10(*p.stats, 0), (unsigned)p.stats->peak[0],
+            webrtc_media::ChannelAuditStats::Dbfs10(*p.stats, 1), (unsigned)p.stats->peak[1]);
+    }
+    const int delta0 = webrtc_media::ChannelAuditStats::Dbfs10(tone1, 0) -
+        webrtc_media::ChannelAuditStats::Dbfs10(silent, 0);
+    const int delta1 = webrtc_media::ChannelAuditStats::Dbfs10(tone1, 1) -
+        webrtc_media::ChannelAuditStats::Dbfs10(silent, 1);
+    ESP_LOGW(kTag, "AUDIT echo_delta_db10 ch0=%d ch1=%d aec=undetermined local_only=1",
+        delta0, delta1);
+}
+
 void WebRtcM15Run() {
     if (!usb_serial_jtag_is_driver_installed()) {
         usb_serial_jtag_driver_config_t cfg = USB_SERIAL_JTAG_DRIVER_CONFIG_DEFAULT();
@@ -620,7 +713,7 @@ void WebRtcM15Run() {
         ESP_LOGE(kTag, "command queue unavailable; staying Idle");
         while (true) { GetHAL().feedTheDog(); GetHAL().delay(100); }
     }
-    ESP_LOGW(kTag, "IDLE; USB commands: START <run_id> near|duplex <5..180 seconds>, STOP <run_id>, STATUS; fresh run ID for each start");
+    ESP_LOGW(kTag, "IDLE; USB commands: START <run_id> near|duplex <5..180 seconds>, STOP <run_id>, STATUS, AUDIT <3..10 seconds>; fresh run ID for each start");
     webrtc_media::ConsoleLineReader reader;
     while (true) {
         char bytes[64];
@@ -635,6 +728,12 @@ void WebRtcM15Run() {
                 const bool idle = !g_run || (finished && g_run->reusable);
                 ESP_LOGW(kTag, "STATUS run=%s state=%s restart_requires_reboot=%d", g_run ? g_run->command.run_id.c_str() : "none",
                     idle ? "Idle" : StateName(g_run->state.load()), finished && !g_run->reusable);
+            } else if (c.kind == webrtc_media::CommandKind::Audit) {
+                if (g_run && !g_run->worker_finished.load()) {
+                    ESP_LOGW(kTag, "AUDIT rejected: worker still active");
+                    continue;
+                }
+                RunChannelAudit(c.audit_seconds);
             } else if (c.kind == webrtc_media::CommandKind::Start) {
                 if (g_run) {
                     if (!g_run->worker_finished.load()) { ESP_LOGW(kTag, "START rejected: worker still active"); continue; }
