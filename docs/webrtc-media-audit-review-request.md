@@ -1,7 +1,9 @@
 # REVIEW REQUEST：M1.5 硬件/驱动审计与 AUDIT 候选（2026-10-24）
 
-**Reviewed exact HEAD**：`49fac21842b847b1efd730c3fd155e300bbbc913`
-（本请求文档是其后的 doc-only 提交；实现范围以该 SHA 为准）
+**Reviewed exact HEAD**：`5cb1bdd541bce8ea3ab5fe80c3fddac2cb378f42`
+（本请求文档是其后的 doc-only 提交；实现范围以该 SHA 为准。
+前一个实现提交 `49fac21` 已被 `5cb1bdd` 取代：后者只加“首次媒体运行前才允许 AUDIT”
+守卫与堆缓冲，见下。）
 **分支/PR**：`feat/aliyun-omni-v2v` / [Draft PR #1](https://github.com/MetaAlms/StackChan/pull/1)
 **本轮性质**：接续任务，非新需求；无虚构 Review ID。无设备操作。
 
@@ -21,7 +23,7 @@
 |---|---|
 | `firmware/main/hal/webrtc/channel_audit.h`（新） | `ToneGenerator`（1 kHz 连续相位）、`ChannelAuditStats`（RMS/peak/dBFS×10） |
 | `firmware/main/hal/webrtc/console_command.h` | `CommandKind::Audit`；只接受 `AUDIT <3..10>`，其余整行拒绝 |
-| `firmware/main/hal/webrtc/webrtc_m15.cc` | `RunChannelAudit()`：本地 tone/silence/tone + 现有 2ch 采集；命令分发；banner |
+| `firmware/main/hal/webrtc/webrtc_m15.cc` | `RunChannelAudit()`：本地 tone/silence/tone + 现有 2ch 采集；命令分发；banner；`g_audio_initialized` 时拒绝；缓冲堆分配 |
 | `firmware/main/hal/board/cores3_audio_codec.h` | `AuditRead/AuditWrite` 转发到原 `Read/Write`（保留 M15 计数，不新增硬件路径） |
 | `firmware/tests/channel_audit_check.cc`（新） | 26 断言：音调频率/幅度/相位连续、统计/静音/满幅/通道数 |
 | `firmware/tests/console_command_check.cc` | 新增 AUDIT 合法/非法边界（总计 17153 断言） |
@@ -37,7 +39,7 @@
 | 离线台账（原路径，epoch 13） | `channel-audit` PASS（26 断言，cache=never）；`console-command` PASS（17153 断言） |
 | 预算 | **used 28 / 32**，`replan` 新增检查、未 recover/新建/清预算 |
 | 编译/执行边界 | 编译在控制器外（脚本 `--build-only`），执行通过控制器；二进制在工作区外 |
-| IDF v5.5.4 M15 构建 | 通过；app `0x3cd6c0`，分区余 23% |
+| IDF v5.5.4 M15 构建 | 通过；app `0x3cd690`（`5cb1bdd`），分区余 23% |
 | WebSocket 回退构建 | 通过；app `0x3a37a0`，分区余 26%（与历史一致） |
 | 生成源码补丁 | 本轮未改 `xiaozhi-esp32`/`managed_components`，无需重生成补丁 |
 
@@ -55,6 +57,15 @@
    `esp_codec_dev` 原生 16-bit 写入，不能照搬 swap；#303 仍开，“电流声”未解释。
 5. 因此双向循环不能归因“参考串入”；当前最简约解释仍是声学耦合 + 无设备 AEC +
    服务端 AEC 未证。**未定位根因，未修复。**
+
+## 4.1 `5cb1bdd` 相对 `49fac21` 的修正
+
+- **电源定时器竞态**：`AudioService::Initialize()` 启动 15 s 空闲电源定时器，可能在
+  ≤10 s 的本地审计中途关闭 codec。现在只有在首次媒体运行前（`g_audio_initialized`
+  为假）才允许 AUDIT，否则拒绝并提示重启。
+- **栈占用**：主任务栈 8 KB，AUDIT 的 2 个 480 样本缓冲改为堆分配；循环内继续喂看门狗。
+- 这两处不改变 `channel_audit.h` / `console_command.h`，因此 epoch 13 的两项离线检查
+  结果仍适用于同一纯逻辑；IDF 重新构建通过（`0x3cd690`）。
 
 ## 5. 未证 / 风险
 
