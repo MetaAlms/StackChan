@@ -421,4 +421,8 @@ STOP near_01
   `echo_delta=+23.7/+27.3 dB`，读写失败 0，结束回 Idle，未联网。
 - 结论：扬声器输出显著进入当前 2ch 上行，支持“无 AEC 时播放导致新 turn”的回路；
   声学 vs 电气仍未定，下一步用“遮住 MIC1/MIC2 出声孔后重跑 AUDIT”区分。
-- 脱敏日志：`docs/device_diag_evidence/2026-10-24-m15/audit-06-idle.log`；详见 findings B56。
+- 用户用纸/手轻遮 CoreS3 正面后复测：tone1 ch0 -22.8→-16.0 dBFS、ch1 -19.8→-14.6，
+  耦合反而 +5~7 dB（接近硬质反射面的 +6 dB 压力加倍）；静音底噪不变。
+  这更像麦克风在脸后、声学路径，电气串扰不会因纸/手改变；需吸声材料复测确认。
+- 脱敏日志：`docs/device_diag_evidence/2026-10-24-m15/audit-06-idle.log`、
+  `audit-06-face-covered-reflective.log`；详见 findings B56。

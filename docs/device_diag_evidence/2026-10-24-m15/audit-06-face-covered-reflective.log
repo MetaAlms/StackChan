@@ -1,0 +1,25 @@
+E (1216403) i2s_common: i2s_channel_disable(1262): the channel has not been enabled yet
+I (1216403) I2S_IF: Paired data: 0x3fcdf07c, current mode: playback, paired in_enable: 0, paired out_enable: 0
+I (1216413) I2S_IF: STD: TX, data_bit: 16, slot_bit: 16, ws_width: 16, slot_mode: MONO, slot_mask: 0x1
+I (1216423) I2S_IF: STD: TX, sample_rate_hz: 24000, mclk_multiple: 256, clk_src: 6
+I (1216433) Adev_Codec: Open codec device OK
+I (1216433) AudioCodec: Set output enable to true
+E (1216443) i2s_common: i2s_channel_disable(1262): the channel has not been enabled yet
+I (1216443) I2S_IF: Current mode(record) and peer mode have same sample_rate 24000, channel 2, bits_per_sample 16
+I (1216453) I2S_IF: TDM: RX, data_bit: 16, slot_bit: 16, ws_width: 16, total_slot: 2, slot_mask: 0x3
+I (1216463) I2S_IF: TDM: RX, sample_rate_hz: 24000, mclk_multiple: 256, clk_src: 6
+I (1216473) ES7210: Bits 16
+I (1216483) ES7210: Enable ES7210_INPUT_MIC1
+I (1216483) ES7210: Enable ES7210_INPUT_MIC2
+I (1216493) ES7210: Enable ES7210_INPUT_MIC3
+I (1216493) ES7210: Enable TDM mode
+I (1216493) ES7210: Unmuted
+I (1216493) Adev_Codec: Open codec device OK
+I (1216503) AudioCodec: Set input enable to true
+I (1222673) AudioCodec: Set input enable to false
+I (1222673) AudioCodec: Set output enable to false
+W (1222673) WebRTC-Run: AUDIT seconds=6 slots=300 write_fail=0 read_fail=0 aborted=0 volume=unchanged tone_amp=1024
+W (1222683) WebRTC-Run: AUDIT tone1 frames=43200 ch0_db10=-160 ch0_peak=8075 ch1_db10=-146 ch1_peak=9199
+W (1222693) WebRTC-Run: AUDIT silence frames=43200 ch0_db10=-449 ch0_peak=1049 ch1_db10=-474 ch1_peak=689
+W (1222703) WebRTC-Run: AUDIT tone2 frames=43200 ch0_db10=-160 ch0_peak=8025 ch1_db10=-145 ch1_peak=9163
+W (1222713) WebRTC-Run: AUDIT echo_delta_db10 ch0=289 ch1=328 aec=undetermined local_only=1
