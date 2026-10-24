@@ -1,0 +1,2249 @@
+I (306) esp_image: segment 1: paddr=0016c738 vaddr=3fca0200 size=038e0h ( 14560) load
+I (309) esp_image: segment 2: paddr=00170020 vaddr=42000020 size=1a6404h (1729540) map
+I (550) esp_image: segment 3: paddr=0031642c vaddr=3fca3ae0 size=03340h ( 13120) load
+I (553) esp_image: segment 4: paddr=00319774 vaddr=40378000 size=18144h ( 98628) load
+I (571) esp_image: segment 5: paddr=003318c0 vaddr=50000000 size=00020h (    32) load
+I (581) boot: Loaded app from partition at offset 0x20000
+I (581) boot: Disabling RNG early entropy source...
+I (591) esp_psram: Found 8MB PSRAM device
+I (591) esp_psram: Speed: 80MHz
+I (591) cpu_start: Multicore app
+I (601) cpu_start: GPIO 44 and 43 are used as console UART I/O pins
+I (601) cpu_start: Pro cpu start user code
+I (601) cpu_start: cpu freq: 240000000 Hz
+I (603) app_init: Application information:
+I (607) app_init: Project name:     stack-chan
+I (611) app_init: App version:      1.5.1
+I (615) app_init: Compile time:     Oct 22 2026 01:29:55
+I (620) app_init: ELF file SHA256:  1ea33eaf0...
+I (624) app_init: ESP-IDF:          v5.5.4
+I (628) efuse_init: Min chip rev:     v0.0
+I (632) efuse_init: Max chip rev:     v0.99 
+I (636) efuse_init: Chip rev:         v0.2
+I (640) heap_init: Initializing. RAM available for dynamic allocation:
+I (646) heap_init: At 3FCB81E0 len 00031530 (197 KiB): RAM
+I (651) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (656) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (661) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (667) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (674) spi_flash: detected chip: generic
+I (677) spi_flash: flash io: qio
+I (682) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (686) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (701) main_task: Started on CPU0
+I (711) esp_psram: Reserving pool of 64K of internal memory for DMA/internal allocations
+I (711) main_task: Calling app_main()
+[1792603891506] [[32minfo[0m] [HAL] creating hal instance
+[1792603891511] [[32minfo[0m] [HAL] init
+[1792603891529] [[32minfo[0m] [HAL] xiaozhi board init
+I (741) Board: UUID=13d885f2-f0c0-4c7f-b5f9-ad9dd41a8f60 SKU=m5stack-stack-chan
+I (741) M5Stack-StackChan-Board: Init AXP2101
+I (741) M5Stack-StackChan-Board: Set charge current success
+I (751) M5Stack-StackChan-Board: Init power save timer: sleep=300 s, shutdown=600 s, allow_shutdown_when_charging=0
+I (761) M5Stack-StackChan-Board: Init AW9523
+     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
+
+00: 00 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+
+10: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+
+20: -- 21 -- 23 -- -- -- -- -- -- -- -- -- -- -- -- 
+
+30: -- -- -- -- 34 -- 36 -- 38 -- -- -- -- -- -- -- 
+
+40: 40 41 -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+
+50: 50 51 -- -- -- -- -- -- 58 -- -- -- -- -- -- -- 
+
+60: -- -- -- -- -- -- -- -- 68 69 -- -- -- -- -- 6f 
+
+70: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+
+I (841) M5Stack-StackChan-Board: Init FT6336
+I (841) M5Stack-StackChan-Board: Init IlI9342
+I (851) ili9341: LCD panel create success, version: 1.2.0
+I (871) M5Stack-StackChan-Board: Reset IlI9342
+I (1001) M5Stack-StackChan-Board: CIPHER:0x64 / FIRMID:0x03 / VENDID:0x01, panel:ILI9342C
+I (1001) Display: Power management not supported
+I (1061) StackChanAvatarDisplay: Turning display on
+I (1061) StackChanAvatarDisplay: Initialize LVGL library
+I (1061) StackChanAvatarDisplay: Use 2MB of PSRAM for image cache
+I (1061) StackChanAvatarDisplay: Initialize LVGL port
+I (1071) StackChanAvatarDisplay: Adding LCD display
+I (1071) LVGL: Starting LVGL task
+I (1081) StackChanAvatarDisplay: Create boot logo label
+I (1121) M5Stack-StackChan-Board: Init Camera
+I (1121) gc0308: Detected Camera sensor PID=0x9b
+I (1201) StackChanCamera: Camera init success
+I (1211) Backlight: Set brightness to 75
+[1792603891997] [[32minfo[0m] [HAL-MCP] init
+[1792603891997] [[32minfo[0m] [HAL-MCP] add robot.get_head_angles tool
+I (1211) MCP: Add tool: self.robot.get_head_angles
+[1792603892007] [[32minfo[0m] [HAL-MCP] add robot.set_head_angles tool
+I (1221) MCP: Add tool: self.robot.set_head_angles
+[1792603892018] [[32minfo[0m] [HAL-MCP] add robot.set_led_color tool
+I (1231) MCP: Add tool: self.robot.set_led_color
+[1792603892028] [[32minfo[0m] [HAL-MCP] add robot.create_reminder tool
+I (1241) MCP: Add tool: self.robot.create_reminder
+[1792603892039] [[32minfo[0m] [HAL-MCP] add robot.get_reminders tool
+I (1251) MCP: Add tool: self.robot.get_reminders
+[1792603892050] [[32minfo[0m] [HAL-MCP] add robot.stop_reminder tool
+I (1261) MCP: Add tool: self.robot.stop_reminder
+[1792603892061] [[32minfo[0m] [HAL-HeadTouch] init
+I (1271) Si12T: Si12T initialized, version: 0.0.2
+I (1291) Si12T: Si12T setup done
+[1792603892081] [[1792603892081] [32minfo[0m[] [32minfo[0m[HAL-HeadTouch] start update task
+] [HAL-IOE] init
+I (1491) PY32IOExpander: Version: 0x41
+[1792603892732] [[32minfo[0m] [HAL-IOE] init done
+[1792603892733] [[32minfo[0m] [HAL-RTC] init
+[1792603892733] [[32minfo[0m] [HAL-RTC] PCF8563 init ok
+[1792603892736] [[32minfo[0m] [HAL-RTC] load timezone from nvs: GMT0
+[1792603894000] [[32minfo[0m] [HAL-RTC] rtc synced to system (UTC): 2026-10-21 17:31:34
+[1792603894007] [[32minfo[0m] [HAL-IMU] init
+[1792603894309] [[32minfo[0m] [HAL-IMU] BMI270 init ok
+[1792603894309] [[32minfo[0m] [HAL-Servo] init
+I (2261) uart: ESP_INTR_FLAG_IRAM flag not set while CONFIG_UART_ISR_IN_IRAM is enabled, flag updated
+[1792603894317] [[32minfo[0m] [ScsServo] id: 1 get zero pos: 501 from settings
+[1792603894326] [[32minfo[0m] [ScsServo] id: 2 get zero pos: 635 from settings
+[1792603894334] [[32minfo[0m] [HAL] lvgl init
+[1792603894335] [[32minfo[0m] [HAL] create lvgl touchpad indev
+W (2291) M1: starting the network...
+I (2301) WifiManager: Initializing...
+I (2301) pp: pp rom version: e7ae62f
+I (2301) net80211: net80211 rom version: e7ae62f
+I (2321) wifi:wifi driver task: 3fcd8df4, prio:23, stack:6144, core=0
+I (2321) wifi:wifi firmware version: 0947e8b
+I (2321) wifi:wifi certification version: v7.0
+I (2321) wifi:config NVS flash: disabled
+I (2321) wifi:config nano formatting: enabled
+I (2331) wifi:Init data frame dynamic rx buffer num: 6
+I (2331) wifi:Init dynamic rx mgmt buffer num: 5
+I (2341) wifi:Init management short buffer num: 32
+I (2341) wifi:Init dynamic tx buffer num: 32
+I (2351) wifi:Init static tx FG buffer num: 2
+I (2351) wifi:Init static rx buffer size: 1600
+I (2351) wifi:Init static rx buffer num: 3
+I (2361) wifi:Init dynamic rx buffer num: 6
+I (2361) wifi_init: rx ba win: 3
+I (2361) wifi_init: accept mbox: 6
+I (2371) wifi_init: tcpip mbox: 16
+I (2371) wifi_init: udp mbox: 6
+I (2371) wifi_init: tcp mbox: 6
+I (2381) wifi_init: tcp tx win: 5760
+I (2381) wifi_init: tcp rx win: 5760
+I (2381) wifi_init: tcp mss: 1440
+I (2391) WifiManager: Initialized
+I (2391) WifiBoard: Starting WiFi connection attempt
+I (2391) WifiManager: Starting station
+I (2401) phy_init: phy_version 711,97bcf0a2,Aug 25 2025,19:04:10
+I (2441) wifi:mode : sta (<STA-MAC>)
+I (2441) wifi:enable tsf
+W (2441) M1: waiting for the network before starting the media probe...
+I (2441) WifiBoard: WiFi scanning
+I (4851) WifiStation: Found AP: <SSID>, BSSID: <BSSID>, RSSI: -61, Channel: 3, Authmode: 4
+I (4851) WifiBoard: WiFi connecting to <SSID>
+W (4851) wifi:Password length matches WPA2 standards, authmode threshold changes from OPEN to WPA2
+I (5171) wifi:new:<3,0>, old:<1,0>, ap:<255,255>, sta:<3,0>, prof:1, snd_ch_cfg:0x0
+I (5171) wifi:state: init -> auth (0xb0)
+I (5181) wifi:state: auth -> assoc (0x0)
+I (5191) wifi:state: assoc -> run (0x10)
+I (5281) wifi:[ADDBA]RX DELBA, reason:39, delete tid:0, initiator:1(originator)
+I (5281) wifi:[ADDBA]RX DELBA, reason:39, delete tid:0, initiator:0(recipient)
+I (5281) wifi:[ADDBA]RX DELBA, reason:39, delete tid:5, initiator:1(originator)
+I (5301) wifi:connected with <SSID>, aid = 3, channel 3, BW20, bssid = <BSSID>
+I (5301) wifi:security: WPA2-PSK, phy: bgn, rssi: -65, cipher(pairwise:0x3, group:0x1), pmf:0
+I (5311) wifi:pm start, type: 1
+
+I (5311) wifi:dp: 1, bi: 102400, li: 10, scale listen interval from 1024000 us to 1024000 us
+I (5321) wifi:set rx beacon pti, rx_bcn_pti: 14, bcn_timeout: 25000, mt_pti: 14, mt_time: 10000
+I (5331) wifi:<ba-add>idx:0 (ifx:0, <BSSID>), tid:0, ssn:3, winSize:64
+I (5431) wifi:AP's beacon interval = 102400 us, DTIM period = 1
+I (6541) esp_netif_handlers: sta ip: 192.168.1.x, mask: 255.255.255.0, gw: 192.168.1.1
+I (6541) WifiStation: Got IP: 192.168.1.x
+I (6541) WifiBoard: Connected to WiFi: <SSID>
+W (7031) M1: network is up
+W (7031) M1: M1 uplink probe: fixture -> 16->48k -> Opus 48k mono 20 ms -> RTP
+W (7031) M1: payload budget 1352 B (library whole-packet buffer 1428 B, minus header/extension)
+I (7031) M1: [fx] zh_1 "今天我们测试语音连接": 124412 B (62206 samples, 3887 ms) kw=测试
+I (7041) M1: [fx] zh_2 "桌上有一本蓝色的书": 116754 B (58377 samples, 3648 ms) kw=蓝色
+I (7051) M1: [fx] zh_3 "请回答一加一等于几": 118838 B (59419 samples, 3713 ms) kw=一加一
+I (7061) M1: [enc] 48000 Hz 1 ch 20 ms | in_frame=1920 B (960 samples) out_cap=325 B bitrate=90000
+W (7071) M1: [heap:before-buffers] int free=160315 largest=63488 | int+8bit free=160315 largest=63488 | dma free=152527 largest=63488 | psram free=8028792 largest=7995392
+W (7081) M1: [heap:after-buffers] int free=159911 largest=63488 | int+8bit free=159911 largest=63488 | dma free=152123 largest=63488 | psram free=8022896 largest=7995392
+I (7351) WebRTC-TP: pre-generate DTLS cert -> 0
+I (7351) DTLS: Init SRTP OK
+I (7351) DTLS: DTLS cipher pref: auto (mbedtls default order)
+W (7351) DTLS-PROBE: SRTP offer narrowed to SHA1_80 (component offered 4 profile(s); only the 80-bit policy is implemented)
+I (7361) WebRTC-TP: esp_peer_open -> 0
+I (7361) WebRTC-TP: peer main loop started
+I (7661) WebRTC-TP: [state] NEW_CONNECTION (2)
+I (7661) WebRTC-TP: esp_peer_new_connection -> 0
+I (7681) WebRTC-TP: [state] CANDIDATE_GATHERING (3)
+I (7681) AGENT: Start agent as Controlling
+I (7691) AGENT: Send STUN binding request
+I (7711) AGENT: 0 Get candidate success user: psw:
+I (7711) WebRTC-TP: [msg] local SDP, 1113 bytes, candidates=YES
+I (7711) WebRTC-TP: POST realtime WebRTC SDP endpoint
+I (7711) WebRTC-TP: offer is 1113 bytes
+W (7711) WebRTC-TP: ----- OFFER media lines -----
+W (7721) WebRTC-TP:   m=audio 9 UDP/TLS/RTP/SAVPF 111
+
+W (7721) WebRTC-TP:   a=mid:0
+
+W (7731) WebRTC-TP:   a=rtcp-mux
+
+W (7731) WebRTC-TP:   a=rtpmap:111 opus/48000/2
+
+W (7731) WebRTC-TP:   a=ssrc:6 cname:EspSSpbA0
+
+W (7741) WebRTC-TP:   a=ssrc:6 msid:esp_stream a0
+
+W (7741) WebRTC-TP:   a=sendrecv
+
+W (7751) WebRTC-TP:   m=application 50712 UDP/DTLS/SCTP webrtc-datachannel
+
+W (7751) WebRTC-TP:   a=mid:1
+
+W (7751) WebRTC-TP: --------------------------
+I (7881) esp-x509-crt-bundle: Certificate validated
+I (8181) WebRTC-TP: SDP exchange: err=ESP_OK http=200
+I (8181) WebRTC-TP: response body is 1249 bytes
+W (8181) WebRTC-TP: ----- ANSWER media lines -----
+W (8181) WebRTC-TP:   m=audio 3478 UDP/TLS/RTP/SAVPF 111
+
+W (8191) WebRTC-TP:   a=mid:0
+
+W (8191) WebRTC-TP:   a=rtcp-mux
+
+W (8191) WebRTC-TP:   a=sendrecv
+
+W (8191) WebRTC-TP:   a=rtpmap:111 opus/48000/2
+
+W (8201) WebRTC-TP:   a=fmtp:111 minptime=20
+
+W (8201) WebRTC-TP:   a=ssrc:1000 msid:alibaba-bailian audio-1
+
+W (8211) WebRTC-TP:   m=application 3478 UDP/DTLS/SCTP webrtc-datachannel
+
+W (8221) WebRTC-TP:   a=mid:1
+
+W (8221) WebRTC-TP: --------------------------
+I (8221) PEER_DEF: Get peer role 1
+I (8231) PEER_DEF: Get peer role 1
+I (8231) PEER_DEF: Get peer role 1
+I (8231) PEER_DEF: Extract SDP: stream_count=2, audio_mid=255 (dir=3), video_mid=255 (dir=3), data_mid=255, assrc=1000, vssrc=0, vrtx_ssrc=0, vfmt=0, vrtx_fmt=0
+I (8361) AGENT: 0 Add remote type:1 8.141.115.69:3478
+I (8361) WebRTC-TP: [state] PAIRING (4)
+I (8361) WebRTC-TP: fed answer to peer -> 0
+I (8381) AGENT: 0 0 Send binding request (cand:0) local0:192.168.1.x:54843 remote0:8.141.115.69:3478 id:5851f42d40b18ccf4bb5f646
+I (8431) wifi:<ba-add>idx:1 (ifx:0, <BSSID>), tid:5, ssn:0, winSize:64
+I (8441) AGENT: Add local prflx 172.22.224.233:41960
+I (8441) AGENT: 0 1 LocalBinding resp 5851f42d40b18ccf4bb5f646 local1
+I (8441) AGENT: 0 Select pair8.141.115.69:3478
+I (8441) AGENT: 0 1 Send binding request (cand:1) local0:172.22.224.233:41960 remote0:8.141.115.69:3478 id:4703312930705b0420fd5db4
+I (8461) AGENT: 0 1 LocalBinding resp 5851f42d40b18ccf4bb5f646 local1
+I (8461) AGENT: 0 Candidate responded
+I (8461) AGENT: 0 Connection OK 8.141.115.69:3478
+I (8471) WebRTC-TP: [state] PAIRED (5)
+I (8471) PEER_DEF: Start DTLS role as 0
+I (8481) DTLS: DTLS cipher pref: auto (mbedtls default order)
+W (8481) DTLS-PROBE: SRTP offer narrowed to SHA1_80 (component offered 4 profile(s); only the 80-bit policy is implemented)
+I (8491) WebRTC-TP: [state] CONNECTING (6)
+I (8971) DTLS: SRTP connected OK
+I (9131) DTLS: Client handshake success
+I (9131) DTLS: Negotiated DTLS ciphersuite: TLS-ECDHE-ECDSA-WITH-AES-256-GCM-SHA384
+I (9131) PEER_DEF: DTLS handshake success
+I (9131) PEER_DEF: Sctp role as 1
+I (9131) WebRTC-TP: [state] CONNECTED (7)
+I (9161) SCTP: 1 state 1
+I (9161) SCTP: Send INIT chunk
+I (9291) SCTP: Send INIT chunk
+I (9311) SCTP: 1 Receive chunk 2 SCTP_INIT_ACK
+I (9311) SCTP: 1 state 2
+I (9311) SCTP: Send ECHO chunk
+I (9311) SCTP: 1 Receive chunk 2 SCTP_INIT_ACK
+I (9311) SCTP: Send ECHO chunk
+I (9311) SCTP: 1 state 3
+I (9311) SCTP: Send ECHO chunk
+I (9341) SCTP: 1 Receive chunk 11 SCTP_COOKIE_ACK
+I (9341) SCTP: 1 state 5
+I (9341) WebRTC-TP: [state] DATA_CHANNEL_CONNECTED (9)
+I (9341) SCTP: Send DCEP oai-events event:3 type:0 si:2
+I (9341) WebRTC-TP: create data channel 'oai-events' -> 0
+I (9351) SCTP: Get DCEP txt event:3 type:1 si:1 param:10
+I (9351) WebRTC-TP: [channel open] label='txt' stream_id=1
+I (9361) WebRTC-TP: [state] DATA_CHANNEL_OPENED (10)
+I (9371) SCTP: 1 Receive chunk 11 SCTP_COOKIE_ACK
+I (9371) SCTP: 1 Receive chunk 11 SCTP_COOKIE_ACK
+W (9371) M1: [cfg] session.created on stream 1
+I (9381) M1: [cfg] session.update sent on stream 1
+W (9471) M1: [cfg] session.updated verified: turn_detection=server_vad thr=0.50 silence=800 transcription=qwen3-asr-flash-realtime
+W (9501) M1: [cfg] gate passed: turn_detection=server_vad thr=0.50 silence=800 transcription=qwen3-asr-flash-realtime
+W (9501) DTLS-PROBE: [connected] gen=1 | setups=2 (datagram=1 stream=1 unknown=0 overflow=0) | identity last=datagram unknown_ctx=0 stale=0 unknown_transport=0 ctx_bound=3 ctx_overflow=0 | hs calls=2 dtls=1 ok=1 fail=0 stream_excluded=1 last_ret=0 last=622ms total=622ms over=1 role=0 | profile reads=1 skipped=0 -> TLS-ECDHE-ECDSA-WITH-AES-256-GCM-SHA384 profile=1 | DTLS TX records=27 in_dgrams=27 unparsable=3 truncated=0 short_write=0 failed=0 epoch_changes=5 first_type=22 last_type=23 epoch=1 seq=0:13 len=52 | DTLS RX records=36 unparsable=8 truncated=0 epoch_changes=3 first_type=22 last_type=23 epoch=1 seq=0:12 len=552 | socket assoc=unknown (dtls_fd=-1 rtp_fd=-1) | sendto=18 recvfrom=33 | calls conf_transport=3 config_defaults=3 setup=3 config_free=1 ssl_free=2 transport_updates=0 errno(entry=0 real=0) | poll n=0 last=0us max=0us
+W (9571) M1: [diag] short send-path observation starting (2 s of frames)
+W (9571) M1: [heap:first-frame-before] int free=109299 largest=63488 | int+8bit free=109299 largest=63488 | dma free=101511 largest=63488 | psram free=7945700 largest=7864320
+W (9601) ESP_OPUS_DEC: Frame duration is not set, out pcm buffer size is counted as the length of 60ms.
+W (9601) M1: [heap:first-frame-after] int free=109071 largest=63488 | int+8bit free=109071 largest=63488 | dma free=101283 largest=63488 | psram free=7915352 largest=7864320
+W (11571) M1: ---------- SEND PATH OBSERVATION (short diag) ----------
+W (11571) M1:   gen=2 | srtp_protect calls=100 ok=100 fail=0 unparsable=0 | udp attempts=100 packets_written=100 write_incomplete=0 write_failed=0 unmatched=8 last_rc=0 last_errno=0 | retired=36 retired_pending=0 overflow_pending=0 protected_unwritten=0 length_mismatch=0 wrote_after_protect_fail=0 | first: pt=111 seq=0 ts=0 ssrc=0x00000006 rtp_len=15 hdr_len=12 srtp_cap=1428 srtp_len=25 | last: seq=99 ts=95040 | ssrc_changes=0 pt_changes=0
+W (11601) M1:   100 packets fully written in 100 UDP attempts
+W (11611) M1: -------------------------------------------------------
+W (11611) M1: [play] zh_1 "今天我们测试语音连接" at media t=2000 ms
+W (13611) M1: [vad] speech_started (#1)
+I (13611) M1: [data] type=conversation.item.created
+I (13611) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (13611) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (13621) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (13631) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (13631) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (13641) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (13651) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (14191) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (14201) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (14221) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (15861) M1: [vad] speech_stopped (#1)
+I (15861) M1: [data] type=input_audio_buffer.committed
+I (15861) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (15861) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (15871) M1: [asr] completed #1 item=item_Ve1jWHh7sEdjfnb3ZsVjr transcript="今天我们测试语音连接。"
+I (15881) M1: [data] type=response.created
+I (15881) M1: [data] type=response.output_item.added
+I (15891) M1: [data] type=conversation.item.created
+I (15891) M1: [data] type=response.content_part.added
+I (15901) M1: [data] type=response.audio_transcript.delta
+I (15901) M1: [data] type=response.audio_transcript.delta
+I (15911) M1: [data] type=response.audio_transcript.delta
+I (15921) M1: [data] type=response.audio_transcript.delta
+W (16291) M1: [clip] zh_1 media=2000..6720 ms wait=0 ms vad=1/1 completed=1 failed=0 kw=3/3 hit=[测试,语音,连接] transcript="今天我们测试语音连接。"
+W (16291) M1: [play] zh_2 "桌上有一本蓝色的书" at media t=6720 ms
+I (18201) M1: [data] type=conversation.item.created
+I (18201) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (18211) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (18211) M1: [data] type=response.done
+W (18211) M1: [vad] speech_started (#2)
+I (18221) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (18221) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (18231) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (18241) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (18241) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (18921) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (18931) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (18931) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (19721) M1: [vad] speech_stopped (#2)
+I (19721) M1: [data] type=input_audio_buffer.committed
+I (19901) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (19911) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (19931) M1: [asr] completed #2 item=item_CjqLhhK7EJAVzWonQPvFf transcript="桌上有一本蓝色的书。"
+I (19971) M1: [data] type=response.created
+I (19971) M1: [data] type=response.output_item.added
+I (19981) M1: [data] type=conversation.item.created
+I (19981) M1: [data] type=response.content_part.added
+I (19991) M1: [data] type=response.audio_transcript.delta
+I (20111) M1: [data] type=response.audio_transcript.delta
+I (20111) M1: [data] type=response.audio_transcript.delta
+W (20771) M1: [clip] zh_2 media=6720..11200 ms wait=0 ms vad=1/1 completed=1 failed=0 kw=2/2 hit=[蓝色,书] transcript="桌上有一本蓝色的书。"
+W (20771) M1: [play] zh_3 "请回答一加一等于几" at media t=11200 ms
+I (22801) M1: [data] type=conversation.item.created
+I (22801) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (22801) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (22811) M1: [data] type=response.done
+W (22811) M1: [vad] speech_started (#3)
+I (22821) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (22821) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (22831) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (22841) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (22841) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (22851) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (23401) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (23421) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (23431) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (23431) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (24201) M1: [vad] speech_stopped (#3)
+I (24201) M1: [data] type=input_audio_buffer.committed
+I (24381) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (24411) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (24411) M1: [asr] completed #3 item=item_Qcax1JK66uA2452ngoXQX transcript="请回答一加一等于几。"
+I (24461) M1: [data] type=response.created
+I (24461) M1: [data] type=response.output_item.added
+I (24471) M1: [data] type=conversation.item.created
+I (24471) M1: [data] type=response.content_part.added
+I (24481) M1: [data] type=response.audio_transcript.delta
+I (24581) M1: [data] type=response.audio_transcript.delta
+I (24581) M1: [data] type=response.audio_transcript.delta
+W (25311) M1: [clip] zh_3 media=11200..15740 ms wait=0 ms vad=1/1 completed=1 failed=0 kw=2/2 hit=[一加一,等于] transcript="请回答一加一等于几。"
+I (25311) M1: [res] t=24s | int free=104831 min=101955 largest=63488 | int8 free=104831 min=101955 | dma free=97043 min=94167 largest=63488 | psram free=7913256 min=7904596 largest=7864320 | sender stack free=10148 B
+I (26871) M1: [data] type=conversation.item.created
+I (26871) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (26871) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (26881) M1: [data] type=response.done
+W (26881) M1: [vad] speech_started (#4)
+I (26881) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (26891) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (27201) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (27211) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (27231) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (27961) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (27981) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (27991) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (28921) M1: [vad] speech_stopped (#4)
+I (28921) M1: [data] type=input_audio_buffer.committed
+I (29091) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (29101) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (29121) M1: [asr] completed #4 item=item_NVTJlJAcYPvYmMyheRqYE transcript="今天我们测试语音连接。"
+I (29271) M1: [data] type=response.created
+I (29271) M1: [data] type=response.output_item.added
+I (29281) M1: [data] type=conversation.item.created
+I (29281) M1: [data] type=response.content_part.added
+I (29281) M1: [data] type=response.audio_transcript.delta
+I (29491) M1: [data] type=response.audio_transcript.delta
+I (29501) M1: [data] type=response.audio_transcript.delta
+I (29501) M1: [data] type=response.audio_transcript.delta
+I (29501) M1: [data] type=response.audio_transcript.delta
+I (29511) M1: [data] type=response.audio_transcript.delta
+I (29521) M1: [data] type=response.audio_transcript.delta
+I (29521) M1: [data] type=response.audio_transcript.delta
+I (29521) M1: [data] type=response.audio_transcript.delta
+I (29531) M1: [data] type=response.audio_transcript.delta
+I (29531) M1: [data] type=response.audio_transcript.delta
+I (29541) M1: [data] type=response.audio_transcript.delta
+I (31951) M1: [data] type=conversation.item.created
+I (31951) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (31951) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (31961) M1: [data] type=response.done
+W (31961) M1: [vad] speech_started (#5)
+I (31961) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (31971) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (31981) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (31981) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (31991) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (32691) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (32711) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (32721) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (33401) M1: [vad] speech_stopped (#5)
+I (33401) M1: [data] type=input_audio_buffer.committed
+I (33591) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (33591) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (33601) M1: [asr] completed #5 item=item_KwY2mPtvwwdBGa46okRcj transcript="桌上有一本蓝色的书。"
+I (33641) M1: [data] type=response.created
+I (33651) M1: [data] type=response.output_item.added
+I (33651) M1: [data] type=conversation.item.created
+I (33661) M1: [data] type=response.content_part.added
+I (33661) M1: [data] type=response.audio_transcript.delta
+I (33781) M1: [data] type=response.audio_transcript.delta
+I (33781) M1: [data] type=response.audio_transcript.delta
+I (33781) M1: [data] type=response.audio_transcript.delta
+I (33791) M1: [data] type=response.audio_transcript.delta
+I (36061) M1: [data] type=conversation.item.created
+I (36061) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (36061) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (36071) M1: [data] type=response.done
+W (36071) M1: [vad] speech_started (#6)
+I (36081) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (36081) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (36391) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (36401) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (36401) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (36431) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (37161) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (37181) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (37181) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (37191) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (37991) M1: [vad] speech_stopped (#6)
+I (37991) M1: [data] type=input_audio_buffer.committed
+I (38151) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (38151) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (38171) M1: [asr] completed #6 item=item_MEn8rLWJHbscFBSNdUbyp transcript="请回答一加一等于几。"
+I (38211) M1: [data] type=response.created
+I (38211) M1: [data] type=response.output_item.added
+I (38221) M1: [data] type=conversation.item.created
+I (38221) M1: [data] type=response.content_part.added
+I (38231) M1: [data] type=response.audio_transcript.delta
+I (38301) M1: [data] type=response.audio_transcript.delta
+I (38311) M1: [data] type=response.audio_transcript.delta
+I (40991) M1: [data] type=response.done
+W (40991) M1: [vad] speech_started (#7)
+I (40991) M1: [data] type=conversation.item.created
+I (40991) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (40991) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (41001) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (41011) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (41011) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (41021) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (41031) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (41631) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (41631) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (41651) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (43111) M1: [vad] speech_stopped (#7)
+I (43111) M1: [data] type=input_audio_buffer.committed
+I (43111) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (43111) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (43121) M1: [asr] completed #7 item=item_Jang4id7VFv5VjrXYd7ou transcript="今天我们测试语音连接。"
+I (43131) M1: [data] type=response.created
+I (43131) M1: [data] type=response.output_item.added
+I (43141) M1: [data] type=conversation.item.created
+I (43141) M1: [data] type=response.content_part.added
+I (43151) M1: [data] type=response.audio_transcript.delta
+I (43151) M1: [data] type=response.audio_transcript.delta
+I (43161) M1: [data] type=response.audio_transcript.delta
+I (43161) M1: [data] type=response.audio_transcript.delta
+I (45251) M1: [data] type=conversation.item.created
+I (45251) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (45251) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (45261) M1: [data] type=response.done
+W (45261) M1: [vad] speech_started (#8)
+I (45261) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (45271) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (45611) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (45631) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (45631) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (46371) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (46381) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (46401) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (47151) M1: [vad] speech_stopped (#8)
+I (47161) M1: [data] type=input_audio_buffer.committed
+I (47331) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (47341) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (47361) M1: [asr] completed #8 item=item_TuXwdsuPcwOZeT8osYtyP transcript="桌上有一本蓝色的书。"
+I (47411) M1: [data] type=response.created
+I (47421) M1: [data] type=response.output_item.added
+I (47421) M1: [data] type=conversation.item.created
+I (47431) M1: [data] type=response.content_part.added
+I (47431) M1: [data] type=response.audio_transcript.delta
+I (47531) M1: [data] type=response.audio_transcript.delta
+I (47531) M1: [data] type=response.audio_transcript.delta
+I (47541) M1: [data] type=response.audio_transcript.delta
+I (49811) M1: [data] type=conversation.item.created
+I (49811) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (49811) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (49821) M1: [data] type=response.done
+W (49821) M1: [vad] speech_started (#9)
+I (49821) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (49831) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (50161) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (50181) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (50181) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (50191) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (50841) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (50861) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (50861) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (50871) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (50881) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (50881) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (51741) M1: [vad] speech_stopped (#9)
+I (51741) M1: [data] type=input_audio_buffer.committed
+I (51891) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (51891) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (51901) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (51921) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (51921) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (51941) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (51951) M1: [asr] completed #9 item=item_Ifb7DAzYduJYNNDSN1auY transcript="请回答一加一等于几。"
+I (53811) M1: [data] type=response.created
+I (53811) M1: [data] type=response.output_item.added
+I (53811) M1: [data] type=conversation.item.created
+I (53811) M1: [data] type=response.content_part.added
+I (53821) M1: [data] type=response.audio_transcript.delta
+I (53821) M1: [data] type=response.audio_transcript.delta
+I (53831) M1: [data] type=response.audio_transcript.delta
+I (54021) M1: [data] type=conversation.item.created
+I (54021) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (54031) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (54031) M1: [data] type=response.done
+W (54031) M1: [vad] speech_started (#10)
+I (54041) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (54051) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (54651) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (54681) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (56631) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (56631) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (56641) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (56641) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (56871) M1: [vad] speech_stopped (#10)
+I (56871) M1: [data] type=input_audio_buffer.committed
+I (56871) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (56871) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (56881) M1: [asr] completed #10 item=item_BmKQUp56MfCkcZ6DruW4Y transcript="今天我们测试语音连接。"
+I (56891) M1: [data] type=response.created
+I (56891) M1: [data] type=response.output_item.added
+I (56901) M1: [data] type=conversation.item.created
+I (56901) M1: [data] type=response.content_part.added
+I (56911) M1: [data] type=response.audio_transcript.delta
+I (56921) M1: [data] type=response.audio_transcript.delta
+I (56921) M1: [data] type=response.audio_transcript.delta
+I (57511) M1: [res] t=56s | int free=104063 min=99907 largest=63488 | int8 free=104063 min=99907 | dma free=96275 min=92119 largest=63488 | psram free=7911112 min=7902188 largest=7864320 | sender stack free=10148 B
+I (59011) M1: [data] type=conversation.item.created
+I (59011) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (59011) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (59021) M1: [data] type=response.done
+W (59021) M1: [vad] speech_started (#11)
+I (59021) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (59031) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (59371) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (59381) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (59381) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (60151) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (60151) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (60161) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (60921) M1: [vad] speech_stopped (#11)
+I (60921) M1: [data] type=input_audio_buffer.committed
+I (61121) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (61141) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (61141) M1: [asr] completed #11 item=item_K3USbQId5N89Y2jrg1wkf transcript="桌上有一本蓝色的书。"
+I (61301) M1: [data] type=response.created
+I (61301) M1: [data] type=response.output_item.added
+I (61311) M1: [data] type=conversation.item.created
+I (61311) M1: [data] type=response.content_part.added
+I (61321) M1: [data] type=response.audio_transcript.delta
+I (61411) M1: [data] type=response.audio_transcript.delta
+I (61411) M1: [data] type=response.audio_transcript.delta
+I (61421) M1: [data] type=response.audio_transcript.delta
+I (63491) M1: [data] type=conversation.item.created
+I (63491) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (63491) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (63501) M1: [data] type=response.done
+W (63501) M1: [vad] speech_started (#12)
+I (63511) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (63511) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (63841) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (63841) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (63861) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (63871) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (64631) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (64631) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (64641) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (64641) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (65391) M1: [vad] speech_stopped (#12)
+I (65401) M1: [data] type=input_audio_buffer.committed
+I (65581) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (65621) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (67291) M1: [asr] completed #12 item=item_MTq9QA164CuQw3OZGfw8J transcript="请回答一加一等于几。"
+I (67301) M1: [data] type=response.created
+I (67301) M1: [data] type=response.output_item.added
+I (67301) M1: [data] type=conversation.item.created
+I (67311) M1: [data] type=response.content_part.added
+I (67311) M1: [data] type=response.audio_transcript.delta
+I (67321) M1: [data] type=response.audio_transcript.delta
+I (67321) M1: [data] type=response.audio_transcript.delta
+I (67521) M1: [data] type=response.audio_transcript.done
+I (67521) M1: [data] type=response.audio.done
+I (67521) M1: [data] type=response.content_part.done
+I (67531) M1: [data] type=response.output_item.done
+I (67531) M1: [data] type=response.done
+W (67531) M1: [vad] speech_started (#13)
+I (67541) M1: [data] type=conversation.item.created
+I (68511) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (68511) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (68511) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (68521) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (68531) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (68531) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (68541) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (69151) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (69161) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (69161) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (70111) M1: [vad] speech_stopped (#13)
+I (70111) M1: [data] type=input_audio_buffer.committed
+I (70291) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (70311) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (70311) M1: [asr] completed #13 item=item_QHLXS7B1RBOBg4VklLf62 transcript="今天我们测试语音连接。"
+I (70531) M1: [data] type=response.created
+I (70541) M1: [data] type=response.output_item.added
+I (70541) M1: [data] type=conversation.item.created
+I (70551) M1: [data] type=response.content_part.added
+I (70551) M1: [data] type=response.audio_transcript.delta
+I (70661) M1: [data] type=response.audio_transcript.delta
+I (70671) M1: [data] type=response.audio_transcript.delta
+I (70671) M1: [data] type=response.audio_transcript.delta
+I (72641) M1: [data] type=conversation.item.created
+I (72641) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (72651) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (72651) M1: [data] type=response.done
+W (72651) M1: [vad] speech_started (#14)
+I (72661) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (72661) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (73131) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (73141) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (73141) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (73901) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (73901) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (73911) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (74601) M1: [vad] speech_stopped (#14)
+I (74601) M1: [data] type=input_audio_buffer.committed
+I (74781) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (74781) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (74801) M1: [asr] completed #14 item=item_JJNukT1OULuxHhaiyyYs7 transcript="桌上有一本蓝色的书。"
+I (74891) M1: [data] type=response.created
+I (74901) M1: [data] type=response.output_item.added
+I (74901) M1: [data] type=conversation.item.created
+I (74901) M1: [data] type=response.content_part.added
+I (74911) M1: [data] type=response.audio_transcript.delta
+I (75011) M1: [data] type=response.audio_transcript.delta
+I (75011) M1: [data] type=response.audio_transcript.delta
+I (75021) M1: [data] type=response.audio_transcript.delta
+I (77241) M1: [data] type=conversation.item.created
+I (77241) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (77241) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (77251) M1: [data] type=response.done
+W (77251) M1: [vad] speech_started (#15)
+I (77261) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (77261) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (77591) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (77621) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (77631) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (77631) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (78351) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (78371) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (78371) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (78381) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (78381) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (78391) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (79161) M1: [vad] speech_stopped (#15)
+I (79161) M1: [data] type=input_audio_buffer.committed
+I (79331) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (79331) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (79341) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (79341) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (79351) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (79361) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (79361) M1: [asr] completed #15 item=item_K6QqvHBTrJ69gm1Y6ccVt transcript="请回答一加一等于几。"
+I (79481) M1: [data] type=response.created
+I (79481) M1: [data] type=response.output_item.added
+I (79491) M1: [data] type=conversation.item.created
+I (79501) M1: [data] type=response.content_part.added
+I (79511) M1: [data] type=response.audio_transcript.delta
+I (79591) M1: [data] type=response.audio_transcript.delta
+I (79601) M1: [data] type=response.audio_transcript.delta
+I (81671) M1: [data] type=response.audio_transcript.done
+I (81671) M1: [data] type=response.audio.done
+I (81671) M1: [data] type=response.content_part.done
+I (81671) M1: [data] type=response.output_item.done
+I (81681) M1: [data] type=response.done
+W (81681) M1: [vad] speech_started (#16)
+I (81681) M1: [data] type=conversation.item.created
+I (81691) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (81691) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (81701) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (81711) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (82171) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (82191) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (82201) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (82921) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (82921) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (82951) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (83871) M1: [vad] speech_stopped (#16)
+I (83871) M1: [data] type=input_audio_buffer.committed
+I (84041) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (84051) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (84051) M1: [asr] completed #16 item=item_GyCcwVpC9D33JiddgqKFQ transcript="今天我们测试语音连接。"
+I (84211) M1: [data] type=response.created
+I (84211) M1: [data] type=response.output_item.added
+I (84221) M1: [data] type=conversation.item.created
+I (84221) M1: [data] type=response.content_part.added
+I (84221) M1: [data] type=response.audio_transcript.delta
+I (84301) M1: [data] type=response.audio_transcript.delta
+I (84311) M1: [data] type=response.audio_transcript.delta
+I (86511) M1: [data] type=conversation.item.created
+I (86511) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (86511) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (86521) M1: [data] type=response.done
+W (86521) M1: [vad] speech_started (#17)
+I (86521) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (86531) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (86881) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (86901) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (86911) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (87641) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (87671) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (87671) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (88361) M1: [vad] speech_stopped (#17)
+I (88361) M1: [data] type=input_audio_buffer.committed
+I (88551) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (88571) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (88571) M1: [asr] completed #17 item=item_Wtaj145KOgQwXUeaMdYeS transcript="桌上有一本蓝色的书。"
+I (88671) M1: [data] type=response.created
+I (88681) M1: [data] type=response.output_item.added
+I (88691) M1: [data] type=conversation.item.created
+I (88691) M1: [data] type=response.content_part.added
+I (88691) M1: [data] type=response.audio_transcript.delta
+I (88781) M1: [data] type=response.audio_transcript.delta
+I (88791) M1: [data] type=response.audio_transcript.delta
+I (89471) M1: [res] t=88s | int free=104911 min=99907 largest=63488 | int8 free=104911 min=99907 | dma free=97123 min=92119 largest=63488 | psram free=7909052 min=7900392 largest=7864320 | sender stack free=10148 B
+I (91011) M1: [data] type=conversation.item.created
+I (91011) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (91011) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (91021) M1: [data] type=response.done
+W (91021) M1: [vad] speech_started (#18)
+I (91021) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (91031) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (91361) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (91391) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (91401) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (91401) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (92131) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (92131) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (92141) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (92161) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (92911) M1: [vad] speech_stopped (#18)
+I (92921) M1: [data] type=input_audio_buffer.committed
+I (93101) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (93101) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (93131) M1: [asr] completed #18 item=item_OfAMDl9bXoKr3ww2sBshi transcript="请回答一加一等于几。"
+I (93241) M1: [data] type=response.created
+I (93251) M1: [data] type=response.output_item.added
+I (93261) M1: [data] type=conversation.item.created
+I (93261) M1: [data] type=response.content_part.added
+I (93271) M1: [data] type=response.audio_transcript.delta
+I (93341) M1: [data] type=response.audio_transcript.delta
+I (93341) M1: [data] type=response.audio_transcript.delta
+I (95441) M1: [data] type=response.audio_transcript.done
+I (95441) M1: [data] type=response.audio.done
+I (95441) M1: [data] type=response.content_part.done
+I (95441) M1: [data] type=response.output_item.done
+I (95451) M1: [data] type=response.done
+W (95451) M1: [vad] speech_started (#19)
+I (95461) M1: [data] type=conversation.item.created
+I (95461) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (95471) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (95471) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (95481) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (95921) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (95941) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (95951) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (96591) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (96621) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (96631) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (98201) M1: [vad] speech_stopped (#19)
+I (98201) M1: [data] type=input_audio_buffer.committed
+I (98201) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (98201) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (98211) M1: [asr] completed #19 item=item_NPOQ7pwwSImjWNBaJeTfj transcript="今天我们测试语音连接。"
+I (98221) M1: [data] type=response.created
+I (98221) M1: [data] type=response.output_item.added
+I (98231) M1: [data] type=conversation.item.created
+I (98231) M1: [data] type=response.content_part.added
+I (98241) M1: [data] type=response.audio_transcript.delta
+I (98241) M1: [data] type=response.audio_transcript.delta
+I (98251) M1: [data] type=response.audio_transcript.delta
+I (100821) M1: [data] type=conversation.item.created
+I (100821) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (100821) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (100831) M1: [data] type=response.done
+W (100831) M1: [vad] speech_started (#20)
+I (100841) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (100851) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (100851) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (100861) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (102261) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (102261) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (102261) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (102271) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (102271) M1: [vad] speech_stopped (#20)
+I (102281) M1: [data] type=input_audio_buffer.committed
+I (102301) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (102301) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (102311) M1: [asr] completed #20 item=item_DdLT9UJhjp5aPtpEEPpY5 transcript="桌上有一本蓝色的书。"
+I (102461) M1: [data] type=response.created
+I (102461) M1: [data] type=response.output_item.added
+I (102471) M1: [data] type=conversation.item.created
+I (102471) M1: [data] type=response.content_part.added
+I (102471) M1: [data] type=response.audio_transcript.delta
+I (102571) M1: [data] type=response.audio_transcript.delta
+I (102571) M1: [data] type=response.audio_transcript.delta
+I (105151) M1: [data] type=conversation.item.created
+I (105151) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (105151) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (105151) M1: [data] type=response.done
+W (105161) M1: [vad] speech_started (#21)
+I (105161) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (105171) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (105171) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (105181) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (105191) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (105201) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (105801) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (105821) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (105821) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (105831) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (106681) M1: [vad] speech_stopped (#21)
+I (106681) M1: [data] type=input_audio_buffer.committed
+I (106871) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (106871) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (106891) M1: [asr] completed #21 item=item_RLbaecZKu4jmVoYtCTeqk transcript="请回答一加一等于几。"
+I (107021) M1: [data] type=response.created
+I (107021) M1: [data] type=response.output_item.added
+I (107021) M1: [data] type=conversation.item.created
+I (107031) M1: [data] type=response.content_part.added
+I (107041) M1: [data] type=response.audio_transcript.delta
+I (107111) M1: [data] type=response.audio_transcript.delta
+I (107121) M1: [data] type=response.audio_transcript.delta
+I (109261) M1: [data] type=response.audio_transcript.done
+I (109261) M1: [data] type=response.audio.done
+I (109271) M1: [data] type=response.content_part.done
+I (109271) M1: [data] type=response.output_item.done
+I (109271) M1: [data] type=response.done
+I (109281) M1: [data] type=conversation.item.created
+I (109281) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (109291) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (109291) M1: [vad] speech_started (#22)
+I (109301) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (109301) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (109601) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (109631) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (109631) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (110361) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (110361) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (110371) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (111861) M1: [vad] speech_stopped (#22)
+I (111861) M1: [data] type=input_audio_buffer.committed
+I (111861) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (111861) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (111871) M1: [asr] completed #22 item=item_TMVpJ57JZ3wbMqcvUJL9W transcript="今天我们测试语音连接。"
+I (111981) M1: [data] type=response.created
+I (111991) M1: [data] type=response.output_item.added
+I (111991) M1: [data] type=conversation.item.created
+I (111991) M1: [data] type=response.content_part.added
+I (112001) M1: [data] type=response.audio_transcript.delta
+I (112101) M1: [data] type=response.audio_transcript.delta
+I (112101) M1: [data] type=response.audio_transcript.delta
+I (112101) M1: [data] type=response.audio_transcript.delta
+I (114491) M1: [data] type=conversation.item.created
+I (114491) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (114491) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (114501) M1: [data] type=response.done
+W (114501) M1: [vad] speech_started (#23)
+I (114501) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (114511) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (114521) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (114521) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (114531) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (115081) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (115101) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (115101) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (115871) M1: [vad] speech_stopped (#23)
+I (115881) M1: [data] type=input_audio_buffer.committed
+I (116051) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (116071) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (116071) M1: [asr] completed #23 item=item_SKZtpW98siV5PpAjUoARl transcript="桌上有一本蓝色的书。"
+I (116151) M1: [data] type=response.created
+I (116161) M1: [data] type=response.output_item.added
+I (116161) M1: [data] type=conversation.item.created
+I (116161) M1: [data] type=response.content_part.added
+I (116171) M1: [data] type=response.audio_transcript.delta
+I (116251) M1: [data] type=response.audio_transcript.delta
+I (116251) M1: [data] type=response.audio_transcript.delta
+I (116951) M1: [res] t=116s | int free=104843 min=99907 largest=63488 | int8 free=104843 min=99907 | dma free=97055 min=92119 largest=63488 | psram free=7908344 min=7898628 largest=7864320 | sender stack free=10148 B
+I (118981) M1: [data] type=conversation.item.created
+I (118981) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (118981) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (118991) M1: [data] type=response.done
+W (118991) M1: [vad] speech_started (#24)
+I (119001) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (119001) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (119011) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (119021) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (119031) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (119031) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (119641) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (119641) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (119651) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (119651) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (120431) M1: [vad] speech_stopped (#24)
+I (120441) M1: [data] type=input_audio_buffer.committed
+I (120621) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (120641) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (120641) M1: [asr] completed #24 item=item_DQtWrNw3iJn5aYs3e1NS2 transcript="请回答一加一等于几。"
+I (120691) M1: [data] type=response.created
+I (120701) M1: [data] type=response.output_item.added
+I (120701) M1: [data] type=conversation.item.created
+I (120701) M1: [data] type=response.content_part.added
+I (120711) M1: [data] type=response.audio_transcript.delta
+I (120791) M1: [data] type=response.audio_transcript.delta
+I (120791) M1: [data] type=response.audio_transcript.delta
+I (122891) M1: [data] type=response.audio_transcript.done
+I (122891) M1: [data] type=response.audio.done
+I (122891) M1: [data] type=response.content_part.done
+I (122891) M1: [data] type=response.output_item.done
+I (122901) M1: [data] type=response.done
+W (122901) M1: [vad] speech_started (#25)
+I (122911) M1: [data] type=conversation.item.created
+I (122911) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (122921) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (122921) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (122931) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (123361) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (123371) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (123371) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (124111) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (124111) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (124121) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (125081) M1: [vad] speech_stopped (#25)
+I (125081) M1: [data] type=input_audio_buffer.committed
+I (125251) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (125251) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (125281) M1: [asr] completed #25 item=item_V8JKi3CCDGd3X9QU9udh5 transcript="今天我们测试语音连接。"
+I (125911) M1: [data] type=response.created
+I (125911) M1: [data] type=response.output_item.added
+I (125921) M1: [data] type=conversation.item.created
+I (125921) M1: [data] type=response.content_part.added
+I (125931) M1: [data] type=response.audio_transcript.delta
+I (126061) M1: [data] type=response.audio_transcript.delta
+I (126061) M1: [data] type=response.audio_transcript.delta
+I (126071) M1: [data] type=response.audio_transcript.delta
+I (126071) M1: [data] type=response.audio_transcript.delta
+I (128111) M1: [data] type=conversation.item.created
+I (128111) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (128111) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (128111) M1: [data] type=response.done
+W (128121) M1: [vad] speech_started (#26)
+I (128121) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (128131) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (128131) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (128141) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (128151) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (128841) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (128851) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (128871) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (129561) M1: [vad] speech_stopped (#26)
+I (129561) M1: [data] type=input_audio_buffer.committed
+I (129741) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (129761) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (129761) M1: [asr] completed #26 item=item_VlD8kCV7f31JehQTCyWHd transcript="桌上有一本蓝色的书。"
+I (129821) M1: [data] type=response.created
+I (129821) M1: [data] type=response.output_item.added
+I (129831) M1: [data] type=conversation.item.created
+I (129831) M1: [data] type=response.content_part.added
+I (129841) M1: [data] type=response.audio_transcript.delta
+I (129911) M1: [data] type=response.audio_transcript.delta
+I (129921) M1: [data] type=response.audio_transcript.delta
+I (132721) M1: [data] type=conversation.item.created
+I (132721) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (132721) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (132731) M1: [data] type=response.done
+W (132731) M1: [vad] speech_started (#27)
+I (132741) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (132751) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (132751) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (132761) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (132771) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (132771) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (133341) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (133361) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (133361) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (133371) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (134121) M1: [vad] speech_stopped (#27)
+I (134121) M1: [data] type=input_audio_buffer.committed
+I (134361) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (134371) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (134371) M1: [asr] completed #27 item=item_ZMHgQH6lscWE3cgsWdVbk transcript="请回答一加一等于几。"
+I (134381) M1: [data] type=response.created
+I (134381) M1: [data] type=response.output_item.added
+I (134391) M1: [data] type=conversation.item.created
+I (134391) M1: [data] type=response.content_part.added
+I (134401) M1: [data] type=response.audio_transcript.delta
+I (134471) M1: [data] type=response.audio_transcript.delta
+I (134481) M1: [data] type=response.audio_transcript.delta
+I (136421) M1: [data] type=response.audio_transcript.done
+I (136421) M1: [data] type=response.audio.done
+I (136421) M1: [data] type=response.content_part.done
+I (136431) M1: [data] type=response.output_item.done
+I (136431) M1: [data] type=response.done
+W (136441) M1: [vad] speech_started (#28)
+I (136441) M1: [data] type=conversation.item.created
+I (136441) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (136451) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (136481) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (136491) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (137121) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (137121) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (137141) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (137871) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (137901) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (137911) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (138831) M1: [vad] speech_stopped (#28)
+I (138841) M1: [data] type=input_audio_buffer.committed
+I (139001) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (139021) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (139021) M1: [asr] completed #28 item=item_H1reV6KqztOjNEqZZ6V5c transcript="今天我们测试语音连接。"
+I (139101) M1: [data] type=response.created
+I (139101) M1: [data] type=response.output_item.added
+I (139101) M1: [data] type=conversation.item.created
+I (139111) M1: [data] type=response.content_part.added
+I (139111) M1: [data] type=response.audio_transcript.delta
+I (139191) M1: [data] type=response.audio_transcript.delta
+I (139191) M1: [data] type=response.audio_transcript.delta
+I (142031) M1: [data] type=response.done
+W (142031) M1: [vad] speech_started (#29)
+I (142031) M1: [data] type=conversation.item.created
+I (142031) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (142041) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (142041) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (142051) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (142061) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (142061) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (142071) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (142601) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (142611) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (142631) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (143321) M1: [vad] speech_stopped (#29)
+I (143321) M1: [data] type=input_audio_buffer.committed
+I (143501) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (143501) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (143511) M1: [asr] completed #29 item=item_EzBFuiSY9XgyWBIzofMhW transcript="桌上有一本蓝色的书。"
+I (145511) M1: [data] type=response.created
+I (145511) M1: [data] type=response.output_item.added
+I (145511) M1: [data] type=conversation.item.created
+I (145511) M1: [data] type=response.content_part.added
+I (145521) M1: [data] type=response.audio_transcript.delta
+I (145521) M1: [data] type=response.audio_transcript.delta
+I (145531) M1: [data] type=response.audio_transcript.delta
+I (145721) M1: [data] type=conversation.item.created
+I (145721) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (145721) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (145731) M1: [data] type=response.done
+W (145731) M1: [vad] speech_started (#30)
+I (145741) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (145741) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (146321) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (146341) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (146351) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (146351) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (147081) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (147081) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (147101) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (147101) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (147111) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (147111) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (147871) M1: [vad] speech_stopped (#30)
+I (147881) M1: [data] type=input_audio_buffer.committed
+I (148031) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (148041) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (148061) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (148061) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (148071) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (148071) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (148081) M1: [asr] completed #30 item=item_WDAgWzpXezZZ2XhGGkaAm transcript="请回答一加一等于几。"
+I (148161) M1: [data] type=response.created
+I (148171) M1: [data] type=response.output_item.added
+I (148171) M1: [data] type=conversation.item.created
+I (148181) M1: [data] type=response.content_part.added
+I (148971) M1: [res] t=148s | int free=104807 min=99907 largest=63488 | int8 free=104807 min=99907 | dma free=97019 min=92119 largest=63488 | psram free=7907636 min=7897920 largest=7864320 | sender stack free=10148 B
+I (150051) M1: [data] type=response.audio_transcript.delta
+I (150051) M1: [data] type=response.audio_transcript.delta
+I (150051) M1: [data] type=response.audio_transcript.delta
+I (150081) M1: [data] type=response.audio_transcript.done
+I (150081) M1: [data] type=response.audio.done
+I (150081) M1: [data] type=response.content_part.done
+I (150091) M1: [data] type=response.output_item.done
+I (150091) M1: [data] type=response.done
+W (150091) M1: [vad] speech_started (#31)
+I (150101) M1: [data] type=conversation.item.created
+I (150101) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (150111) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (150231) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (150241) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (150881) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (150891) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (150901) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (151551) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (151561) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (151581) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (153421) M1: [vad] speech_stopped (#31)
+I (153421) M1: [data] type=input_audio_buffer.committed
+I (153421) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (153421) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (153431) M1: [asr] completed #31 item=item_Zop6mFblHtYOjfmwrKQiH transcript="今天我们测试语音连接。"
+I (153441) M1: [data] type=response.created
+I (153441) M1: [data] type=response.output_item.added
+I (153451) M1: [data] type=conversation.item.created
+I (153451) M1: [data] type=response.content_part.added
+I (153461) M1: [data] type=response.audio_transcript.delta
+I (153461) M1: [data] type=response.audio_transcript.delta
+I (153471) M1: [data] type=response.audio_transcript.delta
+I (155141) M1: [data] type=conversation.item.created
+I (155141) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (155141) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (155151) M1: [data] type=response.done
+W (155151) M1: [vad] speech_started (#32)
+I (155161) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (155161) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (155601) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (155611) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (155611) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (156281) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (156301) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (156301) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (157081) M1: [vad] speech_stopped (#32)
+I (157081) M1: [data] type=input_audio_buffer.committed
+I (157251) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (157261) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (157281) M1: [asr] completed #32 item=item_BskYEJipRVoxGT4a7REZE transcript="桌上有一本蓝色的书。"
+I (159291) M1: [data] type=response.created
+I (159291) M1: [data] type=response.output_item.added
+I (159291) M1: [data] type=conversation.item.created
+I (159291) M1: [data] type=response.content_part.added
+I (159301) M1: [data] type=response.audio_transcript.delta
+I (159301) M1: [data] type=response.audio_transcript.delta
+I (159311) M1: [data] type=response.audio_transcript.delta
+I (159551) M1: [data] type=conversation.item.created
+I (159551) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (159551) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (159561) M1: [data] type=response.done
+W (159561) M1: [vad] speech_started (#33)
+I (159561) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (159571) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (160081) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (160111) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (160111) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (160121) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (160761) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (160781) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (160781) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (160791) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (160791) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (160801) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (161631) M1: [vad] speech_stopped (#33)
+I (161641) M1: [data] type=input_audio_buffer.committed
+I (161801) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (161811) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (161831) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (161831) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (161841) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (163451) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (163451) M1: [asr] completed #33 item=item_WnKB1bjpgXWObn6kFgPXx transcript="请回答一加一等于几。"
+I (163481) M1: [data] type=response.created
+I (163481) M1: [data] type=response.output_item.added
+I (163481) M1: [data] type=conversation.item.created
+I (163491) M1: [data] type=response.content_part.added
+I (163491) M1: [data] type=response.audio_transcript.delta
+I (163501) M1: [data] type=response.audio_transcript.delta
+I (163501) M1: [data] type=response.audio_transcript.delta
+I (163711) M1: [data] type=conversation.item.created
+I (163721) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (163721) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (163781) M1: [data] type=response.done
+W (163791) M1: [vad] speech_started (#34)
+I (163911) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (163931) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (164561) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (164581) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (164591) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (165311) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (165321) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (165321) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (166881) M1: [vad] speech_stopped (#34)
+I (166881) M1: [data] type=input_audio_buffer.committed
+I (166881) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (166881) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (166891) M1: [asr] completed #34 item=item_JFToj3Xb8Pgxn4JnUxsDq transcript="今天我们测试语音连接。"
+I (166901) M1: [data] type=response.created
+I (166901) M1: [data] type=response.output_item.added
+I (166911) M1: [data] type=conversation.item.created
+I (166911) M1: [data] type=response.content_part.added
+I (166921) M1: [data] type=response.audio_transcript.delta
+I (166921) M1: [data] type=response.audio_transcript.delta
+I (166931) M1: [data] type=response.audio_transcript.delta
+I (169451) M1: [data] type=conversation.item.created
+I (169451) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (169451) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (169461) M1: [data] type=response.done
+W (169461) M1: [vad] speech_started (#35)
+I (169461) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (169471) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (169481) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (169481) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (169491) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (170051) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (170071) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (170071) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (170841) M1: [vad] speech_stopped (#35)
+I (170841) M1: [data] type=input_audio_buffer.committed
+I (171021) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (171021) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (171051) M1: [asr] completed #35 item=item_V9wOC6Na8hn2henVrjAPL transcript="桌上有一本蓝色的书。"
+I (171151) M1: [data] type=response.created
+I (171161) M1: [data] type=response.output_item.added
+I (171161) M1: [data] type=conversation.item.created
+I (171161) M1: [data] type=response.content_part.added
+I (171171) M1: [data] type=response.audio_transcript.delta
+I (171251) M1: [data] type=response.audio_transcript.delta
+I (171251) M1: [data] type=response.audio_transcript.delta
+I (173781) M1: [data] type=conversation.item.created
+I (173781) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (173791) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (173791) M1: [data] type=response.done
+W (173801) M1: [vad] speech_started (#36)
+I (173801) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (173811) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (173811) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (173821) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (173831) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (173841) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (174531) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (174531) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (174541) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (174541) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (175391) M1: [vad] speech_stopped (#36)
+I (175391) M1: [data] type=input_audio_buffer.committed
+I (175581) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (175601) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (175601) M1: [asr] completed #36 item=item_TRltxuZgWwgUGcsrq1H4X transcript="请回答一加一等于几。"
+I (175701) M1: [data] type=response.created
+I (175711) M1: [data] type=response.output_item.added
+I (175711) M1: [data] type=conversation.item.created
+I (175711) M1: [data] type=response.content_part.added
+I (175721) M1: [data] type=response.audio_transcript.delta
+I (175801) M1: [data] type=response.audio_transcript.delta
+I (175801) M1: [data] type=response.audio_transcript.delta
+I (176451) M1: [res] t=175s | int free=103991 min=99891 largest=63488 | int8 free=104411 min=99891 | dma free=96623 min=92103 largest=63488 | psram free=7907604 min=7897920 largest=7864320 | sender stack free=10148 B
+I (178481) M1: [data] type=conversation.item.created
+I (178481) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (178481) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (178491) M1: [data] type=response.done
+W (178491) M1: [vad] speech_started (#37)
+I (178501) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (178501) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (178511) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (178521) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (178531) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (179091) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (179091) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (179101) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (180041) M1: [vad] speech_stopped (#37)
+I (180041) M1: [data] type=input_audio_buffer.committed
+I (180221) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (180231) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (180241) M1: [asr] completed #37 item=item_HJtYiutg7Pl56wNwpygJf transcript="今天我们测试语音连接。"
+I (180331) M1: [data] type=response.created
+I (180341) M1: [data] type=response.output_item.added
+I (180341) M1: [data] type=conversation.item.created
+I (180341) M1: [data] type=response.content_part.added
+I (180351) M1: [data] type=response.audio_transcript.delta
+I (180431) M1: [data] type=response.audio_transcript.delta
+I (180441) M1: [data] type=response.audio_transcript.delta
+I (182581) M1: [data] type=conversation.item.created
+I (182581) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (182581) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (182591) M1: [data] type=response.done
+W (182591) M1: [vad] speech_started (#38)
+I (182601) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (182601) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (183051) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (183071) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (183081) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (183831) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (183831) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (183851) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (184531) M1: [vad] speech_stopped (#38)
+I (184541) M1: [data] type=input_audio_buffer.committed
+I (184711) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (184711) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (184721) M1: [asr] completed #38 item=item_J12dv4OC1TD87JidrBu9F transcript="桌上有一本蓝色的书。"
+I (184811) M1: [data] type=response.created
+I (184821) M1: [data] type=response.output_item.added
+I (184821) M1: [data] type=conversation.item.created
+I (184821) M1: [data] type=response.content_part.added
+I (184831) M1: [data] type=response.audio_transcript.delta
+I (184911) M1: [data] type=response.audio_transcript.delta
+I (184911) M1: [data] type=response.audio_transcript.delta
+I (187041) M1: [data] type=conversation.item.created
+I (187041) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (187041) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (187051) M1: [data] type=response.done
+W (187051) M1: [vad] speech_started (#39)
+I (187061) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (187061) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (187521) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (187521) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (187551) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (187551) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (188281) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (188301) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (188301) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (188311) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (188311) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (188321) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (189071) M1: [vad] speech_stopped (#39)
+I (189081) M1: [data] type=input_audio_buffer.committed
+I (189241) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (189241) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (189251) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (189251) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (189261) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (189271) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (189281) M1: [asr] completed #39 item=item_QzUzZq53Ejj8lzKi57XgV transcript="请回答一加一等于几。"
+I (189401) M1: [data] type=response.created
+I (189401) M1: [data] type=response.output_item.added
+I (189401) M1: [data] type=conversation.item.created
+I (189411) M1: [data] type=response.content_part.added
+I (189411) M1: [data] type=response.audio_transcript.delta
+I (189491) M1: [data] type=response.audio_transcript.delta
+I (189491) M1: [data] type=response.audio_transcript.delta
+I (192241) M1: [data] type=conversation.item.created
+I (192241) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (192241) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (192251) M1: [data] type=response.done
+W (192251) M1: [vad] speech_started (#40)
+I (192261) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (192271) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (192271) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (192281) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (192851) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (192851) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (192861) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (193801) M1: [vad] speech_stopped (#40)
+I (193801) M1: [data] type=input_audio_buffer.committed
+I (193971) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (193991) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (193991) M1: [asr] completed #40 item=item_Idb2n7NSqtyj3ydYDRlFg transcript="今天我们测试语音连接。"
+I (194151) M1: [data] type=response.created
+I (194151) M1: [data] type=response.output_item.added
+I (194161) M1: [data] type=conversation.item.created
+I (194161) M1: [data] type=response.content_part.added
+I (194171) M1: [data] type=response.audio_transcript.delta
+I (194231) M1: [data] type=response.audio_transcript.delta
+I (194231) M1: [data] type=response.audio_transcript.delta
+I (196841) M1: [data] type=conversation.item.created
+I (196841) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (196841) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (196851) M1: [data] type=response.done
+W (196851) M1: [vad] speech_started (#41)
+I (196861) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (196871) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (196871) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (196881) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (196891) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (197561) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (197561) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (197581) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (198271) M1: [vad] speech_stopped (#41)
+I (198281) M1: [data] type=input_audio_buffer.committed
+I (198451) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (198461) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (198461) M1: [asr] completed #41 item=item_G8AHGfUAmegBmJZ3blk85 transcript="桌上有一本蓝色的书。"
+I (198621) M1: [data] type=response.created
+I (198621) M1: [data] type=response.output_item.added
+I (198621) M1: [data] type=conversation.item.created
+I (198631) M1: [data] type=response.content_part.added
+I (198631) M1: [data] type=response.audio_transcript.delta
+I (198731) M1: [data] type=response.audio_transcript.delta
+I (198741) M1: [data] type=response.audio_transcript.delta
+I (201581) M1: [data] type=conversation.item.created
+I (201581) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (201581) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (201591) M1: [data] type=response.done
+W (201591) M1: [vad] speech_started (#42)
+I (201591) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (201601) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (201611) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (201971) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (201981) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (202001) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (202011) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (202831) M1: [vad] speech_stopped (#42)
+I (202831) M1: [data] type=input_audio_buffer.committed
+I (203021) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (203041) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (203041) M1: [asr] completed #42 item=item_YQzBegOpobhikODQXPbWK transcript="请回答一加一等于几。"
+I (203191) M1: [data] type=response.created
+I (203201) M1: [data] type=response.output_item.added
+I (203201) M1: [data] type=conversation.item.created
+I (203201) M1: [data] type=response.content_part.added
+I (203211) M1: [data] type=response.audio_transcript.delta
+I (203311) M1: [data] type=response.audio_transcript.delta
+I (203321) M1: [data] type=response.audio_transcript.delta
+I (205871) M1: [data] type=conversation.item.created
+I (205871) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (205871) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (205881) M1: [data] type=response.done
+W (205881) M1: [vad] speech_started (#43)
+I (205891) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (205901) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (205901) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (205911) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (205921) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (206511) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (206511) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (206531) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (208131) M1: [vad] speech_stopped (#43)
+I (208131) M1: [data] type=input_audio_buffer.committed
+I (208131) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (208131) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (208141) M1: [asr] completed #43 item=item_PBs83kbPxUab7tN8yred8 transcript="今天我们测试语音连接。"
+I (208151) M1: [data] type=response.created
+I (208151) M1: [data] type=response.output_item.added
+I (208161) M1: [data] type=conversation.item.created
+I (208161) M1: [data] type=response.content_part.added
+I (208171) M1: [data] type=response.audio_transcript.delta
+I (208171) M1: [data] type=response.audio_transcript.delta
+I (208181) M1: [data] type=response.audio_transcript.delta
+I (208651) M1: [res] t=207s | int free=104379 min=99891 largest=63488 | int8 free=104379 min=99891 | dma free=96591 min=92103 largest=63488 | psram free=7907600 min=7897920 largest=7864320 | sender stack free=10148 B
+I (210741) M1: [data] type=conversation.item.created
+I (210741) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (210741) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (210751) M1: [data] type=response.done
+W (210751) M1: [vad] speech_started (#44)
+I (210761) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (210761) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (210771) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (210781) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (210791) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (211261) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (211271) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (211271) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (212041) M1: [vad] speech_stopped (#44)
+I (212041) M1: [data] type=input_audio_buffer.committed
+I (212221) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (212231) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (212251) M1: [asr] completed #44 item=item_OmH7xUaL9UQiaIDa5Pw9Q transcript="桌上有一本蓝色的书。"
+I (212401) M1: [data] type=response.created
+I (212401) M1: [data] type=response.output_item.added
+I (212411) M1: [data] type=conversation.item.created
+I (212421) M1: [data] type=response.content_part.added
+I (212421) M1: [data] type=response.audio_transcript.delta
+I (212491) M1: [data] type=response.audio_transcript.delta
+I (212501) M1: [data] type=response.audio_transcript.delta
+I (214491) M1: [data] type=conversation.item.created
+I (214491) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (214491) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (214501) M1: [data] type=response.done
+W (214501) M1: [vad] speech_started (#45)
+I (214501) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (214511) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (214961) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (214961) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (214991) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (215721) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (215741) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (215751) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (215751) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (216611) M1: [vad] speech_stopped (#45)
+I (216611) M1: [data] type=input_audio_buffer.committed
+I (216781) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (216791) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (216811) M1: [asr] completed #45 item=item_EerMlprQQaOZKOUfLeo29 transcript="请回答一加一等于几。"
+I (216931) M1: [data] type=response.created
+I (216941) M1: [data] type=response.output_item.added
+I (216941) M1: [data] type=conversation.item.created
+I (216941) M1: [data] type=response.content_part.added
+I (216951) M1: [data] type=response.audio_transcript.delta
+I (217031) M1: [data] type=response.audio_transcript.delta
+I (217041) M1: [data] type=response.audio_transcript.delta
+I (218891) M1: [data] type=response.audio_transcript.done
+I (218891) M1: [data] type=response.audio.done
+I (218891) M1: [data] type=response.content_part.done
+I (218891) M1: [data] type=response.output_item.done
+I (218901) M1: [data] type=response.done
+I (218901) M1: [data] type=conversation.item.created
+I (218911) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (218911) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (218921) M1: [vad] speech_started (#46)
+I (218921) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (218931) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (219511) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (219521) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (219541) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (220271) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (220281) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (220291) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (221791) M1: [vad] speech_stopped (#46)
+I (221791) M1: [data] type=input_audio_buffer.committed
+I (221791) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (221791) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (221801) M1: [asr] completed #46 item=item_Se6PJsdwWHBPtewFojjgd transcript="今天我们测试语音连接。"
+I (221811) M1: [data] type=response.created
+I (221811) M1: [data] type=response.output_item.added
+I (221821) M1: [data] type=conversation.item.created
+I (221821) M1: [data] type=response.content_part.added
+I (221831) M1: [data] type=response.audio_transcript.delta
+I (221831) M1: [data] type=response.audio_transcript.delta
+I (221841) M1: [data] type=response.audio_transcript.delta
+I (223901) M1: [data] type=conversation.item.created
+I (223901) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (223901) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (223911) M1: [data] type=response.done
+W (223911) M1: [vad] speech_started (#47)
+I (223921) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (223931) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (225311) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (225311) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (225311) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (225321) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (225321) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (225331) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (225801) M1: [vad] speech_stopped (#47)
+I (225801) M1: [data] type=input_audio_buffer.committed
+I (225981) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (225991) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (226011) M1: [asr] completed #47 item=item_JJnMXaNob81CY6jWIP13r transcript="桌上有一本蓝色的书。"
+I (226161) M1: [data] type=response.created
+I (226161) M1: [data] type=response.output_item.added
+I (226171) M1: [data] type=conversation.item.created
+I (226171) M1: [data] type=response.content_part.added
+I (226181) M1: [data] type=response.audio_transcript.delta
+I (226241) M1: [data] type=response.audio_transcript.delta
+I (226241) M1: [data] type=response.audio_transcript.delta
+I (230451) M1: [data] type=conversation.item.created
+I (230451) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (230451) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (230461) M1: [data] type=response.done
+W (230461) M1: [vad] speech_started (#48)
+I (230461) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (230471) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (230481) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (230481) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (230491) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (230501) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (230501) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (230511) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (230521) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (230521) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (230531) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (230541) M1: [vad] speech_stopped (#48)
+I (230541) M1: [data] type=input_audio_buffer.committed
+I (230551) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (230561) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (230561) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (230571) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (230581) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (230581) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (230591) M1: [asr] completed #48 item=item_U74MNFivVtCv5HClntXQD transcript="请回答一加一等于几。"
+I (230631) M1: [data] type=response.created
+I (230641) M1: [data] type=response.output_item.added
+I (230641) M1: [data] type=conversation.item.created
+I (230651) M1: [data] type=response.content_part.added
+I (230651) M1: [data] type=response.audio_transcript.delta
+I (230731) M1: [data] type=response.audio_transcript.delta
+I (230731) M1: [data] type=response.audio_transcript.delta
+I (232801) M1: [data] type=response.audio_transcript.done
+I (232801) M1: [data] type=response.audio.done
+I (232801) M1: [data] type=response.content_part.done
+I (232811) M1: [data] type=response.output_item.done
+I (232811) M1: [data] type=response.done
+I (232821) M1: [data] type=conversation.item.created
+I (232821) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (232831) M1: [vad] speech_started (#49)
+I (232831) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (232841) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (232841) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (233291) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (233301) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (233301) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (234031) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (234061) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (234071) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (234991) M1: [vad] speech_stopped (#49)
+I (234991) M1: [data] type=input_audio_buffer.committed
+I (235161) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (235181) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (235181) M1: [asr] completed #49 item=item_Xb9JxQPzgPMAW2txvIiHD transcript="今天我们测试语音连接。"
+I (235471) M1: [data] type=response.created
+I (235471) M1: [data] type=response.output_item.added
+I (235481) M1: [data] type=conversation.item.created
+I (235481) M1: [data] type=response.content_part.added
+I (235491) M1: [data] type=response.audio_transcript.delta
+I (235631) M1: [data] type=response.audio_transcript.delta
+I (236131) M1: [res] t=235s | int free=102435 min=98183 largest=63488 | int8 free=102435 min=98183 | dma free=94647 min=90395 largest=63488 | psram free=7906924 min=7897208 largest=7864320 | sender stack free=10148 B
+I (237621) M1: [data] type=response.audio_transcript.delta
+I (237621) M1: [data] type=response.audio_transcript.delta
+I (237621) M1: [data] type=response.audio_transcript.delta
+I (237631) M1: [data] type=response.audio_transcript.delta
+I (237661) M1: [data] type=conversation.item.created
+I (237661) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (237661) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (237671) M1: [data] type=response.done
+W (237681) M1: [vad] speech_started (#50)
+I (237681) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (237691) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (238011) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (238011) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (238031) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (238761) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (238771) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (238781) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (239481) M1: [vad] speech_stopped (#50)
+I (239481) M1: [data] type=input_audio_buffer.committed
+I (239661) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (239681) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (239681) M1: [asr] completed #50 item=item_BgGgLhzSa8O3lev4yuhQD transcript="桌上有一本蓝色的书。"
+I (239871) M1: [data] type=response.created
+I (241671) M1: [data] type=response.output_item.added
+I (241671) M1: [data] type=conversation.item.created
+I (241671) M1: [data] type=response.content_part.added
+I (241671) M1: [data] type=response.audio_transcript.delta
+I (241681) M1: [data] type=response.audio_transcript.delta
+I (241691) M1: [data] type=response.audio_transcript.delta
+I (241691) M1: [data] type=response.audio_transcript.delta
+I (241991) M1: [data] type=conversation.item.created
+I (241991) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (241991) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (242001) M1: [data] type=response.done
+W (242001) M1: [vad] speech_started (#51)
+I (242001) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (242011) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (242481) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (242491) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (242511) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (242511) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (243271) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (243271) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (243281) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (243281) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (244031) M1: [vad] speech_stopped (#51)
+I (244041) M1: [data] type=input_audio_buffer.committed
+I (244221) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (244241) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (244241) M1: [asr] completed #51 item=item_L7YLkKmgryy4bsg2TJLT6 transcript="请回答一加一等于几。"
+I (244431) M1: [data] type=response.created
+I (244431) M1: [data] type=response.output_item.added
+I (244441) M1: [data] type=conversation.item.created
+I (244441) M1: [data] type=response.content_part.added
+I (244451) M1: [data] type=response.audio_transcript.delta
+I (244521) M1: [data] type=response.audio_transcript.delta
+I (244521) M1: [data] type=response.audio_transcript.delta
+I (247611) M1: [data] type=response.done
+W (247611) M1: [vad] speech_started (#52)
+I (247611) M1: [data] type=conversation.item.created
+I (247611) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (247621) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (247631) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (247631) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (247641) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (247801) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (248961) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (248961) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (248961) M1: [vad] speech_stopped (#52)
+I (248961) M1: [data] type=input_audio_buffer.committed
+I (248971) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (248981) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (248981) M1: [asr] completed #52 item=item_Yi8j1MTCXYRlyizGEWFTw transcript="今天我们测试语音连接。"
+I (249221) M1: [data] type=response.created
+I (249221) M1: [data] type=response.output_item.added
+I (249231) M1: [data] type=conversation.item.created
+I (249231) M1: [data] type=response.content_part.added
+I (249241) M1: [data] type=response.audio_transcript.delta
+I (251141) M1: [data] type=response.audio_transcript.delta
+I (251141) M1: [data] type=response.audio_transcript.delta
+I (251141) M1: [data] type=response.audio_transcript.delta
+I (251151) M1: [data] type=response.audio_transcript.delta
+I (251181) M1: [data] type=conversation.item.created
+I (251181) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (251181) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (251191) M1: [data] type=response.done
+W (251191) M1: [vad] speech_started (#53)
+I (251201) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (251201) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (251771) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (251771) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (251781) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (252521) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (252531) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (252541) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (253241) M1: [vad] speech_stopped (#53)
+I (253241) M1: [data] type=input_audio_buffer.committed
+I (253421) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (253441) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (253441) M1: [asr] completed #53 item=item_LQRi3xCglAqDYZwl4IPG6 transcript="桌上有一本蓝色的书。"
+I (253631) M1: [data] type=response.created
+I (253631) M1: [data] type=response.output_item.added
+I (253641) M1: [data] type=conversation.item.created
+I (253641) M1: [data] type=response.content_part.added
+I (253651) M1: [data] type=response.audio_transcript.delta
+I (253731) M1: [data] type=response.audio_transcript.delta
+I (253741) M1: [data] type=response.audio_transcript.delta
+I (253741) M1: [data] type=response.audio_transcript.delta
+I (256401) M1: [data] type=conversation.item.created
+I (256401) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (256401) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (256411) M1: [data] type=response.done
+W (256411) M1: [vad] speech_started (#54)
+I (256421) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (256421) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (256431) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (256441) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (256441) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (256451) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (257001) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (257021) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (257021) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (257031) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (257801) M1: [vad] speech_stopped (#54)
+I (257801) M1: [data] type=input_audio_buffer.committed
+I (257981) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (257991) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (258001) M1: [asr] completed #54 item=item_KtwN2cyPeTqjAl5NG2G7N transcript="请回答一加一等于几。"
+I (258201) M1: [data] type=response.created
+I (258211) M1: [data] type=response.output_item.added
+I (258211) M1: [data] type=conversation.item.created
+I (258211) M1: [data] type=response.content_part.added
+I (258221) M1: [data] type=response.audio_transcript.delta
+I (258301) M1: [data] type=response.audio_transcript.delta
+I (258301) M1: [data] type=response.audio_transcript.delta
+I (260441) M1: [data] type=response.audio_transcript.done
+I (260441) M1: [data] type=response.audio.done
+I (260441) M1: [data] type=response.content_part.done
+I (260451) M1: [data] type=response.output_item.done
+I (260451) M1: [data] type=response.done
+I (260451) M1: [data] type=conversation.item.created
+I (260461) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (260471) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (260471) M1: [vad] speech_started (#55)
+I (260481) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (260481) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (260801) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (260811) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (260831) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (261481) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (261501) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (261511) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (262511) M1: [vad] speech_stopped (#55)
+I (262511) M1: [data] type=input_audio_buffer.committed
+I (262691) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (262701) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (262701) M1: [asr] completed #55 item=item_ZhJhv5S9VM6auDEzwV6B3 transcript="今天我们测试语音连接。"
+I (262921) M1: [data] type=response.created
+I (262921) M1: [data] type=response.output_item.added
+I (262921) M1: [data] type=conversation.item.created
+I (262931) M1: [data] type=response.content_part.added
+I (262931) M1: [data] type=response.audio_transcript.delta
+I (263011) M1: [data] type=response.audio_transcript.delta
+I (263021) M1: [data] type=response.audio_transcript.delta
+I (265631) M1: [data] type=conversation.item.created
+I (265631) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (265631) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (265641) M1: [data] type=response.done
+W (265641) M1: [vad] speech_started (#56)
+I (265641) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (265651) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (265661) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (265661) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (265671) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (266221) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (266221) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (266231) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (267001) M1: [vad] speech_stopped (#56)
+I (267001) M1: [data] type=input_audio_buffer.committed
+I (267181) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (267201) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (267201) M1: [asr] completed #56 item=item_YuBdkrP61VAUU9RskqmrC transcript="桌上有一本蓝色的书。"
+I (267401) M1: [data] type=response.created
+I (268091) M1: [res] t=267s | int free=103495 min=98183 largest=63488 | int8 free=103495 min=98183 | dma free=95707 min=90395 largest=63488 | psram free=7902356 min=7894372 largest=7864320 | sender stack free=10148 B
+I (269641) M1: [data] type=response.output_item.added
+I (269641) M1: [data] type=conversation.item.created
+I (269641) M1: [data] type=response.content_part.added
+I (269651) M1: [data] type=response.audio_transcript.delta
+I (269651) M1: [data] type=response.audio_transcript.delta
+I (269661) M1: [data] type=response.audio_transcript.delta
+I (269681) M1: [data] type=conversation.item.created
+I (269681) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (269681) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (269691) M1: [data] type=response.done
+W (269691) M1: [vad] speech_started (#57)
+I (269701) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (269701) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (270031) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (270051) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (270051) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (270061) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (270691) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (270711) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (270711) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (270721) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (270741) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (270751) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (271551) M1: [vad] speech_stopped (#57)
+I (271561) M1: [data] type=input_audio_buffer.committed
+I (271721) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (271741) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (271741) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (271751) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (271751) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (271761) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (271771) M1: [asr] completed #57 item=item_Tch9aTO8dbsNjcqyXvT1J transcript="请回答一加一等于几。"
+I (271961) M1: [data] type=response.created
+I (271961) M1: [data] type=response.output_item.added
+I (271961) M1: [data] type=conversation.item.created
+I (271971) M1: [data] type=response.content_part.added
+I (271971) M1: [data] type=response.audio_transcript.delta
+I (272041) M1: [data] type=response.audio_transcript.delta
+I (272051) M1: [data] type=response.audio_transcript.delta
+I (274001) M1: [data] type=conversation.item.created
+I (274001) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (274001) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (274011) M1: [data] type=response.done
+W (274011) M1: [vad] speech_started (#58)
+I (274021) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (274021) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (274471) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (274481) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (274501) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (275241) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (275241) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (276791) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (276801) M1: [vad] speech_stopped (#58)
+I (276801) M1: [data] type=input_audio_buffer.committed
+I (276801) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (276801) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (276811) M1: [asr] completed #58 item=item_SYLZPMp5KUidlLEnwTPyj transcript="今天我们测试语音连接。"
+I (276821) M1: [data] type=response.created
+I (276821) M1: [data] type=response.output_item.added
+I (276831) M1: [data] type=conversation.item.created
+I (276831) M1: [data] type=response.content_part.added
+I (276841) M1: [data] type=response.audio_transcript.delta
+I (276881) M1: [data] type=response.audio_transcript.delta
+I (276881) M1: [data] type=response.audio_transcript.delta
+I (278771) M1: [data] type=conversation.item.created
+I (278771) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (278771) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (278781) M1: [data] type=response.done
+W (278781) M1: [vad] speech_started (#59)
+I (278781) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (278791) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (279211) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (279241) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (279251) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (279961) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (279971) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (279981) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (280771) M1: [vad] speech_stopped (#59)
+I (280771) M1: [data] type=input_audio_buffer.committed
+I (280961) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (280971) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (280971) M1: [asr] completed #59 item=item_Yp8zyaXCoNwwb7O44CwPv transcript="桌上有一本蓝色的书。"
+I (281081) M1: [data] type=response.created
+I (281081) M1: [data] type=response.output_item.added
+I (281111) M1: [data] type=conversation.item.created
+I (281121) M1: [data] type=response.content_part.added
+I (281121) M1: [data] type=response.audio_transcript.delta
+I (281181) M1: [data] type=response.audio_transcript.delta
+I (281181) M1: [data] type=response.audio_transcript.delta
+I (283841) M1: [data] type=conversation.item.created
+I (283841) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (283841) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (283851) M1: [data] type=response.done
+W (283851) M1: [vad] speech_started (#60)
+I (283861) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (283861) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (283871) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (283881) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (283891) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (283891) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (284451) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (284471) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (284471) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (284481) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (285321) M1: [vad] speech_stopped (#60)
+I (285321) M1: [data] type=input_audio_buffer.committed
+I (285501) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (285521) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (285521) M1: [asr] completed #60 item=item_WhUY6Qq2rSIEpAmyq8gm8 transcript="请回答一加一等于几。"
+I (285671) M1: [data] type=response.created
+I (285681) M1: [data] type=response.output_item.added
+I (285681) M1: [data] type=conversation.item.created
+I (285681) M1: [data] type=response.content_part.added
+I (285691) M1: [data] type=response.audio_transcript.delta
+I (285801) M1: [data] type=response.audio_transcript.delta
+I (285801) M1: [data] type=response.audio_transcript.delta
+I (287631) M1: [data] type=response.audio_transcript.done
+I (287631) M1: [data] type=response.audio.done
+I (287631) M1: [data] type=response.content_part.done
+I (287631) M1: [data] type=response.output_item.done
+I (287641) M1: [data] type=response.done
+I (287641) M1: [data] type=conversation.item.created
+I (287641) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (287651) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (287661) M1: [vad] speech_started (#61)
+I (287661) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (287671) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (288251) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (288251) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (288281) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (289001) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (289001) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (289011) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (289951) M1: [vad] speech_stopped (#61)
+I (289961) M1: [data] type=input_audio_buffer.committed
+I (290121) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (290131) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (290151) M1: [asr] completed #61 item=item_P7c9aMsBq57omo2aNCkYn transcript="今天我们测试语音连接。"
+I (290301) M1: [data] type=response.created
+I (290311) M1: [data] type=response.output_item.added
+I (292311) M1: [data] type=conversation.item.created
+I (292311) M1: [data] type=response.content_part.added
+I (292311) M1: [data] type=response.audio_transcript.delta
+I (292311) M1: [data] type=response.audio_transcript.delta
+I (292321) M1: [data] type=response.audio_transcript.delta
+I (293761) M1: [data] type=conversation.item.created
+I (293761) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (293761) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (293771) M1: [data] type=response.done
+W (293771) M1: [vad] speech_started (#62)
+I (293771) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (293781) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (293791) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (293801) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (293801) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (293811) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (293821) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (293821) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (294431) M1: [vad] speech_stopped (#62)
+I (294431) M1: [data] type=input_audio_buffer.committed
+I (294611) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (294621) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (294641) M1: [asr] completed #62 item=item_HzOTZfGrNgtbW762n7S2Y transcript="桌上有一本蓝色的书。"
+I (294801) M1: [data] type=response.created
+I (294801) M1: [data] type=response.output_item.added
+I (294821) M1: [data] type=conversation.item.created
+I (294821) M1: [data] type=response.content_part.added
+I (294831) M1: [data] type=response.audio_transcript.delta
+I (294891) M1: [data] type=response.audio_transcript.delta
+I (294891) M1: [data] type=response.audio_transcript.delta
+I (295571) M1: [res] t=294s | int free=104251 min=98183 largest=63488 | int8 free=104251 min=98183 | dma free=96463 min=90395 largest=63488 | psram free=7900732 min=7892072 largest=7864320 | sender stack free=10148 B
+I (297601) M1: [data] type=conversation.item.created
+I (297601) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (297601) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (297611) M1: [data] type=response.done
+W (297611) M1: [vad] speech_started (#63)
+I (297621) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (297631) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (297631) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (297641) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (297651) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (297651) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (298201) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (298201) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (298211) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (298211) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (298221) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (298231) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (299001) M1: [vad] speech_stopped (#63)
+I (299001) M1: [data] type=input_audio_buffer.committed
+I (299161) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (299161) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (299191) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (299191) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (299201) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (299201) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (299211) M1: [asr] completed #63 item=item_BAWy1F7rkgNS4jpx52RMc transcript="请回答一加一等于几。"
+I (299371) M1: [data] type=response.created
+I (299381) M1: [data] type=response.output_item.added
+I (299381) M1: [data] type=conversation.item.created
+I (299391) M1: [data] type=response.content_part.added
+I (299391) M1: [data] type=response.audio_transcript.delta
+I (299451) M1: [data] type=response.audio_transcript.delta
+I (299451) M1: [data] type=response.audio_transcript.delta
+I (301651) M1: [data] type=conversation.item.created
+I (301651) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (301651) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (301661) M1: [data] type=response.done
+W (301661) M1: [vad] speech_started (#64)
+I (301661) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (301671) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (301991) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (302001) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (302021) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (302751) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (302771) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (302771) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (303721) M1: [vad] speech_stopped (#64)
+I (303721) M1: [data] type=input_audio_buffer.committed
+I (303891) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (303921) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (303921) M1: [asr] completed #64 item=item_EyQjvkAvayXp2eCHxT3wE transcript="今天我们测试语音连接。"
+I (304081) M1: [data] type=response.created
+I (304081) M1: [data] type=response.output_item.added
+I (304091) M1: [data] type=conversation.item.created
+I (304091) M1: [data] type=response.content_part.added
+I (304101) M1: [data] type=response.audio_transcript.delta
+I (304161) M1: [data] type=response.audio_transcript.delta
+I (304171) M1: [data] type=response.audio_transcript.delta
+I (306371) M1: [data] type=conversation.item.created
+I (306371) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (306371) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (306381) M1: [data] type=response.done
+W (306381) M1: [vad] speech_started (#65)
+I (306381) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (306391) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (306731) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (306751) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (306751) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (307491) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (307491) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (307511) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (308201) M1: [vad] speech_stopped (#65)
+I (308201) M1: [data] type=input_audio_buffer.committed
+I (308381) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (308401) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (308401) M1: [asr] completed #65 item=item_CXnaVv9tFvnv6u9voZC8w transcript="桌上有一本蓝色的书。"
+I (308541) M1: [data] type=response.created
+I (308541) M1: [data] type=response.output_item.added
+I (308541) M1: [data] type=conversation.item.created
+I (308551) M1: [data] type=response.content_part.added
+I (308551) M1: [data] type=response.audio_transcript.delta
+I (308621) M1: [data] type=response.audio_transcript.delta
+I (308631) M1: [data] type=response.audio_transcript.delta
+I (311221) M1: [data] type=conversation.item.created
+I (311231) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (311231) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (311231) M1: [data] type=response.done
+W (311241) M1: [vad] speech_started (#66)
+I (311241) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (311251) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (311251) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (311971) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (311981) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (312001) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (312001) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (312751) M1: [vad] speech_stopped (#66)
+I (312751) M1: [data] type=input_audio_buffer.committed
+I (312941) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (312961) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (312961) M1: [asr] completed #66 item=item_RCJdM21fxkkCjK1PDBGva transcript="请回答一加一等于几。"
+I (313121) M1: [data] type=response.created
+I (313121) M1: [data] type=response.output_item.added
+I (313131) M1: [data] type=conversation.item.created
+I (313131) M1: [data] type=response.content_part.added
+I (313141) M1: [data] type=response.audio_transcript.delta
+I (313211) M1: [data] type=response.audio_transcript.delta
+I (313211) M1: [data] type=response.audio_transcript.delta
+I (315771) M1: [data] type=conversation.item.created
+I (315771) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (315771) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (315781) M1: [data] type=response.done
+W (315781) M1: [vad] speech_started (#67)
+I (315781) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (315791) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (315801) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (315801) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (315811) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (316421) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (316441) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (316451) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (317981) M1: [vad] speech_stopped (#67)
+I (317981) M1: [data] type=input_audio_buffer.committed
+I (317981) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (317981) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (317991) M1: [asr] completed #67 item=item_NGDMqW5wS11wZtysHJkIC transcript="今天我们测试语音连接。"
+I (318001) M1: [data] type=response.created
+I (318001) M1: [data] type=response.output_item.added
+I (318011) M1: [data] type=conversation.item.created
+I (318011) M1: [data] type=response.content_part.added
+I (318021) M1: [data] type=response.audio_transcript.delta
+I (318021) M1: [data] type=response.audio_transcript.delta
+I (318031) M1: [data] type=response.audio_transcript.delta
+I (318031) M1: [data] type=response.audio_transcript.delta
+I (320001) M1: [data] type=conversation.item.created
+I (320001) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (320001) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (320011) M1: [data] type=response.done
+W (320021) M1: [vad] speech_started (#68)
+I (320021) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (320031) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (320481) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (320491) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (320501) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (321161) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (321171) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (321191) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (321961) M1: [vad] speech_stopped (#68)
+I (321961) M1: [data] type=input_audio_buffer.committed
+I (322141) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (322151) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (322161) M1: [asr] completed #68 item=item_EHISQw1S6XjzLUpBaZseD transcript="桌上有一本蓝色的书。"
+I (322341) M1: [data] type=response.created
+I (322351) M1: [data] type=response.output_item.added
+I (322361) M1: [data] type=conversation.item.created
+I (322361) M1: [data] type=response.content_part.added
+I (322371) M1: [data] type=response.audio_transcript.delta
+I (322431) M1: [data] type=response.audio_transcript.delta
+I (322441) M1: [data] type=response.audio_transcript.delta
+I (324971) M1: [data] type=conversation.item.created
+I (324971) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (324971) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (324981) M1: [data] type=response.done
+W (324981) M1: [vad] speech_started (#69)
+I (324981) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (324991) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (325001) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (325011) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (325011) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (325021) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (325631) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (325641) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (325641) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (325651) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (326511) M1: [vad] speech_stopped (#69)
+I (326511) M1: [data] type=input_audio_buffer.committed
+I (326701) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (326721) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (326721) M1: [asr] completed #69 item=item_UWOQsZA8owDnnUFcXdCYn transcript="请回答一加一等于几。"
+I (326891) M1: [data] type=response.created
+I (326891) M1: [data] type=response.output_item.added
+I (326901) M1: [data] type=conversation.item.created
+I (326901) M1: [data] type=response.content_part.added
+I (326911) M1: [data] type=response.audio_transcript.delta
+I (326981) M1: [data] type=response.audio_transcript.delta
+I (326991) M1: [data] type=response.audio_transcript.delta
+I (327591) M1: [res] t=326s | int free=104331 min=98183 largest=63488 | int8 free=104331 min=98183 | dma free=96543 min=90395 largest=63488 | psram free=7902460 min=7892072 largest=7864320 | sender stack free=10148 B
+W (327591) M1: [stack] sender high-water mark: 10148 bytes free of 32768 allocated
+W (327601) M1: [heap:sender-exit] int free=104331 largest=63488 | int+8bit free=104331 largest=63488 | dma free=96543 largest=63488 | psram free=7902460 largest=7864320
+W (327621) M1: ---------- SETTLED SEND WINDOW (after join) ----------
+W (327621) M1:   gen=2 | srtp_protect calls=15901 ok=15901 fail=0 unparsable=0 | udp attempts=15901 packets_written=15901 write_incomplete=0 write_failed=0 unmatched=2583 last_rc=0 last_errno=0 | retired=15901 retired_pending=0 overflow_pending=0 protected_unwritten=0 length_mismatch=0 wrote_after_protect_fail=0 | first: pt=111 seq=0 ts=0 ssrc=0x00000006 rtp_len=15 hdr_len=12 srtp_cap=1428 srtp_len=25 | last: seq=15900 ts=15264000 | ssrc_changes=0 pt_changes=0
+W (327661) M1: ------------------------------------------------------
+W (327671) M1: ==================== M1 SUMMARY ====================
+W (327681) M1:   frame duration     : 20 ms
+W (327681) M1:   sender stack high-water: 10148 bytes free of 32768 allocated
+W (327691) M1:   config echo        : turn_detection=server_vad thr=0.50 silence=800 transcription=qwen3-asr-flash-realtime
+W (327701) M1:   clips played       : 66
+W (327701) M1:   opus packets       : 15901
+W (327701) M1:   total payload      : 1706275 B
+W (327711) M1:   max payload        : 325 B (budget 1352 B)
+W (327711) M1:   media clock range  : 0 .. 318000 ms
+W (327721) M1:   media/wall elapsed : 318020 / 260641 ms  (media derived from 15901 frames)
+W (327731) M1:   pacing late        : 2
+W (327731) M1:   oversize dropped   : 0
+W (327731) M1:   oom stops          : 0
+W (327741) M1:   send/encode/resample failures: 0 / 0 / 0
+W (327741) M1:   sustained loop     : COMPLETE, wall 318100 ms (budget 300000 ms)
+W (327751) M1:   ---- four-layer evidence ----
+W (327751) M1:   [cfg] created=1 updated=1 verified=1
+W (327761) M1:   [vad] started=69 stopped=69
+W (327761) M1:   [asr] completed=69 failed=0 server_errors=0
+W (327771) M1:   [clip] zh_1 kw=3/3 completed=1 failed=0 wait=0 ms transcript="今天我们测试语音连接。"
+W (327781) M1:   [clip] zh_2 kw=2/2 completed=1 failed=0 wait=0 ms transcript="桌上有一本蓝色的书。"
+W (327791) M1:   [clip] zh_3 kw=2/2 completed=1 failed=0 wait=0 ms transcript="请回答一加一等于几。"
+W (327801) M1: ====================================================
+W (327801) M1: [lat] uniform 1-in-4 sampling; resample n=3976 p50=358 p95=455 p99=787 us | encode n=3976 p50=3296 p95=7637 p99=9315 us
+W (327831) M1: [res] trend int free 104831 -> 104331, int min 101955 -> 98183, psram free 7913256 -> 7902460
+W (327841) M1: -------------- UPLINK DIAGNOSTICS --------------
+W (327841) M1:   resampler 48k RMS  : peak=0.2010 avg=0.0536 over 15901 frames
+W (327851) M1:   local Opus decode  : peak=0.2019 avg=0.0535 over 15901 ok, 0 failed
+W (327861) M1:   packet size        : min=3 max=325 B
+W (327861) M1:   interpretation     : resampler RMS ~0 means silence was produced; decode failures mean the payload is not valid Opus
+W (327881) M1: ------------------------------------------------
+W (327881) M1: ---------- SEND PATH OBSERVATION (full run) ----------
+W (327891) M1:   gen=2 | srtp_protect calls=15901 ok=15901 fail=0 unparsable=0 | udp attempts=15901 packets_written=15901 write_incomplete=0 write_failed=0 unmatched=2585 last_rc=0 last_errno=0 | retired=15901 retired_pending=0 overflow_pending=0 protected_unwritten=0 length_mismatch=0 wrote_after_protect_fail=0 | first: pt=111 seq=0 ts=0 ssrc=0x00000006 rtp_len=15 hdr_len=12 srtp_cap=1428 srtp_len=25 | last: seq=15900 ts=15264000 | ssrc_changes=0 pt_changes=0
+W (327931) M1:   15901 packets fully written in 15901 UDP attempts
+W (327931) M1: -------------------------------------------
+W (327941) M1: ==================== FINAL VERDICT ====================
+W (327951) M1:   config verified        : yes
+W (327951) M1:   3 clips with keywords  : 3/3
+W (327951) M1:   3 clips with valid VAD : 3/3
+W (327961) M1:   any clip failed        : no
+W (327961) M1:   zero codec/oversize    : yes
+W (327971) M1:   send path observed     : yes (protect=15901 udp=15901 failed=0)
+W (327971) M1:   sustained loop         : COMPLETE
+W (327981) M1:   acceptance incomplete  : no
+W (327981) M1:   VERDICT: PASS
+W (327981) M1: =======================================================
+I (328201) WebRTC-TP: peer main loop exited
+I (328201) WebRTC-TP: both tasks confirmed exit; releasing transport resources
+I (328201) AGENT: agent disconnected done
+I (328201) SCTP: 1 state 6
+I (328201) WebRTC-TP: [state] DATA_CHANNEL_CLOSED (11)
+W (328211) M1: [state] link down (11); stopping media
+I (328211) WebRTC-TP: [state] DATA_CHANNEL_CLOSED (11)
+W (328221) M1: [state] link down (11); stopping media
+I (328221) WebRTC-TP: [state] DATA_CHANNEL_DISCONNECTED (12)
+W (328231) M1: [state] link down (12); stopping media
+W (328231) M1: M1 probe finished; idling

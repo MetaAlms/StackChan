@@ -1,0 +1,22 @@
+CONFIG_STACKCHAN_ALIYUN_ENABLE=y
+CONFIG_STACKCHAN_ALIYUN_API_KEY="sk-ws-H.PRXLRDI.ag5c.MEQCIF5_gVFTWUayr0OVhreOmuzfcqov5dtv6i4fYVN6N-6gAiB91ZFSyIh1Xw7Mtc_qRjmmp9yy2XNblHDdCL67IBMgWw"
+CONFIG_STACKCHAN_ALIYUN_WORKSPACE_ID="ws-ik1clk14dycbzaqx"
+
+# 用公共域名 + X-DashScope-WorkSpace 头（Mac 上验证过的路径）
+CONFIG_STACKCHAN_ALIYUN_USE_WORKSPACE_DOMAIN=n
+
+# 设备侧 AEC 保持关闭。
+#
+# 背景：StackChan 原本两端都没有 AEC —— USE_SERVER_AEC 默认关闭，而
+# USE_DEVICE_AEC 的 Kconfig 板子列表里没有这一款，选项不可见。
+# 阿里 Realtime 的 WebSocket 协议也不做回声消除（官方协议矩阵明确写了）。
+# 症状就是喇叭的声音被麦克风收进去，设备自己打断自己。
+#
+# 但把它打开反而更糟：ES7210 配的是 MIC1|MIC2|MIC3，而代码把第 2 个通道
+# 当作"扬声器参考"（AUDIO_INPUT_REFERENCE true）。实际上那一通道是第二颗
+# 麦克风，听到的是同一段人声，于是 AEC 把用户的语音当作回声消掉——
+# AFE 输出峰值从 4036 掉到 120，完全听不见。
+#
+# 真正要修需要把 AW88298 的播放信号接成参考通道（硬件层面），
+# 在这之前只能用半双工规避，见 SendAudio() 里的说明。
+CONFIG_USE_DEVICE_AEC=y

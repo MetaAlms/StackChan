@@ -1,0 +1,90 @@
+# Candidate 694b6957379f8e7361c0e8743e0b42cf7126834c; run near_20261023_02
+# Explicit user start; one near 60s only. No subsequent START.
+# Private boot log: transient partition verify errors after write; esptool readback exactly matched local partition table; later watchdog reset booted Idle.
+# Speech instruction sent after RUNNING; user later confirmed attention was elsewhere and requested pre-START popup confirmation.
+# No synchronized positive speech stimulus; zero ASR is not a negative speech/AEC result.
+# Nano64 logs now decimal; write_ok is per-run successful hardware API call delta, not acoustic measurement.
+# raw SDP, ICE credentials, transcripts omitted.
+HOST 2026-10-23T15:23:04.881611+00:00 COMMAND STATUS
+HOST 2026-10-23T15:24:05.048808+00:00 COMMAND STATUS
+W (2402) WebRTC-Run: IDLE; USB commands: START <run_id> near|duplex <5..180 seconds>, STOP <run_id>, STATUS; fresh run ID for each start
+W (2412) WebRTC-Run: STATUS run=none state=Idle restart_requires_reboot=0
+HOST 2026-10-23T15:24:51.786821+00:00 COMMAND START near_20261023_02 near 60
+W (46742) WebRTC-Run: PREPARING run=near_20261023_02; wait for RUNNING before speech
+W (51582) WebRTC-Run: PROGRESS run=near_20261023_02 state=Preparing reason=none stage=0 session_tag=00000000 elapsed_ms=-1 config=0 transport_joined=0
+W (51592) WebRTC-Run: MEDIA run=near_20261023_02 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (51602) WebRTC-Run: TIMELINE run=near_20261023_02 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=0 max_queue_age_us=0
+W (51622) WebRTC-Run: PLAYBACK run=near_20261023_02 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+W (51652) WebRTC-Run: HARDWARE run=near_20261023_02 read_ok=0 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=50243 stack=27392
+W (53692) WebRTC-Run: RUNNING run=near_20261023_02 mode=near session_tag=5096bba4 t0_us=52914616 duration_s=60 real_mic=1 speaker=0 first_warm_afe_us=52908968
+W (56602) WebRTC-Run: PROGRESS run=near_20261023_02 state=Running reason=none stage=6 session_tag=5096bba4 elapsed_ms=2908 config=1 transport_joined=0
+W (56602) WebRTC-Run: MEDIA run=near_20261023_02 sent=142 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (56612) WebRTC-Run: TIMELINE run=near_20261023_02 tx_pts_ms=0:2820 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=30512 max_queue_age_us=70441
+W (56632) WebRTC-Run: PLAYBACK run=near_20261023_02 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+W (56652) WebRTC-Run: HARDWARE run=near_20261023_02 read_ok=315 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=2880 afe_reset_failed=0 dram=52755 stack=9552
+W (61602) WebRTC-Run: PROGRESS run=near_20261023_02 state=Running reason=none stage=6 session_tag=5096bba4 elapsed_ms=7908 config=1 transport_joined=0
+W (61602) WebRTC-Run: MEDIA run=near_20261023_02 sent=388 decoded=0 failures=0 mic_full=2 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (61622) WebRTC-Run: TIMELINE run=near_20261023_02 tx_pts_ms=0:7780 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=90471 max_queue_age_us=145468
+W (61632) WebRTC-Run: PLAYBACK run=near_20261023_02 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+W (61652) WebRTC-Run: HARDWARE run=near_20261023_02 read_ok=815 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=2880 afe_reset_failed=0 dram=52775 stack=9552
+W (66602) WebRTC-Run: PROGRESS run=near_20261023_02 state=Running reason=none stage=6 session_tag=5096bba4 elapsed_ms=12908 config=1 transport_joined=0
+W (66602) WebRTC-Run: MEDIA run=near_20261023_02 sent=634 decoded=0 failures=0 mic_full=6 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (66622) WebRTC-Run: TIMELINE run=near_20261023_02 tx_pts_ms=0:12780 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=90471 max_queue_age_us=160339
+W (66632) WebRTC-Run: PLAYBACK run=near_20261023_02 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+W (66652) WebRTC-Run: HARDWARE run=near_20261023_02 read_ok=1315 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=2880 afe_reset_failed=0 dram=52775 stack=9552
+W (71602) WebRTC-Run: PROGRESS run=near_20261023_02 state=Running reason=none stage=6 session_tag=5096bba4 elapsed_ms=17909 config=1 transport_joined=0
+W (71602) WebRTC-Run: MEDIA run=near_20261023_02 sent=880 decoded=0 failures=0 mic_full=10 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (71622) WebRTC-Run: TIMELINE run=near_20261023_02 tx_pts_ms=0:17780 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=90471 max_queue_age_us=190170
+W (71632) WebRTC-Run: PLAYBACK run=near_20261023_02 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+W (71652) WebRTC-Run: HARDWARE run=near_20261023_02 read_ok=1815 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=2880 afe_reset_failed=0 dram=52755 stack=9552
+W (76602) WebRTC-Run: PROGRESS run=near_20261023_02 state=Running reason=none stage=6 session_tag=5096bba4 elapsed_ms=22908 config=1 transport_joined=0
+W (76602) WebRTC-Run: MEDIA run=near_20261023_02 sent=1126 decoded=0 failures=0 mic_full=14 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (76622) WebRTC-Run: TIMELINE run=near_20261023_02 tx_pts_ms=0:22780 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=90471 max_queue_age_us=190170
+W (76632) WebRTC-Run: PLAYBACK run=near_20261023_02 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+W (76652) WebRTC-Run: HARDWARE run=near_20261023_02 read_ok=2315 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=2880 afe_reset_failed=0 dram=52903 stack=9552
+W (81622) WebRTC-Run: PROGRESS run=near_20261023_02 state=Running reason=none stage=6 session_tag=5096bba4 elapsed_ms=27928 config=1 transport_joined=0
+W (81622) WebRTC-Run: MEDIA run=near_20261023_02 sent=1373 decoded=0 failures=0 mic_full=18 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (81642) WebRTC-Run: TIMELINE run=near_20261023_02 tx_pts_ms=0:27800 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=90471 max_queue_age_us=190170
+W (81652) WebRTC-Run: PLAYBACK run=near_20261023_02 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+W (81672) WebRTC-Run: HARDWARE run=near_20261023_02 read_ok=2817 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=2880 afe_reset_failed=0 dram=52775 stack=9552
+W (86622) WebRTC-Run: PROGRESS run=near_20261023_02 state=Running reason=none stage=6 session_tag=5096bba4 elapsed_ms=32928 config=1 transport_joined=0
+W (86622) WebRTC-Run: MEDIA run=near_20261023_02 sent=1619 decoded=0 failures=0 mic_full=22 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (86642) WebRTC-Run: TIMELINE run=near_20261023_02 tx_pts_ms=0:32800 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=90471 max_queue_age_us=190170
+W (86652) WebRTC-Run: PLAYBACK run=near_20261023_02 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+W (86672) WebRTC-Run: HARDWARE run=near_20261023_02 read_ok=3317 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=2880 afe_reset_failed=0 dram=52903 stack=9552
+W (91642) WebRTC-Run: PROGRESS run=near_20261023_02 state=Running reason=none stage=6 session_tag=5096bba4 elapsed_ms=37948 config=1 transport_joined=0
+W (91642) WebRTC-Run: MEDIA run=near_20261023_02 sent=1866 decoded=0 failures=0 mic_full=26 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (91662) WebRTC-Run: TIMELINE run=near_20261023_02 tx_pts_ms=0:37820 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=90471 max_queue_age_us=190170
+W (91672) WebRTC-Run: PLAYBACK run=near_20261023_02 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+W (91692) WebRTC-Run: HARDWARE run=near_20261023_02 read_ok=3819 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=2880 afe_reset_failed=0 dram=52903 stack=9472
+W (96642) WebRTC-Run: PROGRESS run=near_20261023_02 state=Running reason=none stage=6 session_tag=5096bba4 elapsed_ms=42948 config=1 transport_joined=0
+W (96642) WebRTC-Run: MEDIA run=near_20261023_02 sent=2112 decoded=0 failures=0 mic_full=30 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (96662) WebRTC-Run: TIMELINE run=near_20261023_02 tx_pts_ms=0:42820 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=90471 max_queue_age_us=190170
+W (96672) WebRTC-Run: PLAYBACK run=near_20261023_02 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+W (96692) WebRTC-Run: HARDWARE run=near_20261023_02 read_ok=4319 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=2880 afe_reset_failed=0 dram=52903 stack=9472
+W (101662) WebRTC-Run: PROGRESS run=near_20261023_02 state=Running reason=none stage=6 session_tag=5096bba4 elapsed_ms=47968 config=1 transport_joined=0
+W (101662) WebRTC-Run: MEDIA run=near_20261023_02 sent=2359 decoded=0 failures=0 mic_full=34 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (101682) WebRTC-Run: TIMELINE run=near_20261023_02 tx_pts_ms=0:47840 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=90471 max_queue_age_us=190170
+W (101692) WebRTC-Run: PLAYBACK run=near_20261023_02 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+W (101712) WebRTC-Run: HARDWARE run=near_20261023_02 read_ok=4821 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=2880 afe_reset_failed=0 dram=52975 stack=9472
+W (106662) WebRTC-Run: PROGRESS run=near_20261023_02 state=Running reason=none stage=6 session_tag=5096bba4 elapsed_ms=52969 config=1 transport_joined=0
+W (106662) WebRTC-Run: MEDIA run=near_20261023_02 sent=2605 decoded=0 failures=0 mic_full=38 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (106682) WebRTC-Run: TIMELINE run=near_20261023_02 tx_pts_ms=0:52840 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=90471 max_queue_age_us=190235
+W (106692) WebRTC-Run: PLAYBACK run=near_20261023_02 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+W (106712) WebRTC-Run: HARDWARE run=near_20261023_02 read_ok=5321 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=2880 afe_reset_failed=0 dram=52903 stack=9472
+W (111682) WebRTC-Run: PROGRESS run=near_20261023_02 state=Running reason=none stage=6 session_tag=5096bba4 elapsed_ms=57989 config=1 transport_joined=0
+W (111682) WebRTC-Run: MEDIA run=near_20261023_02 sent=2852 decoded=0 failures=0 mic_full=42 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (111702) WebRTC-Run: TIMELINE run=near_20261023_02 tx_pts_ms=0:57860 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=90471 max_queue_age_us=190235
+W (111712) WebRTC-Run: PLAYBACK run=near_20261023_02 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+W (111732) WebRTC-Run: HARDWARE run=near_20261023_02 read_ok=5823 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=2880 afe_reset_failed=0 dram=52975 stack=9472
+W (113782) WebRTC-Run: FINAL run=near_20261023_02 state=Done reason=run_timeout stage=6 session_tag=5096bba4 elapsed_ms=60000 config=1 transport_joined=1
+W (113792) WebRTC-Run: MEDIA run=near_20261023_02 sent=2948 decoded=0 failures=0 mic_full=46 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (113802) WebRTC-Run: TIMELINE run=near_20261023_02 tx_pts_ms=0:59860 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=90471 max_queue_age_us=190235
+W (113822) WebRTC-Run: PLAYBACK run=near_20261023_02 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=112924986 physical_end_unknown=1
+W (113842) WebRTC-Run: DISCARD_AT_STOP run=near_20261023_02 mic=6 down=0 events=0
+W (113852) WebRTC-Run: EVIDENCE run=near_20261023_02 items=0 missing=0 invalid=0 duplicates=0 overflow=0 keyword_mask=0 near_observed=0 speech=0 responses=0 asr_failed=0 T1_T4=NOT_ACCEPTED AEC=UNDETERMINED
+W (113862) WebRTC-Run: CAPTURE run=near_20261023_02 afe_us=52969270:112909197 max_afe_gap_us=110122 afe_samples=960000 capture_callbacks=0 adc_timestamps_available=0
+W (113882) WebRTC-Run: HARDWARE run=near_20261023_02 read_ok=6020 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=2880 afe_reset_failed=0 dram=70131 stack=9472
+W (113902) WebRTC-Run: LIFECYCLE run=near_20261023_02 capture_quiescent=1 transport_joined=1 reusable=1 physical_end_unknown=1
+HOST 2026-10-23T15:26:06.898993+00:00 COMMAND STATUS
+W (121852) WebRTC-Run: STATUS run=near_20261023_02 state=Idle restart_requires_reboot=0
