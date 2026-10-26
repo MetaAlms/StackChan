@@ -459,6 +459,9 @@ STOP near_01
 - **AEC 首轮 duplex 准备超时**：perf04 `reason=prepare_timeout stage=4 config=0`，
   无 RUNNING/媒体；用户 30 秒说话时准入未开放，不能判 AEC。属连接准备层偶发失败。
   日志：`docs/device_diag_evidence/2026-10-24-m15/aec-duplex-04-prepare-timeout.log`。
+- **插桩与无语音批量**：`SendAudio` avg 2.5ms/max 6ms；无语音 duplex 3 连跑均 ~49/s
+  （base1 2959、base3 2973/60s），`mic_full` 个位数；此前慢速 run 都发生在用户说话后。
+  暂无“慢速 run 的 TIMING”，根因未定；下一轮先无语音复现慢速并取 TIMING。
 - **AEC 首轮 duplex 仍非实时**：perf06（复位后第一次、cue 到 RUNNING 后用户正常说话）
   `sent=1514/120s ≈12.6 包/秒`、`mic_full=4479` 且从 RUNNING 起就增长；
   `speech/items/responses=0`。更正“只发生在第二次 run”的假设：慢速可出现在第一次

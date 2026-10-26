@@ -1600,3 +1600,23 @@ perf03 near 第二次、aec06 duplex 第二次均 12.5/s。
 **结论**：慢速不是单纯“第二次 run”，而是 **AEC + duplex/输出路径（speaker=1）不稳定**，
 可出现在第一次 run；near 首轮是唯一稳定实时的组合。需要调度/背压插桩与修复，
 不能再靠盲测。日志：`aec-duplex-06-first-run.log`。
+
+### B59. 发送耗时插桩：SendAudio 不是瓶颈；无语音 duplex 稳定 ~49 包/秒
+
+**证据**：2026-10-26 插桩固件（`2d3cbd0`，AEC=y，app `0x3cd9e0`）：
+- 无语音 duplex 60 连跑 3 次（同一 boot/句柄）：base1 `sent=2959`（49.3/s）、
+  base3 `sent=2973`（49.6/s）；`send_calls` 与 sent 一致，
+  **`send_avg_us=2527`、`send_max_us=5976`（约 2.5/6 ms）**，`loop_max_us=98149`，
+  `mic_full=35/19`；base2 FINAL 正常（60.009s，报告行被批量采集提前截断，未取到终值）。
+- 对照：此前慢速 run（12.5/s、`mic_full` 持续增长）都发生在用户说话之后；
+  无语音批次 3/3 未复现慢速。
+- 插桩本身经独立只读评审 APPROVE（行为中性），评审附注：`loop_max` 在
+  `vTaskDelay(1)` 前采样，看不到唤醒延迟；`mic_empty` 计的是循环次数。
+
+**解读**：`Transport.SendAudio` 单次 2.5ms、最大 6ms，不是 80ms 阻塞；
+慢速时 worker 的停顿来自别处（说话后服务端事件/网络活动、日志/调度、WiFi PS 等），
+尚不能归因 AEC 或 duplex。**没有一次“慢速 run”的 TIMING 数据**，根因未定。
+
+**状态**：设备 Idle，未继续测试。下一轮：在无语音条件下批量复现慢速并取 TIMING；
+同时评估 `WIFI_PS_NONE` 与事件处理路径（cJSON/日志）作为低风险候选，先离线复核。
+日志：`docs/device_diag_evidence/2026-10-24-m15/aec-duplex-batch-base1..3.log`。
