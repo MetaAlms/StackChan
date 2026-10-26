@@ -132,6 +132,11 @@ struct Run {
     uint32_t first_tx_pts = 0, last_tx_pts = 0, first_rx_pts = 0, last_rx_pts = 0;
     int64_t first_rx_us = 0, last_rx_us = 0, last_send_us = 0, max_send_gap_us = 0, max_mic_age_us = 0;
     int64_t run_stopped_us = 0;
+    // Duplex+AEC slowdown instrumentation: time inside the peer send call vs
+    // the whole loop iteration separates blocking from scheduling.
+    uint64_t send_call_total_us = 0;
+    uint32_t send_call_max_us = 0, send_calls = 0, mic_empty = 0;
+    int64_t loop_max_us = 0;
     uint32_t initial_read_ok = 0, initial_write_ok = 0;
     uint32_t initial_read_failed = 0, initial_write_failed = 0;
     uint32_t initial_capture_cvt_failed = 0, initial_drain_failed = 0, initial_drained_frames = 0, initial_afe_reset_failed = 0;
@@ -405,6 +410,11 @@ void Report(Run& r, bool final) {
         r.command.run_id.c_str(), (unsigned long)r.first_tx_pts, (unsigned long)r.last_tx_pts,
         (unsigned long)r.first_rx_pts, (unsigned long)r.last_rx_pts, SignedDecimal(r.first_rx_us).c_str(), SignedDecimal(r.last_rx_us).c_str(),
         SignedDecimal(r.max_send_gap_us).c_str(), SignedDecimal(r.max_mic_age_us).c_str());
+    const uint64_t send_avg_us = r.send_calls ? r.send_call_total_us / r.send_calls : 0;
+    ESP_LOGW(kTag, "TIMING run=%s send_calls=%lu send_avg_us=%s send_max_us=%s loop_max_us=%s mic_empty=%lu",
+        r.command.run_id.c_str(), (unsigned long)r.send_calls, UnsignedDecimal(send_avg_us).c_str(),
+        UnsignedDecimal(r.send_call_max_us).c_str(), SignedDecimal(r.loop_max_us).c_str(),
+        (unsigned long)r.mic_empty);
     ESP_LOGW(kTag, "PLAYBACK run=%s accepted=%lu invalid=%lu stopped=%lu stale=%lu contended=%lu full=%lu queued_samples=%s inflight_samples=%s submitted_samples=%s submitted_calls=%s submit_us=%s:%s stop_requested_us=%s stop_completed_us=%s physical_end_unknown=1",
         r.command.run_id.c_str(), (unsigned long)r.playback_admission[0], (unsigned long)r.playback_admission[1],
         (unsigned long)r.playback_admission[2], (unsigned long)r.playback_admission[3], (unsigned long)r.playback_admission[4],
@@ -492,6 +502,7 @@ void RunBody(Run& r) {
     std::vector<uint8_t> encoded;
     std::vector<int16_t> pcm;
     while (Continue(r)) {
+        const int64_t loop_start_us = esp_timer_get_time();
         // Poll before admitting events: delayed evidence cannot extend the window.
         Event e;
         if (r.events.Pop(e)) HandleEvent(r, e);
@@ -516,7 +527,12 @@ void RunBody(Run& r) {
                 r.mic_invalid.load() || r.rx_invalid.load() ||
                 r.event_full.load() || r.event_invalid.load()) { ++r.failures; Stop(r, StopReason::Error); break; }
             MicFrame mic;
-            if (now >= next_send_us && r.mic.Pop(mic)) {
+            bool have_mic = false;
+            if (now >= next_send_us) {
+                have_mic = r.mic.Pop(mic);
+                if (!have_mic) ++r.mic_empty;
+            }
+            if (have_mic) {
                 r.max_mic_age_us = std::max(r.max_mic_age_us, now - mic.afe_emitted_us);
                 if (next_send_us == 0 || now - next_send_us > 60000) next_send_us = now;
                 next_send_us += 20000;
@@ -525,7 +541,16 @@ void RunBody(Run& r) {
                 }
                 if (!Continue(r)) break;
                 const int64_t send_called_us = esp_timer_get_time();
-                if (!encoded.empty() && !r.transport.SendAudio(encoded.data(), encoded.size(), mic.pts_ms)) {
+                bool send_ok = true;
+                if (!encoded.empty()) {
+                    const int64_t send_enter_us = esp_timer_get_time();
+                    send_ok = r.transport.SendAudio(encoded.data(), encoded.size(), mic.pts_ms);
+                    const int64_t send_dt_us = esp_timer_get_time() - send_enter_us;
+                    ++r.send_calls;
+                    r.send_call_total_us += (uint64_t)send_dt_us;
+                    if (send_dt_us > (int64_t)r.send_call_max_us) r.send_call_max_us = (uint32_t)send_dt_us;
+                }
+                if (!send_ok) {
                     ++r.failures; Stop(r, StopReason::Error); break;
                 }
                 if (!encoded.empty()) {
@@ -562,6 +587,8 @@ void RunBody(Run& r) {
             } else Report(r, false);
             next_report_us = now + 5000000;
         }
+        const int64_t loop_dt_us = esp_timer_get_time() - loop_start_us;
+        if (loop_dt_us > r.loop_max_us) r.loop_max_us = loop_dt_us;
         vTaskDelay(1);
     }
     r.capture_gate.Cancel();
