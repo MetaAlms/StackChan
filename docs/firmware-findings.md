@@ -1571,3 +1571,14 @@ AEC 模式/内存、发送 pacing 与背压），确保 near 模式能稳定 50 
 duplex 的 25% 速率是 **TX/播放路径（全双工）** 引起的，不是 AEC 普遍性变慢。
 本轮用户按 5 秒说话，整段落在 RUNNING 之前，`speech/items=0` 不能用于判断 AEC 吞音。
 日志：`docs/device_diag_evidence/2026-10-24-m15/aec-near-02.log`。
+
+**2026-10-26 第二次 run 对照（关键）**：同一 boot 内紧接着跑 `START perf03 near 60`：
+`sent=753 / 60s ≈ 12.55 包/秒`、`mic_full=2240`（约 37/s 持续增长）、AFE 仍实时
+（`afe_samples=960000`），RUNNING 17.3s。与 perf02（复位后第一次 run，48.4/s、
+`mic_full=0`）对比，**退化出现在第二次及以后的 run**，不是 near/duplex 或 TX 本身。
+此前 aec06 也是 aec05 之后的第二次 run（12.5/s），同样吻合。
+非 AEC 固件的历史 06 是第二次 run 却约 50/s，因此更像 **AEC 开启后的重复 run 复用问题**，
+而非 AEC 计算量本身。
+日志：`audit-06-*.log`、`aec-near-02.log`、`aec-near-03-second-run.log`、`aec-duplex-06.log`。
+**下一实验**：每次测试前物理复位，只跑“第一次 run”，先验证 AEC 首轮行为；
+复用问题单独立项，不混入 AEC 效果判断。

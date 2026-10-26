@@ -452,3 +452,7 @@ STOP near_01
   RUNNING 在 START 后 19.4s；说明 AEC 本身实时可用，duplex 的 25% 是 TX/播放路径引起。
   该轮用户 5 秒开口早于 RUNNING，`speech/items=0` 不能判 AEC 吞音。
   日志：`docs/device_diag_evidence/2026-10-24-m15/aec-near-02.log`。
+- **第二次 run 对照**：同 boot 内 perf03 near 60 又降到 12.55 包/秒、`mic_full=2240`，
+  而 perf02（复位后第一次）是 48.4/秒、`mic_full=0`。退化与 run 次序相关，
+  更像 AEC 开启后的**重复 run 复用问题**，不是 near/duplex/TX 本身。
+  下轮测试改为“每次先物理复位，只跑第一次 run”。
