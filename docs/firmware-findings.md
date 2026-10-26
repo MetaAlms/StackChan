@@ -1582,3 +1582,9 @@ duplex 的 25% 速率是 **TX/播放路径（全双工）** 引起的，不是 A
 日志：`audit-06-*.log`、`aec-near-02.log`、`aec-near-03-second-run.log`、`aec-duplex-06.log`。
 **下一实验**：每次测试前物理复位，只跑“第一次 run”，先验证 AEC 首轮行为；
 复用问题单独立项，不混入 AEC 效果判断。
+
+**2026-10-26 AEC 首轮 duplex 准备超时**：复位后第一次 run 执行
+`START perf04 duplex 60`，`FINAL state=Failed reason=prepare_timeout stage=4 config=0
+session_tag=00000000`，无 RUNNING、无媒体、AFE 0 样本；用户按 30 秒说话时尚未开放准入。
+这是连接准备层失败（同类于此前的 05），**不是 AEC 结果**，不能据此判断回声/吞音。
+日志：`docs/device_diag_evidence/2026-10-24-m15/aec-duplex-04-prepare-timeout.log`。

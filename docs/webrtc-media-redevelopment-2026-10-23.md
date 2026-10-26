@@ -456,3 +456,6 @@ STOP near_01
   而 perf02（复位后第一次）是 48.4/秒、`mic_full=0`。退化与 run 次序相关，
   更像 AEC 开启后的**重复 run 复用问题**，不是 near/duplex/TX 本身。
   下轮测试改为“每次先物理复位，只跑第一次 run”。
+- **AEC 首轮 duplex 准备超时**：perf04 `reason=prepare_timeout stage=4 config=0`，
+  无 RUNNING/媒体；用户 30 秒说话时准入未开放，不能判 AEC。属连接准备层偶发失败。
+  日志：`docs/device_diag_evidence/2026-10-24-m15/aec-duplex-04-prepare-timeout.log`。
