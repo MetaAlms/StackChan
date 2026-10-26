@@ -145,7 +145,7 @@ struct Run {
     // Self-play: the firmware asks the server to speak without user audio, so a
     // playback/echo failure is reproducible without a human speech cue.
     uint16_t data_stream = 0xFFFF;
-    bool self_play_sent = false;
+    bool self_play_attempted = false, self_play_sent = false;
     explicit Run(const webrtc_media::ConsoleCommand& c) : command(c) {}
 };
 Run* g_run = nullptr;  // Only the console owns/replaces this pointer.
@@ -368,9 +368,12 @@ void HandleEvent(Run& r, const Event& e) {
         const cJSON* err = Field(root, "error");
         const cJSON* code = Field(err, "code");
         const cJSON* msg = Field(err, "message");
-        ESP_LOGE(kTag, "ERROR_EVENT run=%s code=%s message=%.120s",
-            r.command.run_id.c_str(), cJSON_IsString(code) ? code->valuestring : "unknown",
-            cJSON_IsString(msg) ? msg->valuestring : "");
+        const char* message = cJSON_IsString(msg) ? msg->valuestring : "";
+        if (cJSON_IsNumber(code))
+            ESP_LOGE(kTag, "ERROR_EVENT run=%s code_int=%d message=%.120s", r.command.run_id.c_str(), code->valueint, message);
+        else
+            ESP_LOGE(kTag, "ERROR_EVENT run=%s code=%s message=%.120s", r.command.run_id.c_str(),
+                cJSON_IsString(code) ? code->valuestring : "unknown", message);
         ++r.failures; Stop(r, StopReason::Error);
     }
     else if (r.control.state() == RunState::Running && e.received_us >= r.control.run_started_us()) {
@@ -402,22 +405,25 @@ void BeginCaptureWindow(Run& r) {
         r.command.run_id.c_str(), r.command.mode == RunMode::NearEnd ? "near" : r.command.mode == RunMode::SelfPlay ? "self" : "duplex",
         (unsigned long)r.session_tag, SignedDecimal(r.control.run_started_us()).c_str(), (unsigned long)r.command.duration_seconds,
         r.command.mode != RunMode::NearEnd, SignedDecimal(r.first_warm_afe_us.load()).c_str());
-    // Self-play: ask the server to generate speech with no user turn. Capture,
-    // playback and VAD stay identical to duplex; only the trigger is synthetic.
-    if (r.command.mode == RunMode::SelfPlay && !r.self_play_sent) {
-        r.self_play_sent = true;
+    // Self-play: inject one user text turn, then ask for a response. Qwen's
+    // response.create schema defines only type/event_id, so the instruction
+    // must live in a conversation item rather than a per-response field.
+    if (r.command.mode == RunMode::SelfPlay && !r.self_play_attempted) {
+        r.self_play_attempted = true;
         if (r.data_stream == 0xFFFF) {
             ESP_LOGE(kTag, "SELFPLAY run=%s error=no_data_stream", r.command.run_id.c_str());
             ++r.failures; Stop(r, StopReason::Error);
             return;
         }
-        const char* request = R"({"type":"response.create","response":{"instructions":"请用普通话讲一个完整的故事，持续讲述到一分钟以上，不要向我提问，也不要停下来等回应。"}})";
-        if (!r.transport.SendJson(request, r.data_stream)) {
+        const char* item = R"({"type":"conversation.item.create","item":{"type":"message","role":"user","content":[{"type":"input_text","text":"请用普通话讲一个完整的故事，持续讲述到一分钟以上，不要向我提问，也不要停下来等回应。"}]}})";
+        const char* request = R"({"type":"response.create"})";
+        if (!r.transport.SendJson(item, r.data_stream) || !r.transport.SendJson(request, r.data_stream)) {
             ESP_LOGE(kTag, "SELFPLAY run=%s error=send_failed", r.command.run_id.c_str());
             ++r.failures; Stop(r, StopReason::Error);
             return;
         }
-        ESP_LOGW(kTag, "SELFPLAY run=%s sent=1 stream=%u", r.command.run_id.c_str(), (unsigned)r.data_stream);
+        r.self_play_sent = true;
+        ESP_LOGW(kTag, "SELFPLAY run=%s item_sent=1 request_sent=1 stream=%u", r.command.run_id.c_str(), (unsigned)r.data_stream);
     }
 }
 void Report(Run& r, bool final) {
@@ -860,7 +866,7 @@ void WebRtcM15Run() {
                     g_run->reusable = false;
                     g_run->worker_finished = true;
                     ESP_LOGE(kTag, "FINAL run=%s state=Failed reason=dispatch_failed", c.run_id.c_str());
-                } else ESP_LOGW(kTag, "PREPARING run=%s; wait for RUNNING before speech", c.run_id.c_str());
+                } else ESP_LOGW(kTag, "PREPARING run=%s; wait for RUNNING before any action", c.run_id.c_str());
             } else if (c.kind == webrtc_media::CommandKind::Stop) {
                 if (!g_run || c.run_id != g_run->command.run_id ||
                     (g_run->state.load() != RunState::Preparing && g_run->state.load() != RunState::Running)) {

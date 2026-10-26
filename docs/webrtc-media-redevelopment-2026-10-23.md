@@ -472,11 +472,13 @@ STOP near_01
 
 - 动机：慢速 run 都发生在用户语音之后，无语音批量 3/3 快（~49/s）；需要确定性触发
   播放/回声，同时不要求用户配合说话，才能分离“语音输入”与“播放/回声”两类因素。
-- 固件 `e46002d` 新增 `START <run_id> self <5..180>`：`session.created` 记录 data-channel
-  stream，进入 RUNNING 后发一次
-  `{"type":"response.create","response":{"instructions":"请用普通话讲一个完整的故事，持续讲述到一分钟以上，不要向我提问，也不要停下来等回应。"}}`。
-  采集、AFE、VAD、播放与 `duplex` 完全相同，只把触发从用户语音换成固件请求。
-- 新增观测：`SELFPLAY run=... sent=1 stream=...` 或 `error=no_data_stream|send_failed`；
+- 固件新增 `START <run_id> self <5..180>`：`session.created` 记录 data-channel
+  stream，进入 RUNNING 后先发一条 `conversation.item.create` 文本用户消息
+  （`input_text`，要求讲一分钟以上故事），再发裸 `response.create`。
+  依据：Qwen 客户端事件表只定义 `response.create` 的 `type`/`event_id`，
+  逐条 `instructions` 不在字段表内；文本输入官方走 `conversation.item.create`。
+  采集、AFE、VAD、播放与 `duplex` 完全相同，只把触发从用户语音换成固件文本轮。
+- 新增观测：`SELFPLAY run=... item_sent=1 request_sent=1 stream=...` 或 `error=no_data_stream|send_failed`；
   `error` 事件打印截断 120 字节的 code/message；EVIDENCE 增加 `self_play=`。
 - 离线：`console-command` 通过（新增 self 解析与 SessionRunControl::Start 断言）；
   IDF 5.5.4 构建通过，app `0x3cdd40`（余 23%）。
