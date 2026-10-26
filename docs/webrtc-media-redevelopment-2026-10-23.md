@@ -481,7 +481,7 @@ STOP near_01
 - 新增观测：`SELFPLAY run=... item_sent=1 request_sent=1 stream=...` 或 `error=no_data_stream|send_failed`；
   `error` 事件打印截断 120 字节的 code/message；EVIDENCE 增加 `self_play=`。
 - 离线：`console-command` 通过（新增 self 解析与 SessionRunControl::Start 断言）；
-  IDF 5.5.4 构建通过，app `0x3cdd40`（余 23%）。
+  IDF 5.5.4 构建通过，app `0x3cdec0`（余 23%）。
 - 预期与边界：若服务端接受 `response.create`，应无用户语音即出现 response.created/下行音频；
   若回声被 VAD 当作用户语音，会出现新 speech/`turn_detected` 取消，且可观察发送是否同步变慢。
   若请求被拒，只会得到 error 并终止，不能据此判 AEC；单轮也不能证明长期稳定。

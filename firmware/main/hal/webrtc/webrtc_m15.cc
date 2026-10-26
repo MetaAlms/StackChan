@@ -417,8 +417,13 @@ void BeginCaptureWindow(Run& r) {
         }
         const char* item = R"({"type":"conversation.item.create","item":{"type":"message","role":"user","content":[{"type":"input_text","text":"请用普通话讲一个完整的故事，持续讲述到一分钟以上，不要向我提问，也不要停下来等回应。"}]}})";
         const char* request = R"({"type":"response.create"})";
-        if (!r.transport.SendJson(item, r.data_stream) || !r.transport.SendJson(request, r.data_stream)) {
-            ESP_LOGE(kTag, "SELFPLAY run=%s error=send_failed", r.command.run_id.c_str());
+        if (!r.transport.SendJson(item, r.data_stream)) {
+            ESP_LOGE(kTag, "SELFPLAY run=%s error=send_failed stage=item", r.command.run_id.c_str());
+            ++r.failures; Stop(r, StopReason::Error);
+            return;
+        }
+        if (!r.transport.SendJson(request, r.data_stream)) {
+            ESP_LOGE(kTag, "SELFPLAY run=%s error=send_failed stage=request", r.command.run_id.c_str());
             ++r.failures; Stop(r, StopReason::Error);
             return;
         }
