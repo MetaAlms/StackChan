@@ -53,12 +53,12 @@ origin  git@github.com:MetaAlms/StackChan.git     ← 我们的 fork
 2. **ES7210 增益上限 37.5dB**，`input_gain_` 写超过的值会被静默钳位
 3. **当前实现无法支持语音打断**：阿里 WebSocket 协议官方规格为
    「回声消除/降噪：无，需客户端自行处理」，而 ESP32 只能用 WebSocket
-   （AOQ 仅限 Android/iOS/HarmonyOS）。设备侧：官方 C156 原理图确有
-   `SPK→AEC_P/N→ES7210 MIC3` 参考通路，但**当前 2 通道采集只读 MIC1/MIC2，
-   MIC3 不在读取范围**（按 ES7210 TDM 顺序与 2-slot 重配推断；实板线上 slot 映射仍未实测），AFE 的 `"MR"` 实际把 MIC2 当参考；历史“最多 2 通道”
-   是 `esp_codec_dev` 对奇数通道的限制，4ch TDM 在库层可行，但受共享 I2S
-   帧宽/功放格式约束。**不要直接启 AEC、改通道或加 swap**，先按
-   [硬件/驱动审计](docs/webrtc-media-hardware-driver-audit-2026-10-24.md) 验证。
+   （AOQ 仅限 Android/iOS/HarmonyOS）。设备侧：官方 C156 原理图有
+   `SPK→AEC_P/N→ES7210 MIC3` 参考通路。**2026-10-26 更正**：ES7210 的 TDM-I²S
+   顺序是 **1,3,2,4**（数据手册 Figure 2e），所以当前 2-slot 采集实际是
+   **MIC1 + MIC3（参考）**，AFE 的 `"MR"` 是正确配置；参考一直在上行里，
+   只是 `CONFIG_USE_DEVICE_AEC` 未启用。**不要盲目启用 AEC、改通道或加 swap**，
+   先按 [TDM 参考更正](docs/webrtc-media-tdm-reference-correction-2026-10-26.md) 做双讲实验。
    详见 [docs/aec-limitation.md](docs/aec-limitation.md)
 
 ## 构建

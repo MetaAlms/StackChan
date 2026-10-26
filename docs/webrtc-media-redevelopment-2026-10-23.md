@@ -431,6 +431,10 @@ STOP near_01
   body 无喇叭/麦克风；此前“遮脸/遮侧面”都会引入接触与反射，不能单独定性。
 - 遮侧面扬声器复测 tone 反而高 2~5 dB（结构传导/反射），不作声源遮挡对照。
 - 下一判据：**只封正面麦克风针孔**、扬声器不动——tone 大降 ⇒ 声学；基本不变 ⇒ 电气/参考。
+- **2026-10-26 实测 + 手册核对**：封麦孔后 ch1 tone 几乎不变（-19.8→-18.4 dBFS）；
+  ES7210 TDM-I²S 顺序为 `1,3,2,4`（Figure 2e），2-slot 实际是 **MIC1+MIC3 参考**。
+  此前“MIC3 未读/ch1=MIC2”结论撤回；AFE `"MR"` 正确，设备 AEC 具备数据条件，
+  只是 `CONFIG_USE_DEVICE_AEC` 未启用。详见 [TDM 参考更正](webrtc-media-tdm-reference-correction-2026-10-26.md) 与 findings B57。
 - 脱敏日志：`docs/device_diag_evidence/2026-10-24-m15/` 下
   `audit-06-idle.log`、`audit-06-face-covered-reflective.log`、
   `audit-06-face-covered-absorbent.log`；详见 findings B56。

@@ -109,17 +109,19 @@ ES7210 采集 24kHz；当前只读 2 个 TDM slot = MIC1/MIC2（MIC3 参考未�
 `AEC_P/AEC_N`，接到 **ES7210 MIC3P/N**；MIC1/MIC2 才是物理麦克风。
 所以“硬件没有回采”是错的。
 
-但当前驱动把 ES7210 配成 `MIC1|MIC2|MIC3`（3 麦 ⇒ TDM 模式），
+但驱动把 ES7210 配成 `MIC1|MIC2|MIC3`（3 麦 ⇒ TDM 模式），
 I2S RX 初始化虽写 `SLOT0..3`，`esp_codec_dev` 打开 2 通道时会重写
-`total_slot=2 / ws_width=16`，**4-slot 初始化不生效**。结果：
-- 上行只有 MIC1/MIC2，**按 TDM 顺序 MIC3（参考）不在读取范围**（按 ES7210 TDM 顺序与 2-slot 重配推断；实板线上 slot 映射仍未实测）；
-- AFE 按 `AUDIO_INPUT_REFERENCE=true` 生成 `"MR"`，把 ch1 当参考，
-  按 TDM 顺序 ch1 应为 MIC2（按 ES7210 TDM 顺序应为 MIC2；实板 slot 映射未测）；
-- 开启设备侧 AEC 时会拿 MIC2 当参考，把用户语音一起消掉
-  （实测 AFE 输出峰值 4036 → 120）。
+`total_slot=2 / ws_width=16`，**4-slot 初始化不生效**。
 
-4 通道 TDM 在库层可行，但 RX 4×16bit 与 TX 2×16bit 共享 BCLK/WS 不同频，
-AW88298 当前也是 16-bit 立体声；需先对齐帧宽或做仅 RX 的静默采集。
+**2026-10-26 更正**：ES7210 的 TDM-I²S 通道顺序是 **`1,3,2,4`**（数据手册第 6 页
+Figure 2e），所以 2-slot 读取实际是 **MIC1 + MIC3（参考）**：
+- 上行包含 MIC1（物理麦）与 MIC3（AEC_P/N 参考）；AFE 的 `"MR"` 是**正确**配置；
+- 参考一直在数据里，只是 `CONFIG_USE_DEVICE_AEC` 未启用；
+- 之前“MIC3 不在读取范围 / ch1=MIC2”的结论撤回；
+- 封住正面麦孔后 ch1 的 tone 几乎不变，实测支持 ch1=电气参考。
+
+因此设备 AEC 具备数据条件；下一步是**有条件启用 AEC 并做双讲验证**，不是改 4ch。
+详见 [TDM 参考更正](webrtc-media-tdm-reference-correction-2026-10-26.md)。
 详见 [硬件/驱动审计](webrtc-media-hardware-driver-audit-2026-10-24.md)。
 
 ### 4.2 ES7210 增益的量程上限是 37.5 dB

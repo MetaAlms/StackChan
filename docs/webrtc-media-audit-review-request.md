@@ -7,6 +7,10 @@
 **分支/PR**：`feat/aliyun-omni-v2v` / [Draft PR #1](https://github.com/MetaAlms/StackChan/pull/1)
 **本轮性质**：接续任务，非新需求；无虚构 Review ID。无设备操作。
 
+> **2026-10-26 更正**：本轮审计依据的“MIC3 未被读”结论已被推翻
+> （ES7210 TDM-I²S 顺序 1,3,2,4 ⇒ 2-slot=MIC1+MIC3 参考）。代码与 AUDIT 实现不变，
+> 但硬件结论以 [TDM 参考更正](webrtc-media-tdm-reference-correction-2026-10-26.md) 为准。
+
 ## 1. 本轮做了什么
 
 1. 完成官方设计/固件/库/IDF 四方对照，落盘

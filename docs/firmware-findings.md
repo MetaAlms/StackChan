@@ -1410,6 +1410,11 @@ AW88298 SPK_VOP/VON经电阻/电容网络接AEC_P/N，再接ES7210 MIC3P/N；MIC
 下一步先完成硬件/驱动对照与单变量修复，实际测试仍须新Q点击开始；M1.5/T2及产品未验收。
 完整坐标、证据、退出条件与边界见[DSH交接](webrtc-media-dsh-handoff-2026-10-24.md)。
 
+### B54. （2026-10-26 更正：见 B57）原判“MIC3 未被读”有误
+
+> 本文的“MIC3 不在读取范围 / 4-slot 死配置导致参考缺失”结论已撤回。
+> ES7210 TDM-I²S 顺序为 `1,3,2,4`，2-slot 实际是 MIC1+MIC3 参考；见 B57。
+
 ### B54. MIC3 参考通路存在，但 2 通道采集从未读取它；4-slot 初始化是死配置
 
 **证据**（详见[硬件/驱动审计](webrtc-media-hardware-driver-audit-2026-10-24.md)）：
@@ -1458,6 +1463,12 @@ M5Unified #303/#308 的 fs/2 镜像音来自其 32-bit 打包，本项目走 esp
 先 `AUDIT 6`，再做正常双向与“遮住 MIC1/MIC2 出声孔”的对照；若遮麦后 turn_detected
 消失则指向声学路径，否则再查电气/噪声/服务端。
 
+### B56. （2026-10-26 更正：见 B57）AUDIT 实测与“MIC3 未读”解释
+
+> 本文的耦合数据有效，但“MIC3 不在 2ch 里”的解释已撤回：
+> ch1 实际是 MIC3 参考（TDM-I²S 1,3,2,4）；封麦孔后 ch1 不变正是电气参考的证据。
+> 见 B57。
+
 ### B56. AUDIT 6 实测：扬声器输出显著进入当前 2ch 上行（+24~27 dB over silence）
 
 **证据**：2026-10-24 刷入 `97864ef` 候选（M15 + AUDIT，app `0x3cd8f0`），
@@ -1501,3 +1512,33 @@ body 无喇叭/麦克风（Zephyr 板级文档）。
 说明布与设备接触引入了结构传导/反射，未形成有效声学隔离；该轮不能当“声源被遮”的对照。
 **下一步判据**：只封住正面两个麦克风针孔（扬声器不动）——tone 大幅下降 ⇒ 声学经麦孔；
 基本不变 ⇒ 电气/参考路径（说明 MIC3 参考可能以某种方式混入 2 通道，slot 映射假设需修正）。
+
+### B57. 【更正】TDM-I²S 顺序 1,3,2,4：MIC3 参考一直在 2 通道上行里
+
+**证据**：
+1. ES7210 datasheet Rev 18.0（2021-10）**第 6 页 Figure 2e（TDM I²S）** 的 LRCK
+   通道顺序是 **`Channel 1 → Channel 3 → Channel 2 → Channel 4`**（渲染页面核对，
+   非文本抽取假象）；Figure 2f（TDM Left Justified）才是 1→2→3→4。
+2. 本项目驱动走 `ES_I2S_FMT_I2S` 且 `mic_num>=3` 时写 `REG12=0x02` 进入 TDM
+   （`esp_codec_dev/device/es7210/es7210.c`），即 Figure 2e 模式。
+3. `esp_codec_dev` 以 `channel=2` 打开时把 RX 重配为 2 slot；因此两个 slot 是
+   **MIC1 + MIC3（AEC_P/N 参考）**，不是 MIC1+MIC2。
+4. 设备实测：`AUDIT 6` 在只封住正面麦克风针孔后，ch1 的 1 kHz 耦合几乎不变
+   （-19.8 → -18.4 dBFS），底噪下降；ch1 表现与“电气参考”一致
+   （`docs/device_diag_evidence/2026-10-24-m15/audit-06-mic-taped.log`，
+   该文件在下一笔提交补入）。
+
+**更正范围**：B54、B56、[硬件/驱动审计](webrtc-media-hardware-driver-audit-2026-10-24.md)
+F1/F2、`AGENTS.md`、`aec-limitation.md`、`stackchan-hardware.md`、spec/plan/redevelopment
+中所有“MIC3 未被读 / ch1=MIC2 / AFE MR 错误”的表述全部撤回。
+`input_reference=true` 与 AFE `"MR"` 是**正确**配置。
+
+**含义**：
+- 设备 AEC 的参考数据一直在上行里，缺的是 `CONFIG_USE_DEVICE_AEC`（当前未启用）；
+- 历史“开 AEC 吞语音（4036→120）”需要重评（双讲/延迟/参考增益/模式），
+  不能用它证明“无参考”或“AEC 不可行”；
+- 不需要为 AEC 改 4ch/帧宽；只有要读 MIC2/MIC4 时才需要另设计。
+
+**状态**：文档已更正；未改代码/AEC/通道/swap，未刷机。
+下一步需新授权：有条件启用 `CONFIG_USE_DEVICE_AEC`，先本地验证回声下降，
+再做双讲验证不吞用户语音；仍按新弹窗 Q 执行。
