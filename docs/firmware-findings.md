@@ -1647,3 +1647,35 @@ perf03 near 第二次、aec06 duplex 第二次均 12.5/s。
 **状态**：未修复。下一步把 AEC 移出高优先级 input 任务（独立任务/降优先级/绑核），
 并给单帧处理耗时设上限后复测；不得用关闭 AEC 或降低 VAD 掩盖。
 日志：`docs/device_diag_evidence/2026-10-24-m15/selfplay-01.log`、`selfplay-02.log`。
+
+### B61. AEC feed 移到 core1 低优先级后 near 恢复实时：49.2 包/秒，无 WDT
+
+**证据**：2026-10-26 固件（AEC 执行模型修复，app `0x3ce3b0`），
+`START nearfix01 near 30`（AEC=y，不播放）：
+- `sent=1477 / 30.0s ≈ 49.2 包/秒`（目标 50），`mic_full=17`、`failures=0`，
+  `send_avg=3775us`、`send_max=8500us`，**全程无 `task_wdt`**。
+- `AFE feed: chunks=1880 avg_us=14388 max_us=17178 failures=0 dropped_samples=0
+  max_backlog_ms=50 queue_cap_samples=6400`。
+- `max_afe_gap=75.4ms`（B60 的 duplex 慢速 run 为 177ms）。
+- 结论：AEC 单块 14.4ms（16ms 音频）虽然接近实时上限，但已能持续跟上；
+  `max_backlog` 50ms、无丢帧。capture/发送调度问题已缓解。
+- 日志：`docs/device_diag_evidence/2026-10-24-m15/near-01-aecfix.log`。
+
+### B62. 播放打开时 AW88298 I2C 不应答并 abort，阻塞 duplex/AEC 验证
+
+**证据**：同一固件 `START <id> self 30/90` 均在 RUNNING 后、第一次
+`EnableOutput(true)` 时崩溃：
+- `I2C_If: Fail to read/write from dev 6c`（0x6c 是 AW88298 的 8 位写地址；
+  `i2c_master_probe` 在启动扫描中能看到 7 位地址 0x36）。
+- 第一次 `ESP_ERROR_CHECK(esp_codec_dev_open(...))` 返回 `ESP_ERR_NOT_SUPPORTED`；
+  后续一次在 `I2cDevice::ReadReg` 返回 `ESP_ERR_TIMEOUT`，均 abort/reboot。
+- 已尝试：开机 `ResetAw88298()` 脉冲、普通复位、用户声称的彻底断电重启，
+  仍复现；near 路径（不打开扬声器）正常，说明麦克风/AEC/发送可用。
+- 首次崩溃发生在 AEC 执行模型固件上；上一版固件（selfplay02）同一喇叭
+  曾正常播放 55s。尚不能判定是硬件锁死、供电/总线问题，还是新任务布局的
+  间接影响；目前证据不足以归因 AEC 算法。
+- **状态**：未修复，阻塞“滋啦/回声/双讲”验证。下一步：真正断开电池+USB
+  冷启动；若仍复现，做一次旧固件对照/硬件检查，并移除 `EnableOutput` 的
+  `ESP_ERROR_CHECK` abort 路径以便降级运行。
+- 日志：`selfplay-05-aectask.log`、`selfplay-06-aectask.log`、
+  `selfplay-07-ampreset.log`、`selfplay-08-powercycle.log`。

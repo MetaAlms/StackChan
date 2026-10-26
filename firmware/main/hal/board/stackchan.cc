@@ -593,6 +593,10 @@ public:
         InitializeAxp2101();
         InitializePowerSaveTimer();
         InitializeAw9523();
+        // Pulse the AW88298 reset line before the codec is used. After an
+        // aborted output open the amp can latch with a dead I2C interface;
+        // without this pulse every later EnableOutput() aborts the firmware.
+        aw9523_->ResetAw88298();
         I2cDetect();
         InitializeFt6336();
         InitializeSpi();

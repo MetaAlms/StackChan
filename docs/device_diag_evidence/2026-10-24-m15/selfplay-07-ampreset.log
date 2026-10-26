@@ -1,0 +1,499 @@
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x15 (USB_UART_CHIP_RESET),boot:0x2b (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4038c2de
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x1744
+load:0x403c8700,len:0xf40
+load:0x403cb700,len:0x3610
+entry 0x403c89c4
+I (24) boot: ESP-IDF v5.5.4 2nd stage bootloader
+I (24) boot: compile time Oct  6 2026 21:30:34
+I (25) boot: Multicore bootloader
+I (25) boot: chip revision: v0.2
+I (28) boot: efuse block revision: v1.3
+I (31) qio_mode: Enabling default flash chip QIO
+I (36) boot.esp32s3: Boot SPI Speed : 80MHz
+I (39) boot.esp32s3: SPI Mode       : QIO
+I (43) boot.esp32s3: SPI Flash Size : 16MB
+I (47) boot: Enabling RNG early entropy source...
+I (51) boot: Partition Table:
+I (54) boot: ## Label            Usage          Type ST Offset   Length
+I (60) boot:  0 nvs              WiFi data        01 02 00009000 00004000
+I (67) boot:  1 otadata          OTA data         01 00 0000d000 00002000
+I (73) boot:  2 phy_init         RF data          01 01 0000f000 00001000
+I (80) boot:  3 ota_0            OTA app          00 10 00020000 004f0000
+I (86) boot:  4 ota_1            OTA app          00 11 00510000 004f0000
+I (93) boot:  5 assets           Unknown data     01 82 00a00000 00400000
+I (99) boot:  6 coredump         Unknown data     01 03 00e00000 00010000
+I (106) boot: End of partition table
+I (109) esp_image: segment 0: paddr=00020020 vaddr=3c290020 size=11efa0h (1175456) map
+I (280) esp_image: segment 1: paddr=0013efc8 vaddr=3fca9f00 size=01050h (  4176) load
+I (281) esp_image: segment 2: paddr=00140020 vaddr=42000020 size=284708h (2639624) map
+I (651) esp_image: segment 3: paddr=003c4730 vaddr=3fcaaf50 size=07e18h ( 32280) load
+I (656) esp_image: segment 4: paddr=003cc550 vaddr=40378000 size=21e10h (138768) load
+I (680) esp_image: segment 5: paddr=003ee368 vaddr=50000000 size=00020h (    32) load
+I (693) boot: Loaded app from partition at offset 0x20000
+I (693) boot: Disabling RNG early entropy source...
+I (704) esp_psram: Found 8MB PSRAM device
+I (704) esp_psram: Speed: 80MHz
+I (704) cpu_start: Multicore app
+I (713) cpu_start: GPIO 44 and 43 are used as console UART I/O pins
+I (714) cpu_start: Pro cpu start user code
+I (714) cpu_start: cpu freq: 240000000 Hz
+I (716) app_init: Application information:
+I (719) app_init: Project name:     stack-chan
+I (724) app_init: App version:      1.5.1
+I (727) app_init: Compile time:     Oct 26 2026 20:43:50
+I (732) app_init: ELF file SHA256:  d38b500f1...
+I (737) app_init: ESP-IDF:          v5.5.4
+I (740) efuse_init: Min chip rev:     v0.0
+I (744) efuse_init: Max chip rev:     v0.99 
+I (748) efuse_init: Chip rev:         v0.2
+I (752) heap_init: Initializing. RAM available for dynamic allocation:
+I (758) heap_init: At 3FCBD560 len 0002C1B0 (176 KiB): RAM
+I (764) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (769) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (774) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (779) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (786) spi_flash: detected chip: generic
+I (789) spi_flash: flash io: qio
+I (794) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (799) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (814) main_task: Started on CPU0
+I (824) esp_psram: Reserving pool of 64K of internal memory for DMA/internal allocations
+I (824) main_task: Calling app_main()
+[1793033038035] [[32minfo[0m] [HAL] creating hal instance
+[1793033038041] [[32minfo[0m] [HAL] init
+[1793033038058] [[32minfo[0m] [HAL] xiaozhi board init
+I (854) Board: UUID=13d885f2-f0c0-4c7f-b5f9-ad9dd41a8f60 SKU=m5stack-stack-chan
+I (854) M5Stack-StackChan-Board: Init AXP2101
+I (854) M5Stack-StackChan-Board: Set charge current success
+I (864) M5Stack-StackChan-Board: Init power save timer: sleep=300 s, shutdown=600 s, allow_shutdown_when_charging=0
+I (874) M5Stack-StackChan-Board: Init AW9523
+I (924) M5Stack-StackChan-Board: Reset AW88298
+     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
+
+00: 00 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+
+10: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+
+20: -- 21 -- 23 -- -- -- -- -- -- -- -- -- -- -- -- 
+
+30: -- -- -- -- 34 -- 36 -- 38 -- -- -- -- -- -- -- 
+
+40: 40 41 -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+
+50: 50 51 -- -- -- -- -- -- 58 -- -- -- -- -- -- -- 
+
+60: -- -- -- -- -- -- -- -- 68 69 -- -- -- -- -- 6f 
+
+70: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+
+I (1014) M5Stack-StackChan-Board: Init FT6336
+I (1014) M5Stack-StackChan-Board: Init IlI9342
+I (1024) ili9341: LCD panel create success, version: 1.2.0
+I (1044) M5Stack-StackChan-Board: Reset IlI9342
+I (1174) M5Stack-StackChan-Board: CIPHER:0x64 / FIRMID:0x03 / VENDID:0x01, panel:ILI9342C
+I (1174) Display: Power management not supported
+I (1234) StackChanAvatarDisplay: Turning display on
+I (1234) StackChanAvatarDisplay: Initialize LVGL library
+I (1234) StackChanAvatarDisplay: Use 2MB of PSRAM for image cache
+I (1234) StackChanAvatarDisplay: Initialize LVGL port
+I (1244) StackChanAvatarDisplay: Adding LCD display
+I (1244) LVGL: Starting LVGL task
+I (1254) StackChanAvatarDisplay: Create boot logo label
+I (1294) M5Stack-StackChan-Board: Init Camera
+I (1294) gc0308: Detected Camera sensor PID=0x9b
+I (1374) StackChanCamera: Camera init success
+I (1384) Backlight: Set brightness to 75
+[1793033038587] [[32minfo[0m] [HAL-MCP] init
+[1793033038587] [[32minfo[0m] [HAL-MCP] add robot.get_head_angles tool
+I (1384) MCP: Add tool: self.robot.get_head_angles
+[1793033038597] [[32minfo[0m] [HAL-MCP] add robot.set_head_angles tool
+I (1394) MCP: Add tool: self.robot.set_head_angles
+[1793033038608] [[32minfo[0m] [HAL-MCP] add robot.set_led_color tool
+I (1404) MCP: Add tool: self.robot.set_led_color
+[1793033038618] [[32minfo[0m] [HAL-MCP] add robot.create_reminder tool
+I (1414) MCP: Add tool: self.robot.create_reminder
+[1793033038629] [[32minfo[0m] [HAL-MCP] add robot.get_reminders tool
+I (1424) MCP: Add tool: self.robot.get_reminders
+[1793033038640] [[32minfo[0m] [HAL-MCP] add robot.stop_reminder tool
+I (1444) MCP: Add tool: self.robot.stop_reminder
+[1793033038650] [[32minfo[0m] [HAL-HeadTouch] init
+I (1444) Si12T: Si12T initialized, version: 0.0.2
+I (1464) Si12T: Si12T setup done
+[1793033038671] [[1793033038671] [32minfo[0m[] [32minfo[0m] [HAL-IOE] init
+[HAL-HeadTouch] start update task
+I (1664) PY32IOExpander: Version: 0x41
+[1793033039322] [[32minfo[0m] [HAL-IOE] init done
+[1793033039323] [[32minfo[0m] [HAL-RTC] init
+[1793033039323] [[32minfo[0m] [HAL-RTC] PCF8563 init ok
+[1793033039326] [[32minfo[0m] [HAL-RTC] load timezone from nvs: GMT0
+[1793033039000] [[32minfo[0m] [HAL-RTC] rtc synced to system (UTC): 2026-10-26 16:43:59
+[1793033039007] [[32minfo[0m] [HAL-IMU] init
+[1793033039309] [[32minfo[0m] [HAL-IMU] BMI270 init ok
+[1793033039309] [[32minfo[0m] [HAL-Servo] init
+I (2434) uart: ESP_INTR_FLAG_IRAM flag not set while CONFIG_UART_ISR_IN_IRAM is enabled, flag updated
+[1793033039317] [[32minfo[0m] [ScsServo] id: 1 get zero pos: 501 from settings
+[1793033039326] [[32minfo[0m] [ScsServo] id: 2 get zero pos: 635 from settings
+[1793033039333] [[32minfo[0m] [HAL] lvgl init
+[1793033039335] [[32minfo[0m] [HAL] create lvgl touchpad indev
+W (2464) WebRTC-Run: IDLE; USB commands: START <run_id> near|duplex|self <5..180 seconds>, STOP <run_id>, STATUS, AUDIT <3..10 seconds>; fresh run ID for each start
+W (2484) WebRTC-Run: STATUS run=none state=Idle restart_requires_reboot=0
+W (2484) WebRTC-Run: STATUS run=none state=Idle restart_requires_reboot=0
+I (3184) WifiManager: Initializing...
+I (3184) pp: pp rom version: e7ae62f
+I (3184) net80211: net80211 rom version: e7ae62f
+W (3194) WebRTC-Run: PREPARING run=ampreset01; wait for RUNNING before any action
+I (3204) wifi:wifi driver task: 3fce7600, prio:23, stack:6144, core=0
+I (3204) wifi:wifi firmware version: 0947e8b
+I (3204) wifi:wifi certification version: v7.0
+I (3204) wifi:config NVS flash: disabled
+I (3214) wifi:config nano formatting: enabled
+I (3214) wifi:Init data frame dynamic rx buffer num: 6
+I (3224) wifi:Init dynamic rx mgmt buffer num: 5
+I (3224) wifi:Init management short buffer num: 32
+I (3234) wifi:Init dynamic tx buffer num: 32
+I (3234) wifi:Init static tx FG buffer num: 2
+I (3234) wifi:Init static rx buffer size: 1600
+I (3244) wifi:Init static rx buffer num: 3
+I (3244) wifi:Init dynamic rx buffer num: 6
+I (3254) wifi_init: rx ba win: 3
+I (3254) wifi_init: accept mbox: 6
+I (3254) wifi_init: tcpip mbox: 16
+I (3264) wifi_init: udp mbox: 6
+I (3264) wifi_init: tcp mbox: 6
+I (3264) wifi_init: tcp tx win: 5760
+I (3264) wifi_init: tcp rx win: 5760
+I (3274) wifi_init: tcp mss: 1440
+I (3274) WifiManager: Initialized
+I (3284) WifiBoard: Starting WiFi connection attempt
+I (3284) WifiManager: Starting station
+I (3284) phy_init: phy_version 711,97bcf0a2,Aug 25 2025,19:04:10
+I (3324) wifi:mode : sta (<BSSID>)
+I (3324) wifi:enable tsf
+I (3334) WifiBoard: WiFi scanning
+I (5734) WifiStation: Found AP: <SSID>, BSSID: <BSSID>, RSSI: -77, Channel: 3, Authmode: 4
+I (5734) WifiBoard: WiFi connecting to <SSID>
+W (5744) wifi:Password length matches WPA2 standards, authmode threshold changes from OPEN to WPA2
+I (6064) wifi:new:<3,0>, old:<1,0>, ap:<255,255>, sta:<3,0>, prof:1, snd_ch_cfg:0x0
+I (6064) wifi:state: init -> auth (0xb0)
+I (6064) wifi:state: auth -> assoc (0x0)
+I (6074) wifi:state: assoc -> run (0x10)
+I (6174) wifi:connected with <SSID>, aid = 3, channel 3, BW20, bssid = <BSSID>
+I (6174) wifi:security: WPA2-PSK, phy: bgn, rssi: -79, cipher(pairwise:0x3, group:0x1), pmf:0
+I (6184) wifi:pm start, type: 1
+
+I (6184) wifi:dp: 1, bi: 102400, li: 10, scale listen interval from 1024000 us to 1024000 us
+I (6194) wifi:set rx beacon pti, rx_bcn_pti: 14, bcn_timeout: 25000, mt_pti: 14, mt_time: 10000
+I (6254) wifi:AP's beacon interval = 102400 us, DTIM period = 1
+I (6284) wifi:<ba-add>idx:0 (ifx:0, <BSSID>), tid:0, ssn:1, winSize:64
+I (7464) esp_netif_handlers: sta ip: 192.168.1.x, mask: 255.255.255.0, gw: 192.168.1.x
+I (7464) WifiStation: Got IP: 192.168.1.x
+I (7464) WifiBoard: Connected to WiFi: <SSID>
+I (7474) CoreS3AudioCodec: Audio IOs: mclk: 0, bclk: 34, ws: 33, dout: 13, din: 14
+I (7474) CoreS3AudioCodec: Duplex channels created
+I (7484) ES7210: Work in Slave mode
+I (7494) ES7210: Enable ES7210_INPUT_MIC1
+I (7494) ES7210: Enable ES7210_INPUT_MIC2
+I (7494) ES7210: Enable ES7210_INPUT_MIC3
+I (7494) ES7210: Enable TDM mode
+I (7504) CoreS3AudioCodec: CoreS3AudioCodec initialized
+I (7504) AudioCodec: Audio codec started
+I (7744) WebRTC-TP: pre-generate DTLS cert -> 0
+I (7744) DTLS: Init SRTP OK
+I (7744) DTLS: DTLS cipher pref: auto (mbedtls default order)
+W (7744) WebRTC-SRTP: SRTP offer narrowed to SHA1_80 (component offered 4 profile(s); only the 80-bit policy is implemented)
+I (7754) WebRTC-TP: esp_peer_open -> 0
+I (7754) WebRTC-TP: peer main loop started
+I (8064) WebRTC-TP: [state] NEW_CONNECTION (2)
+I (8064) WebRTC-TP: esp_peer_new_connection -> 0
+W (8064) WebRTC-Run: PROGRESS run=ampreset01 state=Preparing reason=none stage=0 session_tag=00000000 elapsed_ms=-1 config=0 transport_joined=0
+W (8074) WebRTC-Run: MEDIA run=ampreset01 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+I (8084) WebRTC-TP: [state] CANDIDATE_GATHERING (3)
+W (8084) WebRTC-Run: TIMELINE run=ampreset01 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=0 max_queue_age_us=0
+I (8094) AGENT: Start agent as Controlling
+W (8104) WebRTC-Run: TIMING run=ampreset01 send_calls=0 send_avg_us=0 send_max_us=0 loop_max_us=0 mic_empty=0
+W (8114) WebRTC-Run: PLAYBACK run=ampreset01 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+I (8124) AGENT: Send STUN binding request
+W (8134) WebRTC-Run: HARDWARE run=ampreset01 read_ok=0 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=50303 stack=27356
+I (8164) AGENT: 0 Get candidate success user: psw:
+I (8164) WebRTC-TP: [msg] local SDP, 1113 bytes, candidates=YES
+I (8164) WebRTC-TP: POST realtime WebRTC SDP endpoint
+I (8174) WebRTC-TP: offer is 1113 bytes
+W (8174) WebRTC-TP: ----- OFFER media lines -----
+W (8184) WebRTC-TP:   m=audio 9 UDP/TLS/RTP/SAVPF 111
+
+W (8184) WebRTC-TP:   a=mid:0
+
+W (8194) WebRTC-TP:   a=rtcp-mux
+
+W (8194) WebRTC-TP:   a=rtpmap:111 opus/48000/2
+
+W (8194) WebRTC-TP:   a=ssrc:6 cname:EspSSpbA0
+
+W (8204) WebRTC-TP:   a=ssrc:6 msid:esp_stream a0
+
+W (8204) WebRTC-TP:   a=sendrecv
+
+W (8204) WebRTC-TP:   m=application 50712 UDP/DTLS/SCTP webrtc-datachannel
+
+W (8214) WebRTC-TP:   a=mid:1
+
+W (8214) WebRTC-TP: --------------------------
+I (8364) esp-x509-crt-bundle: Certificate validated
+I (8844) WebRTC-TP: SDP exchange: err=ESP_OK http=200
+I (8844) WebRTC-TP: response body is 1254 bytes
+W (8844) WebRTC-TP: ----- ANSWER media lines -----
+W (8844) WebRTC-TP:   m=audio 3478 UDP/TLS/RTP/SAVPF 111
+
+W (8854) WebRTC-TP:   a=mid:0
+
+W (8854) WebRTC-TP:   a=rtcp-mux
+
+W (8854) WebRTC-TP:   a=sendrecv
+
+W (8864) WebRTC-TP:   a=rtpmap:111 opus/48000/2
+
+W (8864) WebRTC-TP:   a=fmtp:111 minptime=20
+
+W (8874) WebRTC-TP:   a=ssrc:1000 msid:alibaba-bailian audio-1
+
+W (8874) WebRTC-TP:   m=application 3478 UDP/DTLS/SCTP webrtc-datachannel
+
+W (8884) WebRTC-TP:   a=mid:1
+
+W (8884) WebRTC-TP: --------------------------
+I (8894) PEER_DEF: Get peer role 1
+I (8894) PEER_DEF: Get peer role 1
+I (8894) PEER_DEF: Get peer role 1
+I (8894) PEER_DEF: Extract SDP: stream_count=2, audio_mid=255 (dir=3), video_mid=255 (dir=3), data_mid=255, assrc=1000, vssrc=0, vrtx_ssrc=0, vfmt=0, vrtx_fmt=0
+I (8944) AGENT: 0 Add remote type:1 39.97.230.241:3478
+I (8944) WebRTC-TP: [state] PAIRING (4)
+I (8944) WebRTC-TP: fed answer to peer -> 0
+I (8964) AGENT: 0 0 Send binding request (cand:0) local0:192.168.1.x:65368 remote0:39.97.230.241:3478 id:5851f42d40b18ccf4bb5f646
+I (9144) AGENT: Add local prflx 172.22.213.35:56806
+I (9144) AGENT: 0 1 LocalBinding resp 5851f42d40b18ccf4bb5f646 local1
+I (9144) AGENT: 0 Select pair39.97.230.241:3478
+I (9144) AGENT: 0 1 Send binding request (cand:1) local0:172.22.213.35:56806 remote0:39.97.230.241:3478 id:4703312930705b0420fd5db4
+I (9154) AGENT: 0 1 LocalBinding resp 5851f42d40b18ccf4bb5f646 local1
+I (9164) AGENT: 0 Candidate responded
+I (9164) AGENT: 0 Connection OK 39.97.230.241:3478
+I (9174) WebRTC-TP: [state] PAIRED (5)
+I (9174) PEER_DEF: Start DTLS role as 0
+I (9184) DTLS: DTLS cipher pref: auto (mbedtls default order)
+W (9184) WebRTC-SRTP: SRTP offer narrowed to SHA1_80 (component offered 4 profile(s); only the 80-bit policy is implemented)
+I (9194) WebRTC-TP: [state] CONNECTING (6)
+I (9704) DTLS: SRTP connected OK
+I (9844) DTLS: Client handshake success
+I (9844) DTLS: Negotiated DTLS ciphersuite: TLS-ECDHE-ECDSA-WITH-AES-256-GCM-SHA384
+I (9844) PEER_DEF: DTLS handshake success
+I (9854) PEER_DEF: Sctp role as 1
+I (9854) WebRTC-TP: [state] CONNECTED (7)
+I (9874) SCTP: 1 Receive chunk 1 SCTP_INIT
+W (9874) SCTP: Client need send init, skip init request
+I (9874) SCTP: 1 state 1
+I (9874) SCTP: Send INIT chunk
+I (9914) SCTP: 1 Receive chunk 2 SCTP_INIT_ACK
+I (9914) SCTP: 1 state 2
+I (9914) SCTP: Send ECHO chunk
+I (9914) SCTP: 1 state 3
+I (9914) SCTP: Send ECHO chunk
+I (9934) SCTP: 1 Receive chunk 11 SCTP_COOKIE_ACK
+I (9934) SCTP: 1 state 5
+I (9934) WebRTC-TP: [state] DATA_CHANNEL_CONNECTED (9)
+I (9934) SCTP: Send DCEP oai-events event:3 type:0 si:2
+I (9934) WebRTC-TP: create data channel 'oai-events' -> 0
+I (9944) SCTP: Get DCEP txt event:3 type:1 si:1 param:10
+I (9944) WebRTC-TP: [channel open] label='txt' stream_id=1
+I (9954) WebRTC-TP: [state] DATA_CHANNEL_OPENED (10)
+I (9954) SCTP: 1 Receive chunk 11 SCTP_COOKIE_ACK
+E (10164) MODEL_LOADER: Can not find model in partition table
+I (10204) AFE: AFE Version: (1MIC_V251128)
+I (10204) AFE: Input PCM Config: total 2 channels(1 microphone, 1 playback), sample rate:16000
+I (10214) AFE: AFE Pipeline: [input] -> |AEC(VOIP_HIGH_PERF)| -> [output]
+I (10214) AfeAudioProcessor: Audio communication task started, feed size: 256 fetch size: 512
+I (10224) I2S_IF: Paired data: 0x3fcf1220, current mode: record, paired in_enable: 0, paired out_enable: 0
+I (10234) I2S_IF: TDM: RX, data_bit: 16, slot_bit: 16, ws_width: 16, total_slot: 2, slot_mask: 0x3
+I (10244) I2S_IF: TDM: RX, sample_rate_hz: 24000, mclk_multiple: 256, clk_src: 6
+I (10254) I2S_IF: STD: TX, data_bit: 16, slot_bit: 16, ws_width: 16, slot_mode: STEREO, slot_mask: 0x3
+I (10254) I2S_IF: STD: TX, sample_rate_hz: 24000, mclk_multiple: 256, clk_src: 6
+I (10264) ES7210: Bits 16
+I (10274) ES7210: Enable ES7210_INPUT_MIC1
+I (10274) ES7210: Enable ES7210_INPUT_MIC2
+I (10284) ES7210: Enable ES7210_INPUT_MIC3
+I (10284) ES7210: Enable TDM mode
+I (10294) ES7210: Unmuted
+I (10294) Adev_Codec: Open codec device OK
+I (10294) AudioCodec: Set input enable to true
+W (10384) AfeAudioProcessor: AFE feed: chunks=0 avg_us=0 max_us=0 failures=0 dropped_samples=0 max_backlog_ms=0 queue_cap_samples=6400
+W (10494) WebRTC-Run: RUNNING run=ampreset01 mode=self session_tag=66e2b102 t0_us=9714645 duration_s=30 real_mic=1 speaker=1 first_warm_afe_us=9707783
+W (10494) WebRTC-Run: SELFPLAY run=ampreset01 item_sent=1 request_sent=1 stream=1
+W (11044) M5Stack-StackChan-Board: FT6336 read failed (ESP_ERR_TIMEOUT), skipped 1 sample(s)
+I (11314) I2S_IF: Current mode(playback) and peer mode have same sample_rate 24000, channel 2, bits_per_sample 16
+I (11314) I2S_IF: STD: TX, data_bit: 16, slot_bit: 16, ws_width: 16, slot_mode: MONO, slot_mask: 0x1
+I (11324) I2S_IF: STD: TX, sample_rate_hz: 24000, mclk_multiple: 256, clk_src: 6
+E (11434) I2C_If: Fail to read from dev 6c
+E (11534) I2C_If: Fail to write to dev 6c
+ESP_ERROR_CHECK failed: esp_err_t 0x107 (ESP_ERR_TIMEOUT) at 0x4202017a
+file: "./xiaozhi-esp32/main/boards/common/i2c_device.cc" line 29
+func: uint8_t I2cDevice::ReadReg(uint8_t)
+expression: i2c_master_transmit_receive(i2c_device_, &reg, 1, buffer, 1, 100)
+
+abort() was called at PC 0x4038f06f on core 0
+
+
+Backtrace: 0x4038f0b1:0x3fcc0f00 0x4038f079:0x3fcc0f20 0x40396d06:0x3fcc0f40 0x4038f06f:0x3fcc0fb0 0x4202017a:0x3fcc0fe0 0x4204e45d:0x3fcc1020 0x4204e58f:0x3fcc1040 0x4219d76e:0x3fcc1070
+
+
+
+
+ELF file SHA256: d38b500f1
+
+Rebooting...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x2b (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4038f225
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x1744
+load:0x403c8700,len:0xf40
+load:0x403cb700,len:0x3610
+entry 0x403c89c4
+I (24) boot: ESP-IDF v5.5.4 2nd stage bootloader
+I (24) boot: compile time Oct  6 2026 21:30:34
+I (24) boot: Multicore bootloader
+I (25) boot: chip revision: v0.2
+I (27) boot: efuse block revision: v1.3
+I (31) qio_mode: Enabling default flash chip QIO
+I (35) boot.esp32s3: Boot SPI Speed : 80MHz
+I (39) boot.esp32s3: SPI Mode       : QIO
+I (43) boot.esp32s3: SPI Flash Size : 16MB
+I (46) boot: Enabling RNG early entropy source...
+I (51) boot: Partition Table:
+I (54) boot: ## Label            Usage          Type ST Offset   Length
+I (60) boot:  0 nvs              WiFi data        01 02 00009000 00004000
+I (66) boot:  1 otadata          OTA data         01 00 0000d000 00002000
+I (73) boot:  2 phy_init         RF data          01 01 0000f000 00001000
+I (79) boot:  3 ota_0            OTA app          00 10 00020000 004f0000
+I (86) boot:  4 ota_1            OTA app          00 11 00510000 004f0000
+I (92) boot:  5 assets           Unknown data     01 82 00a00000 00400000
+I (99) boot:  6 coredump         Unknown data     01 03 00e00000 00010000
+I (105) boot: End of partition table
+I (109) esp_image: segment 0: paddr=00020020 vaddr=3c290020 size=11efa0h (1175456) map
+I (280) esp_image: segment 1: paddr=0013efc8 vaddr=3fca9f00 size=01050h (  4176) load
+I (281) esp_image: segment 2: paddr=00140020 vaddr=42000020 size=284708h (2639624) map
+I (650) esp_image: segment 3: paddr=003c4730 vaddr=3fcaaf50 size=07e18h ( 32280) load
+I (656) esp_image: segment 4: paddr=003cc550 vaddr=40378000 size=21e10h (138768) load
+I (680) esp_image: segment 5: paddr=003ee368 vaddr=50000000 size=00020h (    32) load
+I (693) boot: Loaded app from partition at offset 0x20000
+I (693) boot: Disabling RNG early entropy source...
+I (703) esp_psram: Found 8MB PSRAM device
+I (703) esp_psram: Speed: 80MHz
+I (703) cpu_start: Multicore app
+I (713) cpu_start: GPIO 44 and 43 are used as console UART I/O pins
+I (713) cpu_start: Pro cpu start user code
+I (713) cpu_start: cpu freq: 240000000 Hz
+I (715) app_init: Application information:
+I (719) app_init: Project name:     stack-chan
+I (723) app_init: App version:      1.5.1
+I (727) app_init: Compile time:     Oct 26 2026 20:43:50
+I (732) app_init: ELF file SHA256:  d38b500f1...
+I (736) app_init: ESP-IDF:          v5.5.4
+I (740) efuse_init: Min chip rev:     v0.0
+I (744) efuse_init: Max chip rev:     v0.99 
+I (748) efuse_init: Chip rev:         v0.2
+I (752) heap_init: Initializing. RAM available for dynamic allocation:
+I (758) heap_init: At 3FCBD560 len 0002C1B0 (176 KiB): RAM
+I (763) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (768) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (773) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (779) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (786) spi_flash: detected chip: generic
+I (789) spi_flash: flash io: qio
+I (794) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (798) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (813) main_task: Started on CPU0
+I (823) esp_psram: Reserving pool of 64K of internal memory for DMA/internal allocations
+I (823) main_task: Calling app_main()
+[1793033049255] [[32minfo[0m] [HAL] creating hal instance
+[1793033049261] [[32minfo[0m] [HAL] init
+[1793033049278] [[32minfo[0m] [HAL] xiaozhi board init
+I (853) Board: UUID=13d885f2-f0c0-4c7f-b5f9-ad9dd41a8f60 SKU=m5stack-stack-chan
+I (853) M5Stack-StackChan-Board: Init AXP2101
+I (853) M5Stack-StackChan-Board: Set charge current success
+I (863) M5Stack-StackChan-Board: Init power save timer: sleep=300 s, shutdown=600 s, allow_shutdown_when_charging=0
+I (873) M5Stack-StackChan-Board: Init AW9523
+I (923) M5Stack-StackChan-Board: Reset AW88298
+     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
+
+00: 00 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+
+10: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+
+20: -- 21 -- 23 -- -- -- -- -- -- -- -- -- -- -- -- 
+
+30: -- -- -- -- 34 -- 36 -- 38 -- -- -- -- -- -- -- 
+
+40: 40 41 -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+
+50: 50 51 -- -- -- -- -- -- 58 -- -- -- -- -- -- -- 
+
+60: -- -- -- -- -- -- -- -- 68 69 -- -- -- -- -- 6f 
+
+70: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+
+I (1013) M5Stack-StackChan-Board: Init FT6336
+I (1013) M5Stack-StackChan-Board: Init IlI9342
+I (1023) ili9341: LCD panel create success, version: 1.2.0
+I (1043) M5Stack-StackChan-Board: Reset IlI9342
+I (1173) M5Stack-StackChan-Board: CIPHER:0x64 / FIRMID:0x03 / VENDID:0x01, panel:ILI9342C
+I (1173) Display: Power management not supported
+I (1233) StackChanAvatarDisplay: Turning display on
+I (1233) StackChanAvatarDisplay: Initialize LVGL library
+I (1233) StackChanAvatarDisplay: Use 2MB of PSRAM for image cache
+I (1233) StackChanAvatarDisplay: Initialize LVGL port
+I (1243) StackChanAvatarDisplay: Adding LCD display
+I (1243) LVGL: Starting LVGL task
+I (1253) StackChanAvatarDisplay: Create boot logo label
+I (1293) M5Stack-StackChan-Board: Init Camera
+I (1293) gc0308: Detected Camera sensor PID=0x9b
+I (1373) StackChanCamera: Camera init success
+I (1383) Backlight: Set brightness to 75
+[1793033049807] [[32minfo[0m] [HAL-MCP] init
+[1793033049807] [[32minfo[0m] [HAL-MCP] add robot.get_head_angles tool
+I (1383) MCP: Add tool: self.robot.get_head_angles
+[1793033049817] [[32minfo[0m] [HAL-MCP] add robot.set_head_angles tool
+I (1393) MCP: Add tool: self.robot.set_head_angles
+[1793033049828] [[32minfo[0m] [HAL-MCP] add robot.set_led_color tool
+I (1403) MCP: Add tool: self.robot.set_led_color
+[1793033049839] [[32minfo[0m] [HAL-MCP] add robot.create_reminder tool
+I (1413) MCP: Add tool: self.robot.create_reminder
+[1793033049849] [[32minfo[0m] [HAL-MCP] add robot.get_reminders tool
+I (1423) MCP: Add tool: self.robot.get_reminders
+[1793033049860] [[32minfo[0m] [HAL-MCP] add robot.stop_reminder tool
+I (1443) MCP: Add tool: self.robot.stop_reminder
+[1793033049871] [[32minfo[0m] [HAL-HeadTouch] init
+I (1443) Si12T: Si12T initialized, version: 0.0.2
+I (1463) Si12T: Si12T setup done
+[1793033049891] [[1793033049891] [32minfo[0m[] [32minfo[0m] [HAL-IOE] init
+[HAL-HeadTouch] start update task
+I (1663) PY32IOExpander: Version: 0x41
+[1793033050542] [[32minfo[0m] [HAL-IOE] init done
+[1793033050543] [[32minfo[0m] [HAL-RTC] init
+[1793033050543] [[32minfo[0m] [HAL-RTC] PCF8563 init ok
+[1793033050546] [[32minfo[0m] [HAL-RTC] load timezone from nvs: GMT0
+[1793033051000] [[32minfo[0m] [HAL-RTC] rtc synced to system (UTC): 2026-10-26 16:44:11
+[1793033051007] [[32minfo[0m] [HAL-IMU] init
+[1793033051309] [[32minfo[0m] [HAL-IMU] BMI270 init ok
+[1793033051309] [[32minfo[0m] [HAL-Servo] init
+I (2433) uart: ESP_INTR_FLAG_IRAM flag not set while CONFIG_UART_ISR_IN_IRAM is enabled, flag updated
+[1793033051317] [[32minfo[0m] [ScsServo] id: 1 get zero pos: 501 from settings
+[1793033051326] [[32minfo[0m] [ScsServo] id: 2 get zero pos: 635 from settings
+[1793033051333] [[32minfo[0m] [HAL] lvgl init
+[1793033051335] [[32minfo[0m] [HAL] create lvgl touchpad indev
+W (2463) WebRTC-Run: IDLE; USB commands: START <run_id> near|duplex|self <5..180 seconds>, STOP <run_id>, STATUS, AUDIT <3..10 seconds>; fresh run ID for each start
+W (92423) WebRTC-Run: STATUS run=none state=Idle restart_requires_reboot=0

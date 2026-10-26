@@ -45,7 +45,7 @@ I (19672) wifi:dp: 1, bi: 102400, li: 10, scale listen interval from 1024000 us 
 I (19672) wifi:set rx beacon pti, rx_bcn_pti: 14, bcn_timeout: 25000, mt_pti: 14, mt_time: 10000
 I (19692) wifi:<ba-add>idx:0 (ifx:0, <BSSID>), tid:0, ssn:3, winSize:64
 I (19852) wifi:AP's beacon interval = 102400 us, DTIM period = 1
-I (20962) esp_netif_handlers: sta ip: 192.168.1.x, mask: 255.255.255.0, gw: 192.168.1.1
+I (20962) esp_netif_handlers: sta ip: 192.168.1.x, mask: 255.255.255.0, gw: 192.168.1.x
 I (20962) WifiStation: Got IP: 192.168.1.x
 I (20962) WifiBoard: Connected to WiFi: <SSID>
 I (20972) CoreS3AudioCodec: Audio IOs: mclk: 0, bclk: 34, ws: 33, dout: 13, din: 14
