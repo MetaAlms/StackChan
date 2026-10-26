@@ -467,3 +467,19 @@ STOP near_01
   `speech/items/responses=0`。更正“只发生在第二次 run”的假设：慢速可出现在第一次
   duplex；near 首轮（perf02，48.4/s）是唯一稳定组合。需调度/背压插桩后修复，
   不再盲测。日志：`docs/device_diag_evidence/2026-10-24-m15/aec-duplex-06-first-run.log`。
+
+### 自播诊断：去掉“用户必须先说话”的触发依赖（2026-10-26）
+
+- 动机：慢速 run 都发生在用户语音之后，无语音批量 3/3 快（~49/s）；需要确定性触发
+  播放/回声，同时不要求用户配合说话，才能分离“语音输入”与“播放/回声”两类因素。
+- 固件 `e46002d` 新增 `START <run_id> self <5..180>`：`session.created` 记录 data-channel
+  stream，进入 RUNNING 后发一次
+  `{"type":"response.create","response":{"instructions":"请用普通话讲一个完整的故事，持续讲述到一分钟以上，不要向我提问，也不要停下来等回应。"}}`。
+  采集、AFE、VAD、播放与 `duplex` 完全相同，只把触发从用户语音换成固件请求。
+- 新增观测：`SELFPLAY run=... sent=1 stream=...` 或 `error=no_data_stream|send_failed`；
+  `error` 事件打印截断 120 字节的 code/message；EVIDENCE 增加 `self_play=`。
+- 离线：`console-command` 通过（新增 self 解析与 SessionRunControl::Start 断言）；
+  IDF 5.5.4 构建通过，app `0x3cdd40`（余 23%）。
+- 预期与边界：若服务端接受 `response.create`，应无用户语音即出现 response.created/下行音频；
+  若回声被 VAD 当作用户语音，会出现新 speech/`turn_detected` 取消，且可观察发送是否同步变慢。
+  若请求被拒，只会得到 error 并终止，不能据此判 AEC；单轮也不能证明长期稳定。
