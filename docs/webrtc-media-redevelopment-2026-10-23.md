@@ -485,3 +485,24 @@ STOP near_01
 - 预期与边界：若服务端接受 `response.create`，应无用户语音即出现 response.created/下行音频；
   若回声被 VAD 当作用户语音，会出现新 speech/`turn_detected` 取消，且可观察发送是否同步变慢。
   若请求被拒，只会得到 error 并终止，不能据此判 AEC；单轮也不能证明长期稳定。
+
+### AEC 执行模型修复：feed 移出高优先级输入任务（2026-10-26，待真机）
+
+- 依据 B60：AEC 的 `afe_feed → aec_process → ipnlms/FFT` 同步跑在 `audio_input`
+  （prio 8，core0）里，播放时把媒体发送（prio 5）和播放输出（prio 4）饿死。
+- 改动（仅 `CONFIG_USE_DEVICE_AEC` 路径，`afe_audio_processor.{h,cc}`）：
+  - `Feed()` 只入队，不再调用 `afe_feed`；队列上限 200ms，超限时一次 erase
+    降到“一个 fetch 块”（2 个 feed chunk），不再逐块搬移。
+  - 现有 `audio_communication` 任务改为 core1、prio 3、8KB 栈；每轮按
+    `fetch/feed = 512/256 = 2` 个 chunk 喂满一个 fetch 块后 `fetch_with_delay(100ms)`；
+    不足一块时释放锁并 `vTaskDelay(1)`（HZ=100，10ms），避免空转。
+  - 每轮统计 `chunks/avg_us/max_us/failures/dropped_samples/max_backlog_ms`，
+    Stop 时打印；`EnableDeviceAec` 用 `fetch_mutex_` 串行化。
+- 离线：IDF 5.5.4 构建通过（app `0x3ce350`，余 23%）；独立评审两轮后 APPROVE；
+  补丁 `firmware/patches/stackchan-webrtc-afe-lifecycle.patch` 重新生成，
+  在 pristine worktree `git apply --check` 通过。
+- 预期：上行回到 ~50 包/秒、无 WDT、`max_backlog_ms≈32–64`、`dropped=0`、
+  `avg_us<16000`；若 `avg_us` 仍大于 16ms 或持续丢帧，说明 AEC 本身慢于实时，
+  需换低复杂度 AEC 模式，不能把“任务搬走”当成修复完成。
+- 播放“滋啦”是否消失是第二个判据：若发送恢复而仍滋啦，优先查 TTS PCM 近满幅/
+  音量削波，而不是继续归因调度。

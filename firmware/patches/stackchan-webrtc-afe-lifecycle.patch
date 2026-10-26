@@ -1,48 +1,150 @@
---- a/main/audio/processors/afe_audio_processor.h
-+++ b/main/audio/processors/afe_audio_processor.h
-@@ -10,6 +10,9 @@
- #include <vector>
- #include <functional>
- #include <mutex>
-+#if CONFIG_STACKCHAN_WEBRTC_M15
-+#include <atomic>
-+#endif
- 
- #include "audio_processor.h"
- #include "audio_codec.h"
-@@ -24,6 +27,9 @@
-     void Start() override;
-     void Stop() override;
-     bool IsRunning() override;
-+#if CONFIG_STACKCHAN_WEBRTC_M15
-+    uint32_t WebRtcResetFailed() const { return reset_failed_.load(std::memory_order_relaxed); }
-+#endif
-     void OnOutput(std::function<void(std::vector<int16_t>&& data)> callback) override;
-     void OnVadStateChange(std::function<void(bool speaking)> callback) override;
-     size_t GetFeedSize() override;
-@@ -41,6 +47,12 @@
-     std::vector<int16_t> input_buffer_;
-     std::mutex input_buffer_mutex_;
-     std::vector<int16_t> output_buffer_;
-+#if CONFIG_STACKCHAN_WEBRTC_M15
-+    // Callbacks run under this lock: they must not call Start()/Stop()
-+    // synchronously. The owner must serialize lifecycle calls.
-+    std::mutex fetch_mutex_;
-+    std::atomic<uint32_t> reset_failed_{0};
-+#endif
- 
-     void AudioProcessorTask();
- };
+diff --git a/main/audio/processors/afe_audio_processor.cc b/main/audio/processors/afe_audio_processor.cc
+index 15e9cc5..90d3949 100644
 --- a/main/audio/processors/afe_audio_processor.cc
 +++ b/main/audio/processors/afe_audio_processor.cc
-@@ -114,10 +114,26 @@
+@@ -1,5 +1,6 @@
+ #include "afe_audio_processor.h"
+ #include <esp_log.h>
++#include <esp_timer.h>
+ 
+ #define PROCESSOR_RUNNING 0x01
+ 
+@@ -66,12 +67,30 @@ void AfeAudioProcessor::Initialize(AudioCodec* codec, int frame_duration_ms, srm
+ 
+     afe_iface_ = esp_afe_handle_from_config(afe_config);
+     afe_data_ = afe_iface_->create_from_config(afe_config);
++#if CONFIG_USE_DEVICE_AEC
++    const size_t feed_size = afe_iface_->get_feed_chunksize(afe_data_);
++    const size_t fetch_size = afe_iface_->get_fetch_chunksize(afe_data_);
++    feed_chunk_samples_ = feed_size;
++    if (feed_size != 0) {
++        feed_chunks_per_fetch_ = fetch_size / feed_size + (fetch_size % feed_size != 0 ? 1 : 0);
++    }
++#endif
+     
++#if CONFIG_USE_DEVICE_AEC
++    // AEC is CPU-heavy. Run feed/fetch on core 1 at low priority so the
++    // high-priority audio_input and playback tasks on core 0 are not starved.
++    xTaskCreatePinnedToCore([](void* arg) {
++        auto this_ = (AfeAudioProcessor*)arg;
++        this_->AudioProcessorTask();
++        vTaskDelete(NULL);
++    }, "audio_communication", 8192, this, 3, NULL, 1);
++#else
+     xTaskCreate([](void* arg) {
+         auto this_ = (AfeAudioProcessor*)arg;
+         this_->AudioProcessorTask();
+         vTaskDelete(NULL);
+     }, "audio_communication", 4096, this, 3, NULL);
++#endif
+ }
+ 
+ AfeAudioProcessor::~AfeAudioProcessor() {
+@@ -99,25 +118,139 @@ void AfeAudioProcessor::Feed(std::vector<int16_t>&& data) {
+         return;
+     }
+     input_buffer_.insert(input_buffer_.end(), data.begin(), data.end());
++#if CONFIG_USE_DEVICE_AEC
++    size_t chunk_size = feed_chunk_samples_ * codec_->input_channels();
++#else
+     size_t chunk_size = afe_iface_->get_feed_chunksize(afe_data_) * codec_->input_channels();
++#endif
++#if CONFIG_USE_DEVICE_AEC
++    // Do not run AEC on this high-priority input task. Bound the queue and let
++    // audio_communication consume it. If the consumer falls behind, drop to
++    // one fetch block in a single erase instead of parking at the cap; this
++    // keeps latency bounded and avoids repeated large memmoves on core 0.
++    const uint32_t buffered = (uint32_t)input_buffer_.size();
++    uint32_t previous_max = max_buffered_samples_.load(std::memory_order_relaxed);
++    while (buffered > previous_max &&
++           !max_buffered_samples_.compare_exchange_weak(previous_max, buffered, std::memory_order_relaxed)) {}
++    if (chunk_size != 0 && input_buffer_.size() > kMaxBufferedSamples) {
++        const size_t block = feed_chunks_per_fetch_ * chunk_size;
++        const size_t keep = block < kMaxBufferedSamples ? block : kMaxBufferedSamples;
++        size_t drop = input_buffer_.size() - keep;
++        drop -= drop % chunk_size;
++        if (drop != 0) {
++            input_buffer_.erase(input_buffer_.begin(), input_buffer_.begin() + drop);
++            feed_dropped_samples_.fetch_add((uint32_t)drop, std::memory_order_relaxed);
++        }
++    }
++    return;
++#else
+     while (input_buffer_.size() >= chunk_size) {
+         afe_iface_->feed(afe_data_, input_buffer_.data());
+         input_buffer_.erase(input_buffer_.begin(), input_buffer_.begin() + chunk_size);
+     }
++#endif
++}
++
++#if CONFIG_USE_DEVICE_AEC
++size_t AfeAudioProcessor::ProcessPendingFeed() {
++    const size_t chunk_size = feed_chunk_samples_ * codec_->input_channels();
++    if (chunk_size == 0) {
++        return 0;
++    }
++    // One fetch block consumes this many feed chunks (512 / 256 = 2 here).
++    // Feeding exactly one block keeps the FEED ring from being overrun and
++    // matches the AFE's feed:fetch cadence.
++    const size_t chunks_per_fetch = feed_chunks_per_fetch_;
++    const size_t block_size = chunks_per_fetch * chunk_size;
++    {
++        std::lock_guard<std::mutex> lock(input_buffer_mutex_);
++        if (!IsRunning() || input_buffer_.size() < block_size) {
++            return 0;
++        }
++        feed_scratch_.swap(input_buffer_);
++    }
++    size_t offset = 0;
++    size_t processed = 0;
++    while (processed < chunks_per_fetch && feed_scratch_.size() - offset >= chunk_size && IsRunning()) {
++        const int64_t started_us = esp_timer_get_time();
++        const int ret = afe_iface_->feed(afe_data_, feed_scratch_.data() + offset);
++        const uint32_t elapsed_us = (uint32_t)(esp_timer_get_time() - started_us);
++        if (ret <= 0) {
++            feed_failures_.fetch_add(1, std::memory_order_relaxed);
++        }
++        offset += chunk_size;
++        ++processed;
++        feed_chunks_.fetch_add(1, std::memory_order_relaxed);
++        feed_total_us_.fetch_add(elapsed_us, std::memory_order_relaxed);
++        uint32_t previous = feed_max_us_.load(std::memory_order_relaxed);
++        while (elapsed_us > previous &&
++               !feed_max_us_.compare_exchange_weak(previous, elapsed_us, std::memory_order_relaxed)) {}
++    }
++    if (offset < feed_scratch_.size()) {
++        std::lock_guard<std::mutex> lock(input_buffer_mutex_);
++        input_buffer_.insert(input_buffer_.begin(), feed_scratch_.begin() + offset, feed_scratch_.end());
++    }
++    feed_scratch_.clear();
++    // Always let the caller fetch: fetch is the only consumer that drains the
++    // AFE FEED ring, so skipping it after a failed feed would stall capture.
++    return processed;
+ }
++#endif
+ 
+ void AfeAudioProcessor::Start() {
++#if CONFIG_USE_DEVICE_AEC
++    // Stop() has joined the feed/fetch iteration; start a fresh per-run sample.
++    feed_chunks_.store(0, std::memory_order_relaxed);
++    feed_total_us_.store(0, std::memory_order_relaxed);
++    feed_max_us_.store(0, std::memory_order_relaxed);
++    feed_dropped_samples_.store(0, std::memory_order_relaxed);
++    feed_failures_.store(0, std::memory_order_relaxed);
++    max_buffered_samples_.store(0, std::memory_order_relaxed);
++#endif
+     xEventGroupSetBits(event_group_, PROCESSOR_RUNNING);
+ }
+ 
+ void AfeAudioProcessor::Stop() {
      xEventGroupClearBits(event_group_, PROCESSOR_RUNNING);
  
-     std::lock_guard<std::mutex> lock(input_buffer_mutex_);
-+#if CONFIG_STACKCHAN_WEBRTC_M15
-+    // Exclude Feed first, then wait for the current fetch/callback iteration.
++    // Consistent order with the processor task: fetch/AFE lock, then buffer.
++    // Wait for the current feed/fetch iteration before clearing or resetting.
++#if CONFIG_STACKCHAN_WEBRTC_M15 || CONFIG_USE_DEVICE_AEC
 +    std::lock_guard<std::mutex> fetch_lock(fetch_mutex_);
 +#endif
+     std::lock_guard<std::mutex> lock(input_buffer_mutex_);
      if (afe_data_ != nullptr) {
 +#if CONFIG_STACKCHAN_WEBRTC_M15
 +        int result = afe_iface_->reset_buffer(afe_data_);
@@ -59,14 +161,35 @@
 +    output_buffer_.clear();
 +    is_speaking_ = false;
 +#endif
++#if CONFIG_USE_DEVICE_AEC
++    feed_scratch_.clear();
++    {
++        const uint32_t chunks = feed_chunks_.load(std::memory_order_relaxed);
++        const uint32_t total_us = feed_total_us_.load(std::memory_order_relaxed);
++        const uint32_t max_buffered = max_buffered_samples_.load(std::memory_order_relaxed);
++        const uint32_t channels = codec_ != nullptr ? (uint32_t)codec_->input_channels() : 2;
++        const uint32_t max_backlog_ms = channels != 0 ? max_buffered * 1000 / (16000 * channels) : 0;
++        ESP_LOGW(TAG, "AFE feed: chunks=%lu avg_us=%lu max_us=%lu failures=%lu dropped_samples=%lu max_backlog_ms=%lu queue_cap_samples=%u",
++            (unsigned long)chunks, (unsigned long)(chunks ? total_us / chunks : 0),
++            (unsigned long)feed_max_us_.load(std::memory_order_relaxed),
++            (unsigned long)feed_failures_.load(std::memory_order_relaxed),
++            (unsigned long)feed_dropped_samples_.load(std::memory_order_relaxed),
++            (unsigned long)max_backlog_ms, (unsigned)kMaxBufferedSamples);
++    }
++#endif
  }
  
  bool AfeAudioProcessor::IsRunning() {
-@@ -138,10 +154,25 @@
+@@ -138,10 +271,51 @@ void AfeAudioProcessor::AudioProcessorTask() {
      ESP_LOGI(TAG, "Audio communication task started, feed size: %d fetch size: %d",
          feed_size, fetch_size);
  
-+#if CONFIG_STACKCHAN_WEBRTC_M15
++#if CONFIG_USE_DEVICE_AEC
++    // AFE fetch blocks are 512 samples / 16 kHz (32 ms). Keep the wait at the
++    // M15 100 ms value: an early return still wakes immediately, while a short
++    // timeout would log ESP_FAIL every few milliseconds (finding B51).
++    const TickType_t fetch_wait = pdMS_TO_TICKS(100) > 0 ? pdMS_TO_TICKS(100) : 1;
++#elif CONFIG_STACKCHAN_WEBRTC_M15
 +    // Cover a 512-sample / 16 kHz block (32 ms) plus scheduling time.
 +    // Keep fetch finite so Stop can join this iteration; callback and
 +    // lock scheduling are additional, so this is not a Stop deadline.
@@ -75,7 +198,28 @@
      while (true) {
          xEventGroupWaitBits(event_group_, PROCESSOR_RUNNING, pdFALSE, pdTRUE, portMAX_DELAY);
  
-+#if CONFIG_STACKCHAN_WEBRTC_M15
++#if CONFIG_USE_DEVICE_AEC
++        std::unique_lock<std::mutex> fetch_lock(fetch_mutex_);
++        if (!IsRunning()) {
++            continue;
++        }
++        // AEC runs here, not in audio_input: keep the high-priority capture
++        // and playback tasks free to meet their I2S deadlines. Feed one full
++        // fetch block before each fetch; do not block in fetch while underfed.
++        if (ProcessPendingFeed() == 0) {
++            fetch_lock.unlock();
++            // 10 ms at CONFIG_FREERTOS_HZ=100; a zero-tick delay would spin.
++            vTaskDelay(1);
++            continue;
++        }
++        if (!IsRunning()) {
++            continue;
++        }
++        auto res = afe_iface_->fetch_with_delay(afe_data_, fetch_wait);
++        if (!IsRunning()) {
++            continue;
++        }
++#elif CONFIG_STACKCHAN_WEBRTC_M15
 +        std::lock_guard<std::mutex> fetch_lock(fetch_mutex_);
 +        // Stop may have cleared the bit while this iteration waited for the lock.
 +        if (!IsRunning()) {
@@ -88,3 +232,66 @@
          if ((xEventGroupGetBits(event_group_) & PROCESSOR_RUNNING) == 0) {
              continue;
          }
+@@ -187,6 +361,10 @@ void AfeAudioProcessor::AudioProcessorTask() {
+ }
+ 
+ void AfeAudioProcessor::EnableDeviceAec(bool enable) {
++#if CONFIG_STACKCHAN_WEBRTC_M15 || CONFIG_USE_DEVICE_AEC
++    // Serialize AEC/VAD mode changes with feed/fetch and reset_buffer.
++    std::lock_guard<std::mutex> lock(fetch_mutex_);
++#endif
+     if (enable) {
+ #if CONFIG_USE_DEVICE_AEC
+         afe_iface_->disable_vad(afe_data_);
+diff --git a/main/audio/processors/afe_audio_processor.h b/main/audio/processors/afe_audio_processor.h
+index fe2f025..3db0826 100644
+--- a/main/audio/processors/afe_audio_processor.h
++++ b/main/audio/processors/afe_audio_processor.h
+@@ -10,6 +10,9 @@
+ #include <vector>
+ #include <functional>
+ #include <mutex>
++#if CONFIG_STACKCHAN_WEBRTC_M15 || CONFIG_USE_DEVICE_AEC
++#include <atomic>
++#endif
+ 
+ #include "audio_processor.h"
+ #include "audio_codec.h"
+@@ -24,6 +27,9 @@ public:
+     void Start() override;
+     void Stop() override;
+     bool IsRunning() override;
++#if CONFIG_STACKCHAN_WEBRTC_M15
++    uint32_t WebRtcResetFailed() const { return reset_failed_.load(std::memory_order_relaxed); }
++#endif
+     void OnOutput(std::function<void(std::vector<int16_t>&& data)> callback) override;
+     void OnVadStateChange(std::function<void(bool speaking)> callback) override;
+     size_t GetFeedSize() override;
+@@ -41,6 +47,27 @@ private:
+     std::vector<int16_t> input_buffer_;
+     std::mutex input_buffer_mutex_;
+     std::vector<int16_t> output_buffer_;
++#if CONFIG_STACKCHAN_WEBRTC_M15 || CONFIG_USE_DEVICE_AEC
++    // Callbacks run under this lock: they must not call Start()/Stop()
++    // synchronously. The owner must serialize lifecycle calls.
++    std::mutex fetch_mutex_;
++#endif
++#if CONFIG_STACKCHAN_WEBRTC_M15
++    std::atomic<uint32_t> reset_failed_{0};
++#endif
++#if CONFIG_USE_DEVICE_AEC
++    // AEC runs in the lower-priority audio_communication task instead of the
++    // high-priority audio_input task; see ProcessPendingFeed().
++    // Bound stale capture to 200 ms; when exceeded, drop down to one fetch
++    // block (two 16 ms feed chunks) so latency cannot park at the cap.
++    static constexpr size_t kMaxBufferedSamples = 16000 * 2 * 200 / 1000;
++    std::atomic<uint32_t> feed_chunks_{0}, feed_total_us_{0}, feed_max_us_{0}, feed_dropped_samples_{0};
++    std::atomic<uint32_t> feed_failures_{0}, max_buffered_samples_{0};
++    std::vector<int16_t> feed_scratch_;
++    size_t feed_chunk_samples_ = 0;      // Per channel, from the AFE.
++    size_t feed_chunks_per_fetch_ = 1;   // Derived from feed/fetch block sizes.
++    size_t ProcessPendingFeed();
++#endif
+ 
+     void AudioProcessorTask();
+ };
