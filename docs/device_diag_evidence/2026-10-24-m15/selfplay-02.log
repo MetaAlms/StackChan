@@ -1,0 +1,238 @@
+W (383462) WebRTC-Run: PREPARING run=selfplay02; wait for RUNNING before any action
+I (383702) WebRTC-TP: pre-generate DTLS cert -> 0
+I (383712) DTLS: DTLS cipher pref: auto (mbedtls default order)
+W (383712) WebRTC-SRTP: SRTP offer narrowed to SHA1_80 (component offered 4 profile(s); only the 80-bit policy is implemented)
+I (383722) WebRTC-TP: esp_peer_open -> 0
+I (383722) WebRTC-TP: peer main loop started
+I (384022) WebRTC-TP: [state] NEW_CONNECTION (2)
+I (384022) WebRTC-TP: esp_peer_new_connection -> 0
+W (384022) WebRTC-Run: PROGRESS run=selfplay02 state=Preparing reason=none stage=0 session_tag=00000000 elapsed_ms=-1 config=0 transport_joined=0
+W (384032) WebRTC-Run: MEDIA run=selfplay02 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+I (384042) WebRTC-TP: [state] CANDIDATE_GATHERING (3)
+I (384052) AGENT: Start agent as Controlling
+W (384042) WebRTC-Run: TIMELINE run=selfplay02 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=0 max_queue_age_us=0
+W (384062) WebRTC-Run: TIMING run=selfplay02 send_calls=0 send_avg_us=0 send_max_us=0 loop_max_us=0 mic_empty=0
+I (384072) AGENT: Send STUN binding request
+W (384072) WebRTC-Run: PLAYBACK run=selfplay02 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+I (384092) AGENT: 0 Get candidate success user: psw:
+W (384102) WebRTC-Run: HARDWARE run=selfplay02 read_ok=0 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=49975 stack=27356
+I (384112) WebRTC-TP: [msg] local SDP, 1113 bytes, candidates=YES
+I (384132) WebRTC-TP: POST realtime WebRTC SDP endpoint
+I (384132) WebRTC-TP: offer is 1113 bytes
+W (384142) WebRTC-TP: ----- OFFER media lines -----
+W (384142) WebRTC-TP:   m=audio 9 UDP/TLS/RTP/SAVPF 111
+
+W (384152) WebRTC-TP:   a=mid:0
+
+W (384152) WebRTC-TP:   a=rtcp-mux
+
+W (384152) WebRTC-TP:   a=rtpmap:111 opus/48000/2
+
+W (384162) WebRTC-TP:   a=ssrc:6 cname:EspSSpbA0
+
+W (384162) WebRTC-TP:   a=ssrc:6 msid:esp_stream a0
+
+W (384172) WebRTC-TP:   a=sendrecv
+
+W (384172) WebRTC-TP:   m=application 50712 UDP/DTLS/SCTP webrtc-datachannel
+
+W (384182) WebRTC-TP:   a=mid:1
+
+W (384182) WebRTC-TP: --------------------------
+I (384282) esp-x509-crt-bundle: Certificate validated
+I (384572) WebRTC-TP: SDP exchange: err=ESP_OK http=200
+I (384572) WebRTC-TP: response body is 1254 bytes
+W (384572) WebRTC-TP: ----- ANSWER media lines -----
+W (384572) WebRTC-TP:   m=audio 3478 UDP/TLS/RTP/SAVPF 111
+
+W (384582) WebRTC-TP:   a=mid:0
+
+W (384582) WebRTC-TP:   a=rtcp-mux
+
+W (384582) WebRTC-TP:   a=sendrecv
+
+W (384592) WebRTC-TP:   a=rtpmap:111 opus/48000/2
+
+W (384592) WebRTC-TP:   a=fmtp:111 minptime=20
+
+W (384602) WebRTC-TP:   a=ssrc:1000 msid:alibaba-bailian audio-1
+
+W (384602) WebRTC-TP:   m=application 3478 UDP/DTLS/SCTP webrtc-datachannel
+
+W (384612) WebRTC-TP:   a=mid:1
+
+W (384612) WebRTC-TP: --------------------------
+I (384622) PEER_DEF: Get peer role 1
+I (384622) PEER_DEF: Get peer role 1
+I (384622) PEER_DEF: Get peer role 1
+I (384632) PEER_DEF: Extract SDP: stream_count=2, audio_mid=255 (dir=3), video_mid=255 (dir=3), data_mid=255, assrc=1000, vssrc=0, vrtx_ssrc=0, vfmt=0, vrtx_fmt=0
+I (384652) AGENT: 0 Add remote type:1 39.97.230.241:3478
+I (384652) WebRTC-TP: [state] PAIRING (4)
+I (384652) WebRTC-TP: fed answer to peer -> 0
+I (384672) AGENT: 0 0 Send binding request (cand:0) local0:192.168.1.x:59583 remote0:39.97.230.241:3478 id:5851f42d40b18ccf4bb5f646
+I (384702) AGENT: Add local prflx 172.22.213.33:33097
+I (384702) AGENT: 0 1 LocalBinding resp 5851f42d40b18ccf4bb5f646 local1
+I (384702) AGENT: 0 Select pair39.97.230.241:3478
+I (384712) AGENT: 0 1 Send binding request (cand:1) local0:172.22.213.33:33097 remote0:39.97.230.241:3478 id:4703312930705b0420fd5db4
+I (384722) AGENT: 0 1 LocalBinding resp 5851f42d40b18ccf4bb5f646 local1
+I (384732) AGENT: 0 Candidate responded
+I (384732) AGENT: 0 Connection OK 39.97.230.241:3478
+I (384732) WebRTC-TP: [state] PAIRED (5)
+I (384742) PEER_DEF: Start DTLS role as 0
+I (384742) DTLS: DTLS cipher pref: auto (mbedtls default order)
+W (384752) WebRTC-SRTP: SRTP offer narrowed to SHA1_80 (component offered 4 profile(s); only the 80-bit policy is implemented)
+I (384762) WebRTC-TP: [state] CONNECTING (6)
+W (385132) M5Stack-StackChan-Board: FT6336 read failed (ESP_ERR_TIMEOUT), skipped 1 sample(s)
+I (385232) DTLS: SRTP connected OK
+I (385372) DTLS: Client handshake success
+I (385372) DTLS: Negotiated DTLS ciphersuite: TLS-ECDHE-ECDSA-WITH-AES-256-GCM-SHA384
+I (385372) PEER_DEF: DTLS handshake success
+I (385372) PEER_DEF: Sctp role as 1
+I (385382) WebRTC-TP: [state] CONNECTED (7)
+I (385402) SCTP: 1 Receive chunk 1 SCTP_INIT
+W (385402) SCTP: Client need send init, skip init request
+I (385402) SCTP: 1 state 1
+I (385402) SCTP: Send INIT chunk
+I (385532) SCTP: Send INIT chunk
+I (385552) SCTP: 1 Receive chunk 2 SCTP_INIT_ACK
+I (385552) SCTP: 1 state 2
+I (385552) SCTP: Send ECHO chunk
+I (385552) SCTP: 1 Receive chunk 2 SCTP_INIT_ACK
+I (385552) SCTP: Send ECHO chunk
+I (385552) SCTP: 1 state 3
+I (385562) SCTP: Send ECHO chunk
+I (385582) SCTP: 1 Receive chunk 11 SCTP_COOKIE_ACK
+I (385582) SCTP: 1 state 5
+I (385582) WebRTC-TP: [state] DATA_CHANNEL_CONNECTED (9)
+I (385582) SCTP: Send DCEP oai-events event:3 type:0 si:2
+I (385582) WebRTC-TP: create data channel 'oai-events' -> 0
+I (385592) SCTP: Get DCEP txt event:3 type:1 si:1 param:10
+I (385592) WebRTC-TP: [channel open] label='txt' stream_id=1
+I (385602) WebRTC-TP: [state] DATA_CHANNEL_OPENED (10)
+I (385612) SCTP: 1 Receive chunk 11 SCTP_COOKIE_ACK
+I (385612) SCTP: 1 Receive chunk 11 SCTP_COOKIE_ACK
+E (385752) MODEL_LOADER: Can not find model in partition table
+I (385792) AFE: AFE Version: (1MIC_V251128)
+I (385792) AFE: Input PCM Config: total 2 channels(1 microphone, 1 playback), sample rate:16000
+I (385802) AFE: AFE Pipeline: [input] -> |AEC(VOIP_HIGH_PERF)| -> [output]
+I (385802) AfeAudioProcessor: Audio communication task started, feed size: 256 fetch size: 512
+I (385812) I2S_IF: Paired data: 0x3fcf1260, current mode: record, paired in_enable: 0, paired out_enable: 0
+I (385822) I2S_IF: TDM: RX, data_bit: 16, slot_bit: 16, ws_width: 16, total_slot: 2, slot_mask: 0x3
+I (385832) I2S_IF: TDM: RX, sample_rate_hz: 24000, mclk_multiple: 256, clk_src: 6
+I (385842) I2S_IF: STD: TX, data_bit: 16, slot_bit: 16, ws_width: 16, slot_mode: STEREO, slot_mask: 0x3
+I (385842) I2S_IF: STD: TX, sample_rate_hz: 24000, mclk_multiple: 256, clk_src: 6
+I (385852) ES7210: Bits 16
+I (385862) ES7210: Enable ES7210_INPUT_MIC1
+I (385862) ES7210: Enable ES7210_INPUT_MIC2
+I (385872) ES7210: Enable ES7210_INPUT_MIC3
+I (385872) ES7210: Enable TDM mode
+I (385882) ES7210: Unmuted
+I (385882) Adev_Codec: Open codec device OK
+I (385882) AudioCodec: Set input enable to true
+W (386062) WebRTC-Run: RUNNING run=selfplay02 mode=self session_tag=5e774fd1 t0_us=385274733 duration_s=90 real_mic=1 speaker=1 first_warm_afe_us=385268613
+W (386072) WebRTC-Run: SELFPLAY run=selfplay02 item_sent=1 request_sent=1 stream=1
+I (386812) I2S_IF: Current mode(playback) and peer mode have same sample_rate 24000, channel 2, bits_per_sample 16
+I (386812) I2S_IF: STD: TX, data_bit: 16, slot_bit: 16, ws_width: 16, slot_mode: MONO, slot_mask: 0x1
+I (386822) I2S_IF: STD: TX, sample_rate_hz: 24000, mclk_multiple: 256, clk_src: 6
+I (386872) Adev_Codec: Open codec device OK
+I (386872) AudioCodec: Set output enable to true
+W (389072) WebRTC-Run: LIVE run=selfplay02 sent=99 decoded=72 mic_full=28 failures=0
+W (394102) WebRTC-Run: LIVE run=selfplay02 sent=258 decoded=232 mic_full=97 failures=0
+W (399132) WebRTC-Run: LIVE run=selfplay02 sent=415 decoded=389 mic_full=165 failures=0
+W (404132) WebRTC-Run: LIVE run=selfplay02 sent=570 decoded=545 mic_full=240 failures=0
+E (405132) task_wdt: Task watchdog got triggered. The following tasks/users did not reset the watchdog in time:
+E (405132) task_wdt:  - IDLE0 (CPU 0)
+E (405132) task_wdt: Tasks currently running:
+E (405132) task_wdt: CPU 0: wifi
+E (405132) task_wdt: CPU 1: webrtc_media
+E (405132) task_wdt: Print CPU 0 (current core) backtrace
+
+
+Backtrace: 0x4219B61B:0x3FCAFD30 0x40383785:0x3FCAFD60 0x4227B076:0x3FCE7370 0x40040B5B:0x3FCE73B0 0x4227B327:0x3FCE73D0 0x4227B651:0x3FCE7410 0x40041502:0x3FCE7450 0x4227682A:0x3FCE7480
+
+W (409112) WebRTC-Run: LIVE run=selfplay02 sent=721 decoded=697 mic_full=318 failures=0
+W (414162) WebRTC-Run: LIVE run=selfplay02 sent=875 decoded=851 mic_full=398 failures=0
+E (415132) task_wdt: Task watchdog got triggered. The following tasks/users did not reset the watchdog in time:
+E (415132) task_wdt:  - IDLE0 (CPU 0)
+E (415132) task_wdt: Tasks currently running:
+E (415132) task_wdt: CPU 0: audio_input
+E (415132) task_wdt: CPU 1: webrtc_media
+E (415132) task_wdt: Print CPU 0 (current core) backtrace
+
+
+Backtrace: 0x4219B61B:0x3FCAFD30 0x40383785:0x3FCAFD60 0x40057057:0x3FCCAE40 0x420CA2AB:0x3FCCAE60 0x420C8D03:0x3FCCAE90 0x420C7C09:0x3FCCAF10 0x420C6F90:0x3FCCAF40 0x420BC9EF:0x3FCCB180 0x420BBCD9:0x3FCCB1A0 0x4207695E:0x3FCCB1E0 0x4200DF21:0x3FCCB210 0x4200DF71:0x3FCCB250
+
+W (419172) WebRTC-Run: LIVE run=selfplay02 sent=1034 decoded=1011 mic_full=467 failures=0
+W (424182) WebRTC-Run: LIVE run=selfplay02 sent=1189 decoded=1166 mic_full=543 failures=0
+E (425132) task_wdt: Task watchdog got triggered. The following tasks/users did not reset the watchdog in time:
+E (425132) task_wdt:  - IDLE0 (CPU 0)
+E (425132) task_wdt: Tasks currently running:
+E (425132) task_wdt: CPU 0: audio_input
+E (425132) task_wdt: CPU 1: webrtc_media
+E (425132) task_wdt: Print CPU 0 (current core) backtrace
+
+
+Backtrace: 0x4219B61B:0x3FCAFD30 0x40383785:0x3FCAFD60 0x420C9350:0x3FCCAE40 0x420C7C09:0x3FCCAF10 0x420C6F90:0x3FCCAF40 0x420BC9EF:0x3FCCB180 0x420BBCD9:0x3FCCB1A0 0x4207695E:0x3FCCB1E0 0x4200DF21:0x3FCCB210 0x4200DF71:0x3FCCB250
+
+W (426052) M5Stack-StackChan-Board: FT6336 read failed (ESP_ERR_TIMEOUT), skipped 1 sample(s)
+W (429192) WebRTC-Run: LIVE run=selfplay02 sent=1341 decoded=1318 mic_full=623 failures=0
+W (434212) WebRTC-Run: LIVE run=selfplay02 sent=1495 decoded=1472 mic_full=702 failures=0
+W (439252) WebRTC-Run: LIVE run=selfplay02 sent=1650 decoded=1628 mic_full=781 failures=0
+W (444272) WebRTC-Run: LIVE run=selfplay02 sent=1807 decoded=1785 mic_full=858 failures=0
+W (449292) WebRTC-Run: LIVE run=selfplay02 sent=1966 decoded=1945 mic_full=931 failures=0
+E (454032) task_wdt: Task watchdog got triggered. The following tasks/users did not reset the watchdog in time:
+E (454032) task_wdt:  - IDLE0 (CPU 0)
+E (454032) task_wdt: Tasks currently running:
+E (454032) task_wdt: CPU 0: audio_input
+E (454032) task_wdt: CPU 1: IDLE1
+E (454032) task_wdt: Print CPU 0 (current core) backtrace
+
+
+Backtrace: 0x4219B61B:0x3FCAFD30 0x40383785:0x3FCAFD60 0x420CB4DD:0x3FCCAEC0 0x420CB686:0x3FCCAF10 0x420C6FA9:0x3FCCAF40 0x420BC9EF:0x3FCCB180 0x420BBCD9:0x3FCCB1A0 0x4207695E:0x3FCCB1E0 0x4200DF21:0x3FCCB210 0x4200DF71:0x3FCCB250
+
+W (454332) WebRTC-Run: LIVE run=selfplay02 sent=2123 decoded=2102 mic_full=1006 failures=0
+W (459342) WebRTC-Run: LIVE run=selfplay02 sent=2280 decoded=2259 mic_full=1082 failures=0
+E (464032) task_wdt: Task watchdog got triggered. The following tasks/users did not reset the watchdog in time:
+E (464032) task_wdt:  - IDLE0 (CPU 0)
+E (464032) task_wdt: Tasks currently running:
+E (464032) task_wdt: CPU 0: audio_input
+E (464032) task_wdt: CPU 1: IDLE1
+E (464032) task_wdt: Print CPU 0 (current core) backtrace
+
+
+Backtrace: 0x4219B61B:0x3FCAFD30 0x40383785:0x3FCAFD60 0x42256266:0x3FCCAEA0 0x420CA7B1:0x3FCCAED0 0x420C7AC6:0x3FCCAF10 0x420C6F90:0x3FCCAF40 0x420BC9EF:0x3FCCB180 0x420BBCD9:0x3FCCB1A0 0x4207695E:0x3FCCB1E0 0x4200DF21:0x3FCCB210 0x4200DF71:0x3FCCB250
+
+W (464372) WebRTC-Run: LIVE run=selfplay02 sent=2435 decoded=2415 mic_full=1160 failures=0
+W (469372) WebRTC-Run: LIVE run=selfplay02 sent=2589 decoded=2569 mic_full=1237 failures=0
+E (474032) task_wdt: Task watchdog got triggered. The following tasks/users did not reset the watchdog in time:
+E (474032) task_wdt:  - IDLE0 (CPU 0)
+E (474032) task_wdt: Tasks currently running:
+E (474032) task_wdt: CPU 0: audio_input
+E (474032) task_wdt: CPU 1: IDLE1
+E (474032) task_wdt: Print CPU 0 (current core) backtrace
+
+
+Backtrace: 0x4219B61B:0x3FCAFD30 0x40383785:0x3FCAFD60 0x42255F8D:0x3FCCAE80 0x420C8446:0x3FCCAEB0 0x420C7C2B:0x3FCCAF10 0x420C6F90:0x3FCCAF40 0x420BC9EF:0x3FCCB180 0x420BBCD9:0x3FCCB1A0 0x4207695E:0x3FCCB1E0 0x4200DF21:0x3FCCB210 0x4200DF71:0x3FCCB250
+
+W (474392) WebRTC-Run: LIVE run=selfplay02 sent=2741 decoded=2721 mic_full=1316 failures=0
+I (476102) WebRTC-TP: peer main loop exited
+I (476102) WebRTC-TP: both tasks confirmed exit; releasing transport resources
+I (476102) AGENT: agent disconnected done
+I (476102) SCTP: 1 state 6
+I (476102) WebRTC-TP: [state] DATA_CHANNEL_CLOSED (11)
+I (476112) WebRTC-TP: [state] DATA_CHANNEL_CLOSED (11)
+I (476112) WebRTC-TP: [state] DATA_CHANNEL_DISCONNECTED (12)
+W (476122) WebRTC-Run: FINAL run=selfplay02 state=Done reason=run_timeout stage=6 session_tag=5e774fd1 elapsed_ms=90008 config=1 transport_joined=1
+W (476132) WebRTC-Run: MEDIA run=selfplay02 sent=2793 decoded=2773 failures=0 mic_full=1342 mic_invalid=0 rx_full=1646 rx_invalid=0 event_full=0 event_invalid=0
+W (476142) WebRTC-Run: TIMELINE run=selfplay02 tx_pts_ms=0:82620 rx_pts_ms=0:89040 rx_us=385995623:475017885 max_send_gap_us=76899 max_queue_age_us=235757
+W (476162) WebRTC-Run: TIMING run=selfplay02 send_calls=2793 send_avg_us=2859 send_max_us=11552 loop_max_us=100830 mic_empty=6
+W (476172) WebRTC-Run: PLAYBACK run=selfplay02 accepted=2766 invalid=0 stopped=0 stale=0 contended=1 full=5 queued_samples=0 inflight_samples=0 submitted_samples=1327680 submitted_calls=2766 submit_us=475256195:475256325 stop_requested_us=0 stop_completed_us=475296694 physical_end_unknown=1
+W (476192) WebRTC-Run: DISCARD_AT_STOP run=selfplay02 mic=5 down=7 events=0
+W (476202) WebRTC-Run: EVIDENCE run=selfplay02 items=0 missing=0 invalid=0 duplicates=0 overflow=0 keyword_mask=0 near_observed=0 speech=0 responses=1 asr_failed=0 self_play=1 T1_T4=NOT_ACCEPTED AEC=UNDETERMINED
+W (476222) WebRTC-Run: CAPTURE run=selfplay02 afe_us=385332784:475257439 max_afe_gap_us=176986 afe_samples=1324800 capture_callbacks=0 adc_timestamps_available=0
+W (476232) WebRTC-Run: PCM run=selfplay02 decoded48=2662080 converted24=1331040 accepted24=1327680 submitted24=1327680 max_abs=32643 endpoints=0 endpoints_are_not_distortion_proof=1
+W (476252) WebRTC-Run: OPUS_SAMPLES run=selfplay02 n120=0 n240=0 n480=0 n960=2773 n1920=0 n2880=0 n5760=0 other=0
+W (476262) WebRTC-Run: SESSION_OBS run=selfplay02 create_response=1 interrupt_response=1 unknown=-1 observational_only=1
+W (476272) WebRTC-Run: TURN_SUMMARY run=selfplay02 stored=1 capacity=64 overflow=0 diagnostic_dropped=0 diagnostic_stop_discard=0 queue_order=independent_not_receive_order tags=FNV32_diagnostic_only api_snapshot_atomic=0 physical_end_unknown=1
+W (476292) WebRTC-Run: TURN run=selfplay02 n=1 kind=response_created receive_ms=375 snapshot_ms=385 item_tag=00000000 item_id=missing response_tag=74d34145 response_id=valid sent=14 decoded=0 samples=0 calls=0 last_submit_us=0 status=not_applicable detail_type=not_applicable type_tag=00000000 detail_reason=not_applicable reason_tag=00000000
+W (476322) WebRTC-Run: HARDWARE run=selfplay02 read_ok=8307 write_ok=2766 read_failed=0 write_failed=0 capture_cvt_failed=0 drai

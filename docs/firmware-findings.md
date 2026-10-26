@@ -1620,3 +1620,30 @@ perf03 near 第二次、aec06 duplex 第二次均 12.5/s。
 **状态**：设备 Idle，未继续测试。下一轮：在无语音条件下批量复现慢速并取 TIMING；
 同时评估 `WIFI_PS_NONE` 与事件处理路径（cJSON/日志）作为低风险候选，先离线复核。
 日志：`docs/device_diag_evidence/2026-10-24-m15/aec-duplex-batch-base1..3.log`。
+
+### B60. 自播复现：AEC 在 audio_input 高优先级任务里同步计算，饿死播放/上行；喇叭路径正常
+
+**证据**：2026-10-26 自播固件（`9855afe`，AEC=y，app `0x3cdec0`），
+`START selfplay02 self 90`，RUNNING 后固件注入文本用户轮并请求回答：
+- 链路与自播成功：`config=1`、`responses=1`、`self_play=1`、`speech=0`、`decoded=2773`、
+  `submitted24=1327680`（55.3s 音频）、`write_ok=2766`、`write_failed=0`。
+  说明 **AW88298 喇叭路径正常**，不是“没找到喇叭”；本轮回声未触发 VAD 误判，
+  但单轮不能单独证明 AEC 有效。
+- 但上行仅 `sent=2793/90s ≈ 31 包/秒`（应 50），`mic_full=1342`、`rx_full=1646`、
+  `max_afe_gap=176986us`、`max_queue_age=235757us`、`loop_max=100830us`；
+  `send_avg=2859us`、`send_max=11552us`，发送调用本身不阻塞。
+- 同期 WDT 连续报 `IDLE0 (CPU 0)` 未喂狗，当前任务 `audio_input`；backtrace 落在
+  `AudioService::AudioInputTask → AfeAudioProcessor::Feed → afe_feed → aec_process →
+  dios_ssp_aec_process_api → ipnlms_complex / elevoc_resampler / FFT`。
+- 用户听感：回答播放期间“滋啦滋啦”。`PCM max_abs=32643`（此前 duplex 为 11161）、
+  `endpoints=0`。播放写入无失败，但输出线程 prio 4 被 prio 8 的 AEC 计算长期抢占，
+  最可能造成 I2S DMA 欠载/断续；PCM 接近满幅是次要叠加因素，需降音量对照排除。
+- 第一轮 `selfplay01` 在准备阶段 `prepare_timeout stage=4 config=0`（DTLS connected
+  但 ICE/DC 未完成），未 RUNNING，不能判自播/AEC；重试 `selfplay02` 成功。
+
+**结论**：慢速与爆音的主因指向 **AEC 同步计算独占 CPU0**，不是 SendAudio、网络丢包
+或喇叭驱动。AEC 计算发生在 `audio_input` 任务（prio 8）内，而不是独立低优先级任务。
+
+**状态**：未修复。下一步把 AEC 移出高优先级 input 任务（独立任务/降优先级/绑核），
+并给单帧处理耗时设上限后复测；不得用关闭 AEC 或降低 VAD 掩盖。
+日志：`docs/device_diag_evidence/2026-10-24-m15/selfplay-01.log`、`selfplay-02.log`。
