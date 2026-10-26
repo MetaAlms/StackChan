@@ -438,3 +438,13 @@ STOP near_01
 - 脱敏日志：`docs/device_diag_evidence/2026-10-24-m15/` 下
   `audit-06-idle.log`、`audit-06-face-covered-reflective.log`、
   `audit-06-face-covered-absorbent.log`；详见 findings B56。
+
+### AEC 候选首测（2026-10-26）
+
+- 按用户授权只改 `CONFIG_USE_DEVICE_AEC=y`，构建并刷入（app `0x3cd8c0`）；启动/Idle 正常。
+- 单句柄 `START aec06 duplex 90`：RUNNING 正常，90s 后 Done/run_timeout；
+  但 `sent=1128`（~25% 实时）、`mic_full=3365`、`max_afe_gap=70.5ms`、
+  `decoded=speech=responses=items=0`。
+- **本轮对 AEC 有效性无效**：是 AEC 开启后的实时性/调度问题，不是回声结论。
+  下一步先做 AFE/发送管线性能核验，确保 near 稳定 50 包/s 与 ASR，再测双讲。
+- 日志：`docs/device_diag_evidence/2026-10-24-m15/aec-duplex-06.log`；详见 findings B58。

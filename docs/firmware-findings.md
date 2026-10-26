@@ -1542,3 +1542,25 @@ F1/F2、`AGENTS.md`、`aec-limitation.md`、`stackchan-hardware.md`、spec/plan/
 **状态**：文档已更正；未改代码/AEC/通道/swap，未刷机。
 下一步需新授权：有条件启用 `CONFIG_USE_DEVICE_AEC`，先本地验证回声下降，
 再做双讲验证不吞用户语音；仍按新弹窗 Q 执行。
+
+### B58. 开启设备 AEC 后实时性不足：发送仅 ~25% 实时、麦克风队列溢出（本轮不判 AEC 有效性）
+
+**证据**：2026-10-26 刷入 M15 + `CONFIG_USE_DEVICE_AEC=y`（其余不变，app `0x3cd8c0`）；
+单句柄执行 `START aec06 duplex 90`，RUNNING 正常（session_tag、config=1），90s 后
+`FINAL state=Done reason=run_timeout`，脱敏日志
+`docs/device_diag_evidence/2026-10-24-m15/aec-duplex-06.log`：
+
+- `sent=1128`（约 12.5 包/s；20ms 帧应为 50/s，即约 25% 实时）；
+- `mic_full=3365`（麦克风队列持续满），`max_afe_gap_us=70502`、`max_send_gap_us=97125`；
+- `afe_samples=1440000`（90s×16k，AFE 侧实时产出）；
+- `decoded=0`、`speech=0`、`responses=0`、`items=0`、`T1_T4=NOT_ACCEPTED`；
+- 无 panic/重启、`failures=0`、`LIFECYCLE capture_quiescent=1 transport_joined=1`。
+
+**解读**：AEC 能初始化并跑完 90s，但开启后 AFE 回调出现约 70ms 间隔，
+发送端被拖慢到 1/4 实时、麦克风队列溢出；服务端未获得可识别语音/未产生 turn。
+因此**本轮不能用来判断 AEC 是否有效，也不能归因回声**。
+这不是“AEC 无效”的结论，而是 **AEC 开启后的实时预算/调度问题**。
+
+**下一步**：先做 AEC 性能与管线核验（AFE 任务核/优先级、feed/fetch 尺寸、
+AEC 模式/内存、发送 pacing 与背压），确保 near 模式能稳定 50 包/s 且 ASR 正常，
+再做 duplex 双讲；仍须新弹窗 Q，不以此轮结果判定 AEC。
