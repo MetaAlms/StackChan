@@ -1588,3 +1588,15 @@ duplex 的 25% 速率是 **TX/播放路径（全双工）** 引起的，不是 A
 session_tag=00000000`，无 RUNNING、无媒体、AFE 0 样本；用户按 30 秒说话时尚未开放准入。
 这是连接准备层失败（同类于此前的 05），**不是 AEC 结果**，不能据此判断回声/吞音。
 日志：`docs/device_diag_evidence/2026-10-24-m15/aec-duplex-04-prepare-timeout.log`。
+
+**2026-10-26 AEC 首轮 duplex 仍非实时（更正“第二次 run”假设）**：复位后第一次 run
+`START perf06 duplex 120`，RUNNING 在 START 后约 7.4s；用户按“现在说”提示正常说话。
+但 `sent=1514 / 120s ≈ 12.6 包/秒`，`mic_full=4479` 且从 RUNNING 后 3 秒就开始增长
+（33.8s 时 `sent=35 mic_full=100`）；`decoded/speech/items/responses` 全 0，
+`afe_samples=1920000`（120s×16k，AFE 实时）。用户语音在队列中严重滞后，
+服务端在窗口结束前未获得可识别语音，因此仍**不能判 AEC**。
+对比：perf02 near 第一次 run 48.4/s、mic_full=0；perf05 duplex 第一次 run 前 8s 约 48/s；
+perf03 near 第二次、aec06 duplex 第二次均 12.5/s。
+**结论**：慢速不是单纯“第二次 run”，而是 **AEC + duplex/输出路径（speaker=1）不稳定**，
+可出现在第一次 run；near 首轮是唯一稳定实时的组合。需要调度/背压插桩与修复，
+不能再靠盲测。日志：`aec-duplex-06-first-run.log`。
