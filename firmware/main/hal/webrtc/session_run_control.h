@@ -8,7 +8,7 @@
 
 namespace webrtc_media {
 
-enum class RunMode { NearEnd, Duplex };
+enum class RunMode { NearEnd, Duplex, SelfPlay };
 enum class RunState { Idle, Preparing, Running, Stopping, Done, Failed };
 enum class StopReason { None, Requested, PrepareTimeout, RunTimeout, Error, Disconnected, Completed };
 enum class AsrStatus { Accepted, Duplicate, MissingItem, WrongRun, NotRunning, Overflow, InvalidItem };
@@ -30,7 +30,7 @@ public:
     bool Start(const std::string& run_id, RunMode mode, uint32_t duration_seconds, int64_t now_us)
     {
         if (state_ != RunState::Idle || !ValidRunId(run_id) ||
-            (mode != RunMode::NearEnd && mode != RunMode::Duplex) ||
+            (mode != RunMode::NearEnd && mode != RunMode::Duplex && mode != RunMode::SelfPlay) ||
             duration_seconds < 5 || duration_seconds > 180 || now_us < 0) return false;
         run_id_ = run_id;
         mode_ = mode;

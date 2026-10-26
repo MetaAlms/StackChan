@@ -142,6 +142,10 @@ struct Run {
     uint32_t initial_capture_cvt_failed = 0, initial_drain_failed = 0, initial_drained_frames = 0, initial_afe_reset_failed = 0;
     AudioService::WebRtcPlaybackSnapshot initial_playback{};
     bool audio_started = false, configuration_ok = false, near_observed = false;
+    // Self-play: the firmware asks the server to speak without user audio, so a
+    // playback/echo failure is reproducible without a human speech cue.
+    uint16_t data_stream = 0xFFFF;
+    bool self_play_sent = false;
     explicit Run(const webrtc_media::ConsoleCommand& c) : command(c) {}
 };
 Run* g_run = nullptr;  // Only the console owns/replaces this pointer.
@@ -338,6 +342,7 @@ void HandleEvent(Run& r, const Event& e) {
     cJSON* root = cJSON_ParseWithLength(e.json.data(), e.json.size());
     const cJSON* t = Field(root, "type");
     if (StringIs(t, "session.created")) {
+        r.data_stream = e.stream;
         if (r.control.state() == RunState::Preparing) {
             r.session_tag = SessionTag(Field(root, "session"));
             const char* config = R"({"type":"session.update","session":{"modalities":["text","audio"],"turn_detection":{"type":"server_vad","threshold":0.5,"silence_duration_ms":800},"input_audio_transcription":{"model":"qwen3-asr-flash-realtime"}}})";
@@ -359,7 +364,15 @@ void HandleEvent(Run& r, const Event& e) {
             g_audio.EnableVoiceProcessing(true);
             Continue(r);  // Initialization may have consumed the prepare budget.
         }
-    } else if (StringIs(t, "error")) { ++r.failures; Stop(r, StopReason::Error); }
+    } else if (StringIs(t, "error")) {
+        const cJSON* err = Field(root, "error");
+        const cJSON* code = Field(err, "code");
+        const cJSON* msg = Field(err, "message");
+        ESP_LOGE(kTag, "ERROR_EVENT run=%s code=%s message=%.120s",
+            r.command.run_id.c_str(), cJSON_IsString(code) ? code->valuestring : "unknown",
+            cJSON_IsString(msg) ? msg->valuestring : "");
+        ++r.failures; Stop(r, StopReason::Error);
+    }
     else if (r.control.state() == RunState::Running && e.received_us >= r.control.run_started_us()) {
         const int64_t dt = e.received_us - r.control.run_started_us();
         if (StringIs(t, "input_audio_buffer.speech_started")) { ++r.speech; RecordTurn(r, e, TurnKind::SpeechStarted, root); }
@@ -386,9 +399,26 @@ void BeginCaptureWindow(Run& r) {
     PublishState(r);
     if (!Continue(r)) return;
     ESP_LOGW(kTag, "RUNNING run=%s mode=%s session_tag=%08lx t0_us=%s duration_s=%lu real_mic=1 speaker=%d first_warm_afe_us=%s",
-        r.command.run_id.c_str(), r.command.mode == RunMode::NearEnd ? "near" : "duplex", (unsigned long)r.session_tag,
-        SignedDecimal(r.control.run_started_us()).c_str(), (unsigned long)r.command.duration_seconds,
-        r.command.mode == RunMode::Duplex, SignedDecimal(r.first_warm_afe_us.load()).c_str());
+        r.command.run_id.c_str(), r.command.mode == RunMode::NearEnd ? "near" : r.command.mode == RunMode::SelfPlay ? "self" : "duplex",
+        (unsigned long)r.session_tag, SignedDecimal(r.control.run_started_us()).c_str(), (unsigned long)r.command.duration_seconds,
+        r.command.mode != RunMode::NearEnd, SignedDecimal(r.first_warm_afe_us.load()).c_str());
+    // Self-play: ask the server to generate speech with no user turn. Capture,
+    // playback and VAD stay identical to duplex; only the trigger is synthetic.
+    if (r.command.mode == RunMode::SelfPlay && !r.self_play_sent) {
+        r.self_play_sent = true;
+        if (r.data_stream == 0xFFFF) {
+            ESP_LOGE(kTag, "SELFPLAY run=%s error=no_data_stream", r.command.run_id.c_str());
+            ++r.failures; Stop(r, StopReason::Error);
+            return;
+        }
+        const char* request = R"({"type":"response.create","response":{"instructions":"请用普通话讲一个完整的故事，持续讲述到一分钟以上，不要向我提问，也不要停下来等回应。"}})";
+        if (!r.transport.SendJson(request, r.data_stream)) {
+            ESP_LOGE(kTag, "SELFPLAY run=%s error=send_failed", r.command.run_id.c_str());
+            ++r.failures; Stop(r, StopReason::Error);
+            return;
+        }
+        ESP_LOGW(kTag, "SELFPLAY run=%s sent=1 stream=%u", r.command.run_id.c_str(), (unsigned)r.data_stream);
+    }
 }
 void Report(Run& r, bool final) {
     auto p = r.audio_started ? g_audio.GetWebRtcPlaybackSnapshot() : AudioService::WebRtcPlaybackSnapshot{};
@@ -426,10 +456,11 @@ void Report(Run& r, bool final) {
         ESP_LOGW(kTag, "DISCARD_AT_STOP run=%s mic=%lu down=%lu events=%lu",
             r.command.run_id.c_str(), (unsigned long)r.stop_discard_mic,
             (unsigned long)r.stop_discard_down, (unsigned long)r.stop_discard_event);
-        ESP_LOGW(kTag, "EVIDENCE run=%s items=%u missing=%lu invalid=%lu duplicates=%lu overflow=%lu keyword_mask=%u near_observed=%d speech=%lu responses=%lu asr_failed=%lu T1_T4=NOT_ACCEPTED AEC=UNDETERMINED",
+        ESP_LOGW(kTag, "EVIDENCE run=%s items=%u missing=%lu invalid=%lu duplicates=%lu overflow=%lu keyword_mask=%u near_observed=%d speech=%lu responses=%lu asr_failed=%lu self_play=%d T1_T4=NOT_ACCEPTED AEC=UNDETERMINED",
             r.command.run_id.c_str(), (unsigned)r.control.asr_items(), (unsigned long)r.control.asr_missing_item(),
             (unsigned long)r.control.asr_invalid_item(), (unsigned long)r.control.asr_duplicates(), (unsigned long)r.control.asr_overflow(),
-            r.control.keyword_mask(), r.near_observed, (unsigned long)r.speech, (unsigned long)r.responses, (unsigned long)r.asr_failed);
+            r.control.keyword_mask(), r.near_observed, (unsigned long)r.speech, (unsigned long)r.responses, (unsigned long)r.asr_failed,
+            r.self_play_sent);
         if (r.capture_callbacks.load() == 0) ESP_LOGW(kTag, "CAPTURE run=%s afe_us=%s:%s max_afe_gap_us=%s afe_samples=%lu capture_callbacks=%u adc_timestamps_available=0",
             r.command.run_id.c_str(), SignedDecimal(r.first_afe_us).c_str(), SignedDecimal(r.last_afe_us).c_str(), SignedDecimal(r.max_afe_gap_us).c_str(),
             (unsigned long)(r.capture_pts_ms * 16), r.capture_callbacks.load());
@@ -568,7 +599,7 @@ void RunBody(Run& r) {
                 if (!r.codec.Decode(down.data.data(), down.data.size(), pcm)) { ++r.failures; Stop(r, StopReason::Error); break; }
                 ++r.decoded;
                 if (!Continue(r)) break;
-                if (r.command.mode == RunMode::Duplex && !pcm.empty()) {
+                if (r.command.mode != RunMode::NearEnd && !pcm.empty()) {
                     const size_t samples = pcm.size();
                     const auto result = g_audio.PushWebRtcPcm(std::move(pcm), playback_epoch);
                     ++r.playback_admission[static_cast<size_t>(result)];
@@ -790,7 +821,7 @@ void WebRtcM15Run() {
         ESP_LOGE(kTag, "command queue unavailable; staying Idle");
         while (true) { GetHAL().feedTheDog(); GetHAL().delay(100); }
     }
-    ESP_LOGW(kTag, "IDLE; USB commands: START <run_id> near|duplex <5..180 seconds>, STOP <run_id>, STATUS, AUDIT <3..10 seconds>; fresh run ID for each start");
+    ESP_LOGW(kTag, "IDLE; USB commands: START <run_id> near|duplex|self <5..180 seconds>, STOP <run_id>, STATUS, AUDIT <3..10 seconds>; fresh run ID for each start");
     webrtc_media::ConsoleLineReader reader;
     while (true) {
         char bytes[64];

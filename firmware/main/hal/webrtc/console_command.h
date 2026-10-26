@@ -126,10 +126,11 @@ private:
         }
         uint32_t seconds = 0;
         if (count != 4 || tokens[0] != "START" || !ValidRunId(tokens[1]) ||
-            (tokens[2] != "near" && tokens[2] != "duplex") || !Duration(tokens[3], seconds)) return false;
+            (tokens[2] != "near" && tokens[2] != "duplex" && tokens[2] != "self") || !Duration(tokens[3], seconds)) return false;
         last_command_.kind = CommandKind::Start;
         last_command_.run_id.assign(tokens[1].data(), tokens[1].size());
-        last_command_.mode = tokens[2] == "near" ? RunMode::NearEnd : RunMode::Duplex;
+        last_command_.mode = tokens[2] == "near" ? RunMode::NearEnd :
+            tokens[2] == "self" ? RunMode::SelfPlay : RunMode::Duplex;
         last_command_.duration_seconds = seconds;
         return true;
     }

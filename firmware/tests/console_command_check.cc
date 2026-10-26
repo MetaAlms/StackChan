@@ -54,6 +54,13 @@ void ValidCommandsAndFragments()
     CHECK(reader.last_command().kind == CommandKind::Start);
     CHECK(reader.last_command().mode == RunMode::Duplex);
     CHECK(reader.last_command().duration_seconds == 180);
+    CHECK(FeedLine(reader, "START self_play self 90\n") == Result::Command);
+    CHECK(reader.last_command().kind == CommandKind::Start);
+    CHECK(reader.last_command().run_id == "self_play");
+    CHECK(reader.last_command().mode == RunMode::SelfPlay);
+    CHECK(reader.last_command().duration_seconds == 90);
+    SessionRunControl self_run;
+    CHECK(self_run.Start("self_play", RunMode::SelfPlay, 90, 100));
     CHECK(FeedLine(reader, "STOP Run_1-A\n") == Result::Command);
     CHECK(reader.last_command().kind == CommandKind::Stop);
     CHECK(reader.last_command().run_id == "Run_1-A");
