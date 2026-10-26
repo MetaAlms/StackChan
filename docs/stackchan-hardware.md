@@ -87,6 +87,17 @@ ES7210 采集 24kHz；当前只读 2 个 TDM slot = MIC1/MIC2（MIC3 参考未�
 
 ## 4. ⚠️ 硬件陷阱（开发前必读）
 
+### 4.1a 物理开孔位置（官方图片，2026-10-24）
+
+- **双麦克风**：CoreS3 **正面下方黑边、相机镜头右侧的两个小圆孔**（旁边是 LTR-553 光线/接近传感器）。
+- **1W 扬声器**：CoreS3 **侧面带横向开槽的白色面板**（官方标注 `1W SPEAKER`）。
+- 机器人 body 只有电池、两个舵机、LED、触摸、IR/NFC，**没有扬声器也没有麦克风**
+  （[Zephyr 板级文档](https://docs.zephyrproject.org/latest/boards/m5stack/m5stack_stackchan/doc/index.html) 的 StackChan Core / Robot body 清单）。
+- 参考图：[C156 官方图 01](https://m5stack-doc.oss-cn-shenzhen.aliyuncs.com/1254/C156_StackChan_Core_main_pictures_01.webp)。
+
+**影响**：之前“遮住整个脸”的对照同时盖住了麦克风孔与部分声场，不能单独证明声学/电气；
+正确对照是**只封麦克风针孔**（麦克风暴露 vs 封孔），扬声器保持不被触碰。
+
 ### 4.1 参考通路存在，但当前 2 通道采集读不到它
 
 ```c

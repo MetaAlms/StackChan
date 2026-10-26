@@ -427,6 +427,10 @@ STOP near_01
 - 吸声复测（厚布遮脸）：tone -25.1/-22.7 dBFS、silence -53.5/-55.4 dBFS，
   **tone 只降 2~3 dB 而底噪降 7~8 dB**；说明 tone 不是单纯经脸部空气路径，
   可能是结构传导或参考/电气路径混入（slot 映射未测，不能排除）。
+- 官方图片/板级文档澄清物理位置：双麦在正面相机右侧两针孔，扬声器在侧面开槽面板，
+  body 无喇叭/麦克风；此前“遮脸/遮侧面”都会引入接触与反射，不能单独定性。
+- 遮侧面扬声器复测 tone 反而高 2~5 dB（结构传导/反射），不作声源遮挡对照。
+- 下一判据：**只封正面麦克风针孔**、扬声器不动——tone 大降 ⇒ 声学；基本不变 ⇒ 电气/参考。
 - 脱敏日志：`docs/device_diag_evidence/2026-10-24-m15/` 下
   `audit-06-idle.log`、`audit-06-face-covered-reflective.log`、
   `audit-06-face-covered-absorbent.log`；详见 findings B56。
