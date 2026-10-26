@@ -1564,3 +1564,10 @@ F1/F2、`AGENTS.md`、`aec-limitation.md`、`stackchan-hardware.md`、spec/plan/
 **下一步**：先做 AEC 性能与管线核验（AFE 任务核/优先级、feed/fetch 尺寸、
 AEC 模式/内存、发送 pacing 与背压），确保 near 模式能稳定 50 包/s 且 ASR 正常，
 再做 duplex 双讲；仍须新弹窗 Q，不以此轮结果判定 AEC。
+
+**2026-10-26 near 对照（AEC 开启、无播放）**：`START perf02 near 30`：
+`sent=1453 / 30s ≈ 48.4 包/秒`、`mic_full=0`、`afe_samples=465600`（29.1s×16k）、
+`max_afe_gap=113ms`，RUNNING 在 START 后 **19.4s**。说明 AEC 本身能实时工作；
+duplex 的 25% 速率是 **TX/播放路径（全双工）** 引起的，不是 AEC 普遍性变慢。
+本轮用户按 5 秒说话，整段落在 RUNNING 之前，`speech/items=0` 不能用于判断 AEC 吞音。
+日志：`docs/device_diag_evidence/2026-10-24-m15/aec-near-02.log`。

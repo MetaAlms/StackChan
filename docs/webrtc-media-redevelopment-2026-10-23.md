@@ -448,3 +448,7 @@ STOP near_01
 - **本轮对 AEC 有效性无效**：是 AEC 开启后的实时性/调度问题，不是回声结论。
   下一步先做 AFE/发送管线性能核验，确保 near 稳定 50 包/s 与 ASR，再测双讲。
 - 日志：`docs/device_diag_evidence/2026-10-24-m15/aec-duplex-06.log`；详见 findings B58。
+- **near 对照**（AEC 开、不播放）：`sent=1453/30s ≈ 48.4 包/秒`、`mic_full=0`，
+  RUNNING 在 START 后 19.4s；说明 AEC 本身实时可用，duplex 的 25% 是 TX/播放路径引起。
+  该轮用户 5 秒开口早于 RUNNING，`speech/items=0` 不能判 AEC 吞音。
+  日志：`docs/device_diag_evidence/2026-10-24-m15/aec-near-02.log`。
