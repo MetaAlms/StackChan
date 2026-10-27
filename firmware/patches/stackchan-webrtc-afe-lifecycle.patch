@@ -1,5 +1,5 @@
 diff --git a/main/audio/processors/afe_audio_processor.cc b/main/audio/processors/afe_audio_processor.cc
-index 15e9cc5..90d3949 100644
+index 15e9cc5..4660e8f 100644
 --- a/main/audio/processors/afe_audio_processor.cc
 +++ b/main/audio/processors/afe_audio_processor.cc
 @@ -1,5 +1,6 @@
@@ -9,7 +9,17 @@ index 15e9cc5..90d3949 100644
  
  #define PROCESSOR_RUNNING 0x01
  
-@@ -66,12 +67,30 @@ void AfeAudioProcessor::Initialize(AudioCodec* codec, int frame_duration_ms, srm
+@@ -38,7 +39,8 @@ void AfeAudioProcessor::Initialize(AudioCodec* codec, int frame_duration_ms, srm
+     char* vad_model_name = esp_srmodel_filter(models, ESP_VADN_PREFIX, NULL);
+     
+     afe_config_t* afe_config = afe_config_init(input_format.c_str(), NULL, AFE_TYPE_VC, AFE_MODE_HIGH_PERF);
+-    afe_config->aec_mode = AEC_MODE_VOIP_HIGH_PERF;
++    // VOIP low-cost keeps AEC but fits the real-time budget with playback.
++    afe_config->aec_mode = AEC_MODE_VOIP_LOW_COST;
+     afe_config->vad_mode = VAD_MODE_0;
+     afe_config->vad_min_noise_ms = 100;
+     if (vad_model_name != nullptr) {
+@@ -66,12 +68,30 @@ void AfeAudioProcessor::Initialize(AudioCodec* codec, int frame_duration_ms, srm
  
      afe_iface_ = esp_afe_handle_from_config(afe_config);
      afe_data_ = afe_iface_->create_from_config(afe_config);
@@ -40,7 +50,7 @@ index 15e9cc5..90d3949 100644
  }
  
  AfeAudioProcessor::~AfeAudioProcessor() {
-@@ -99,25 +118,139 @@ void AfeAudioProcessor::Feed(std::vector<int16_t>&& data) {
+@@ -99,25 +119,139 @@ void AfeAudioProcessor::Feed(std::vector<int16_t>&& data) {
          return;
      }
      input_buffer_.insert(input_buffer_.end(), data.begin(), data.end());
@@ -180,7 +190,7 @@ index 15e9cc5..90d3949 100644
  }
  
  bool AfeAudioProcessor::IsRunning() {
-@@ -138,10 +271,51 @@ void AfeAudioProcessor::AudioProcessorTask() {
+@@ -138,10 +272,51 @@ void AfeAudioProcessor::AudioProcessorTask() {
      ESP_LOGI(TAG, "Audio communication task started, feed size: %d fetch size: %d",
          feed_size, fetch_size);
  
@@ -232,7 +242,7 @@ index 15e9cc5..90d3949 100644
          if ((xEventGroupGetBits(event_group_) & PROCESSOR_RUNNING) == 0) {
              continue;
          }
-@@ -187,6 +361,10 @@ void AfeAudioProcessor::AudioProcessorTask() {
+@@ -187,6 +362,10 @@ void AfeAudioProcessor::AudioProcessorTask() {
  }
  
  void AfeAudioProcessor::EnableDeviceAec(bool enable) {

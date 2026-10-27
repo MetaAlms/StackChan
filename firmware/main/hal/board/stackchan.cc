@@ -159,15 +159,35 @@ public:
         return true;
     }
 
-    bool IsExternalPowerConnected()
+    struct PowerStatus {
+        bool valid;
+        bool external;
+        bool discharging;
+        bool charging;
+    };
+
+    PowerStatus ReadPowerStatus()
     {
-        const uint8_t power_status      = ReadReg(0x01);
+        uint8_t power_status = 0;
+        if (TryReadRegs(0x01, &power_status, 1) != ESP_OK) {
+            return {false, false, false, false};
+        }
         const uint8_t current_direction = (power_status & 0b01100000) >> 5;
         const bool is_charging_done     = (power_status & 0b00000111) == 0b00000100;
-
         // Treat any non-discharging state as externally powered so a plugged-in cable
         // still counts even after the battery is full.
-        return current_direction != 2 || is_charging_done;
+        return {true, current_direction != 2 || is_charging_done,
+                current_direction == 2, current_direction == 1};
+    }
+
+    bool TryBatteryLevel(int& level)
+    {
+        uint8_t value = 0;
+        if (TryReadRegs(0xA4, &value, 1) != ESP_OK) {
+            return false;
+        }
+        level = value;
+        return true;
     }
 };
 
@@ -353,7 +373,8 @@ private:
         }
         last_power_state_check_ms_ = now_ms;
 
-        UpdatePowerSaveEnabled(pmic_->IsExternalPowerConnected(), pmic_->IsDischarging());
+        const auto ps = pmic_->ReadPowerStatus();
+        UpdatePowerSaveEnabled(ps.valid && ps.external, ps.valid && ps.discharging);
     }
 
     void InitializePowerSaveTimer()
@@ -380,7 +401,8 @@ private:
             GetBacklight()->RestoreBrightness();
         });
         power_save_timer_->OnShutdownRequest([this]() { pmic_->PowerOff(); });
-        UpdatePowerSaveEnabled(pmic_->IsExternalPowerConnected(), pmic_->IsDischarging());
+        const auto ps = pmic_->ReadPowerStatus();
+        UpdatePowerSaveEnabled(ps.valid && ps.external, ps.valid && ps.discharging);
     }
 
     void InitializeI2c()
@@ -628,15 +650,19 @@ public:
     virtual bool GetBatteryLevel(int& level, bool& charging, bool& discharging) override
     {
         static bool last_discharging = false;
-        charging                     = pmic_->IsCharging();
-        discharging                  = pmic_->IsDischarging();
+        const auto ps = pmic_->ReadPowerStatus();
+        if (!ps.valid) {
+            ESP_LOGW(TAG, "PMIC power status read failed; keeping previous state");
+            return false;
+        }
+        charging    = ps.charging;
+        discharging = ps.discharging;
         if (discharging != last_discharging) {
             power_save_timer_->SetEnabled(discharging);
             last_discharging = discharging;
         }
 
-        level = pmic_->GetBatteryLevel();
-        return true;
+        return pmic_->TryBatteryLevel(level);
     }
 
     virtual void SetPowerSaveLevel(PowerSaveLevel level) override

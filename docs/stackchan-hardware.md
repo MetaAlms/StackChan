@@ -24,7 +24,7 @@
 | 显示 | **ILI9342C** | 2.0" IPS，320×240，SPI |
 | 触摸 | **FT6336U** | 电容多点触摸 |
 | 扬声器 | **AW88298** | 1W，I2S 功放 |
-| 麦克风 | **ES7210** ADC + **双麦克风** | ⚠️ 只有麦克风，**没有扬声器回采参考通道** |
+| 麦克风 | **ES7210** ADC + **双麦克风 + MIC3 回采** | TDM 顺序 `1,3,2,4`；2-slot = **MIC1 + MIC3（AEC 参考）** |
 | 摄像头 | **GC0308** | 0.3MP，DVP |
 | 六轴 IMU | **BMI270** | |
 | 磁力计 | **BMM150** | |
@@ -73,15 +73,15 @@
 **采样率链路**（容易踩坑，记清楚）：
 
 ```
-ES7210 采集 24kHz；当前只读 2 个 TDM slot = MIC1/MIC2（MIC3 参考未读）
+ES7210 采集 24kHz；TDM 2 slot = MIC1 + MIC3（参考），顺序 1,3,2,4
   └─ I2S 传输 24kHz（日志：STD Mode 1 bits:16/16 channel:2 sample_rate:24000）
       └─ AudioService::ReadAudioData 重采样 24k → 16k
-          └─ AFE 处理，输出 16kHz 单声道，60ms = 960 样本
-              └─ Opus 编码 16kHz / 60ms
-                  └─ 上行
+          └─ AFE 处理，输出 16kHz 单声道
+              └─ WebRTC 路径重采样 16k → 48k，Opus 48k / 20ms 上行
 ```
 
-下行反向：Opus 解码 16k → 重采样 16k → 24k → I2S → AW88298。
+下行反向：Opus 48k → 解码 48k → 重采样 48k → 24k → I2S 24k → AW88298。
+（历史 xiaozhi WebSocket 路径是 16k/60ms；当前 M15/WebRTC 以 20ms 包为准。）
 
 ---
 

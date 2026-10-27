@@ -26,8 +26,11 @@ origin  git@github.com:MetaAlms/StackChan.git     ← 我们的 fork
 
 **开发中发现的东西必须落盘，不要只留在对话里。**
 
+**开工先读 [StackChan 开发手册](docs/stackchan-manual.md)**，它汇总已确认事实、命令、故障与证据入口。
+
 | 发现类型 | 记到哪 |
 |---|---|
+| 总入口 / 已确认事实 / 命令与故障速查 | [docs/stackchan-manual.md](docs/stackchan-manual.md) |
 | 原厂/上游缺陷、硬件陷阱、自己踩的坑 | [docs/firmware-findings.md](docs/firmware-findings.md) |
 | 硬件型号、引脚、采样率链路等稳定事实 | [docs/stackchan-hardware.md](docs/stackchan-hardware.md) |
 | 方案与阶段计划 | [docs/aliyun-omni-v2v-plan.md](docs/aliyun-omni-v2v-plan.md) |

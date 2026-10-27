@@ -261,8 +261,17 @@ void CoreS3AudioCodec::EnableOutput(bool enable) {
             .sample_rate = (uint32_t)output_sample_rate_,
             .mclk_multiple = 0,
         };
-        ESP_ERROR_CHECK(esp_codec_dev_open(output_dev_, &fs));
-        ESP_ERROR_CHECK(esp_codec_dev_set_out_vol(output_dev_, output_volume_));
+        // A transient I2C timeout on the AW88298 must not abort a live media
+        // run. Report it and let the caller retry on the next output enable.
+        const esp_err_t open_err = esp_codec_dev_open(output_dev_, &fs);
+        if (open_err != ESP_OK) {
+            ESP_LOGE(TAG, "output open failed: %s", esp_err_to_name(open_err));
+            return;
+        }
+        const esp_err_t vol_err = esp_codec_dev_set_out_vol(output_dev_, output_volume_);
+        if (vol_err != ESP_OK) {
+            ESP_LOGW(TAG, "output volume failed: %s", esp_err_to_name(vol_err));
+        }
     } else {
         ESP_ERROR_CHECK(esp_codec_dev_close(output_dev_));
     }

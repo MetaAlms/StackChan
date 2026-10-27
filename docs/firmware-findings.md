@@ -1663,6 +1663,10 @@ perf03 near 第二次、aec06 duplex 第二次均 12.5/s。
 
 ### B62. 播放打开时 AW88298 I2C 不应答并 abort，阻塞 duplex/AEC 验证
 
+> **2026-10-27 更正**：B63 中同一功放已正常出声（故事约 12 秒），
+> “功放硬件锁死”不再是结论。本节保留为早期时间线；后续 abort 已定位到
+> PMIC 0x34 I2C 超时 + `ESP_ERROR_CHECK`，不是喇叭单独损坏。
+
 **证据**：同一固件 `START <id> self 30/90` 均在 RUNNING 后、第一次
 `EnableOutput(true)` 时崩溃：
 - `I2C_If: Fail to read/write from dev 6c`（0x6c 是 AW88298 的 8 位写地址；
@@ -1696,3 +1700,19 @@ perf03 near 第二次、aec06 duplex 第二次均 12.5/s。
   下一步单一变量：换低复杂度 AEC（`AEC_MODE_VOIP_LOW_COST` / `AFE_MODE_LOW_COST`）
   并让 PMIC/触摸的 I2C 读失败可恢复，不再 abort。
 - 日志：`selfplay-10-retest.log`。
+
+
+### B64. 低复杂度 AEC + I2C 读失败不 abort（`0x3ce460`，待 60 秒验证）
+
+**改动**：
+- `afe_config->aec_mode` 从 `AEC_MODE_VOIP_HIGH_PERF` 改为
+  **`AEC_MODE_VOIP_LOW_COST`**，保留 AEC；预期单块耗时从 14.4ms 明显下降，
+  给播放/I2C/IDLE1 留余量。
+- `Pmic::ReadPowerStatus()` 改用 `TryReadRegs`；PMIC 读失败只告警并保持状态，
+  不再 `ESP_ERROR_CHECK` abort；`GetBatteryLevel` 读失败返回 false。
+- `CoreS3AudioCodec::EnableOutput()` 的 `esp_codec_dev_open`/音量设置不再
+  `ESP_ERROR_CHECK`；打开失败记录并返回，由上层下次重试。
+- app `0x3ce460` 已构建/刷入；**60 秒 self 结果待测**。
+**判据**：`sent≈50/s`、`AFE feed avg_us` 明显低于 16000、无 IDLE1 WDT；
+若 I2C 仍超时应只看到日志、不重启；用户听感是否完整/是否滋啦。
+**边界**：低复杂度 AEC 的抑制效果可能下降，需双讲对比，不能只看 near 实时。

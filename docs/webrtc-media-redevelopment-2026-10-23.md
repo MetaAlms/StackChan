@@ -506,3 +506,15 @@ STOP near_01
   需换低复杂度 AEC 模式，不能把“任务搬走”当成修复完成。
 - 播放“滋啦”是否消失是第二个判据：若发送恢复而仍滋啦，优先查 TTS PCM 近满幅/
   音量削波，而不是继续归因调度。
+
+
+### 2026-10-27：首次出声、PMIC I2C abort 与低复杂度 AEC
+
+- AEC 任务模型修复后 near 30s：`sent=1477≈49.2/s`、`mic_full=17`、无 WDT，
+  `AFE feed avg=14.4ms/16ms`、`max_backlog=50ms`、`dropped=0`（B61）。
+- 自播 `retest01` 首次听到故事（约 12s，`decoded=614`）；随后 CPU1 饱和
+  （IDLE1 WDT，`audio_communication`），并在 23s 因 **PMIC AXP2101 I2C 超时**
+  （`Pmic::IsExternalPowerConnected`，esp_timer 上下文）触发 `ESP_ERROR_CHECK`
+  abort。这不是 AW88298 单独损坏（B62 更正、B63）。
+- 已改：`AEC_MODE_VOIP_LOW_COST` + PMIC/输出打开失败不 abort；构建 `0x3ce460`，
+  已刷入，60s self 待验证。若实时性与 I2C 都恢复，再进入双讲/打断。
