@@ -1728,3 +1728,11 @@ perf03 near 第二次、aec06 duplex 第二次均 12.5/s。
   功放/I2C 总线锁死**；开机 reset 脉冲不能解除，只有真正断电池+USB 冷启动
   才恢复过一次。需冷启动后再测，才能判断低复杂度 AEC 的稳态成本与音质。
 - 日志：`selfplay-11-lowcost.log`。
+
+**2026-10-27 冷启动重测（`lowcost02`/`lowcost03`）**：
+- 两次均在准备阶段 `DTLS handshake fail ret -0x6900`，30s 后
+  `prepare_timeout stage=4 config=0`，从未 RUNNING；`sent/decoded=0`。
+- 因此低复杂度 AEC 的 60s 稳态仍未取得有效样本；这两轮不能判 AEC/音质。
+- 现象与历史偶发准备失败一致（B58/perf04）；冷启动并不保证首次连接成功。
+- 下一步：等链路稳定后重试，或先处理功放/I2C 锁死；不要用这两轮否定 low-cost。
+- 日志：`selfplay-12-lowcost-coldboot.log`、`selfplay-13-lowcost-retry.log`。
