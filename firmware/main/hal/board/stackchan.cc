@@ -108,6 +108,18 @@ public:
         WriteReg(0x30, 0x0F);        // ADC enabled
         WriteReg(0x97, (0b11110 - 2));
 
+        // Read back the rails that power the two audio codecs. If these do not
+        // match the official values, debug PMIC/bus before touching audio.
+        uint8_t aldo1 = 0, aldo2 = 0, ldo_ctrl = 0;
+        if (TryReadRegs(0x92, &aldo1, 1) == ESP_OK &&
+            TryReadRegs(0x93, &aldo2, 1) == ESP_OK &&
+            TryReadRegs(0x90, &ldo_ctrl, 1) == ESP_OK) {
+            ESP_LOGI(TAG, "PMIC rails: ALDO1=0x%02X ALDO2=0x%02X LDO=0x%02X expect_ALDO1=0x0D expect_ALDO2=0x1C",
+                     aldo1, aldo2, ldo_ctrl);
+        } else {
+            ESP_LOGW(TAG, "PMIC rail readback failed");
+        }
+
         auto ret = setChargerConstantCurr(XPOWERS_AXP2101_CHG_CUR_700MA);
         if (!ret) {
             ESP_LOGE(TAG, "Set charge current failed");

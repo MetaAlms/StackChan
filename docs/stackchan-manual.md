@@ -4,6 +4,7 @@
 先读这里，再按链接进入细节。只写**已确认事实**和**明确标注的待验证项**；
 证据不足的推测不写成结论。
 
+- **板级/电源/音频配置对照（官方值 vs 本仓库）**：[stackchan-config-manual.md](stackchan-config-manual.md)
 - 硬件细节：[stackchan-hardware.md](stackchan-hardware.md)
 - 逐条发现与踩坑：[firmware-findings.md](firmware-findings.md)
 - 方案与阶段：[aliyun-omni-v2v-plan.md](aliyun-omni-v2v-plan.md)

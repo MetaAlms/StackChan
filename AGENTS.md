@@ -31,6 +31,7 @@ origin  git@github.com:MetaAlms/StackChan.git     ← 我们的 fork
 | 发现类型 | 记到哪 |
 |---|---|
 | 总入口 / 已确认事实 / 命令与故障速查 | [docs/stackchan-manual.md](docs/stackchan-manual.md) |
+| 板级/电源/音频配置（官方值 vs 本仓库） | [docs/stackchan-config-manual.md](docs/stackchan-config-manual.md) |
 | 原厂/上游缺陷、硬件陷阱、自己踩的坑 | [docs/firmware-findings.md](docs/firmware-findings.md) |
 | 硬件型号、引脚、采样率链路等稳定事实 | [docs/stackchan-hardware.md](docs/stackchan-hardware.md) |
 | 方案与阶段计划 | [docs/aliyun-omni-v2v-plan.md](docs/aliyun-omni-v2v-plan.md) |
