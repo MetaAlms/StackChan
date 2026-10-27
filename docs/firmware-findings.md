@@ -1748,3 +1748,31 @@ perf03 near 第二次、aec06 duplex 第二次均 12.5/s。
 - 处置建议：冷却数分钟后再试；若仍失败，检查服务端并发/会话配额或改用
   WebSocket 对照；不要用这些轮次评价 AEC/音质。
 - 日志：`selfplay-14-lowcost-retry2.log`。
+
+### B65. 对照官方 M5Unified：PMIC 漏配 ALDO1/ALDO2，AW88298 I2C 处于边缘
+
+**官方依据**（2026-10-27 核对）：
+- M5Unified `Power_Class.inl` 的 CoreS3/StackChan 初始化数组：
+  `0x92, 18-5`（**ALDO1=1.8 V，for AW88298**）、`0x93, 33-5`
+  （**ALDO2=3.3 V，for ES7210**）、`0x10=0x30`、`0x69=0x11`、`0x30=0x0F`。
+  <https://github.com/m5stack/M5Unified/blob/master/src/utility/Power_Class.inl#L418-L419>
+- 同一 BSP 的扬声器使能：先 `_core_s3_aw9523_bit(0x02, 0b00000100, true)`
+  再写 AW88298 寄存器；关闭时先写 `0x04=0x4000` 再拉低该位。
+  <https://github.com/m5stack/M5Unified/blob/master/src/M5Unified.inl#L610>
+- 官方 CoreS3 原理图（第 4/5 页）确认 AW88298 的 `AW_RST` 接
+  **AW9523 P0.2**，`SPK_VOP/VON` 经 150K/22pF/1uF 到 ES7210 MIC3，
+  I2C 7 位地址 0x36；ES7210 0x40。
+  <https://m5stack-doc.oss-cn-shenzhen.aliyuncs.com/490/Sch_M5_CoreS3_v1.0.pdf>
+
+**我们的差异**：
+- `Pmic` 构造函数只写了 `0x94/0x95`（ALDO3/4），**漏写 `0x92`/`0x93`**；
+  `0x69` 用 0x35、`0x30` 用 0x3F，且没有写 `0x10=0x30`。
+- 启动时把 P0.2 当“复位”拉低再拉高；官方把它当**扬声器 enable**，
+  没有这个低脉冲。
+- 这些是**初始化配置差异，不是接线错**。ALDO1 未按官方设 1.8 V 时，
+  AW88298 的 I2C 处于边缘状态，可解释播放打开时 `dev 6c` 间歇 NACK，
+  以及崩溃后“锁死”的假象。
+
+**修复**：`0x3ce400` 按官方值补齐 `0x92/0x93/0x10/0x69/0x30`，移除启动
+P0.2 低脉冲；待真机 60 s self 验证。若仍 NACK，再查总线/器件，而不是继续
+猜接线。

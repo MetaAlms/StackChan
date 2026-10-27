@@ -94,17 +94,19 @@ public:
     // Power Init
     Pmic(i2c_master_bus_handle_t i2c_bus, uint8_t addr) : Axp2101(i2c_bus, addr)
     {
-        uint8_t data = ReadReg(0x90);
-        data |= 0b10110100;
-        WriteReg(0x90, data);
-        // WriteReg(0x99, (0b11110 - 5));
+        // Official M5Unified CoreS3/StackChan power init. ALDO1 feeds the
+        // AW88298 I/O rail and ALDO2 feeds ES7210; omitting them leaves the
+        // codec I2C marginal (the amp intermittently NACKs at 0x36).
+        WriteReg(0x90, 0xBF);        // LDOS ON/OFF
+        WriteReg(0x92, 18 - 5);      // ALDO1 = 1.8 V, AW88298
+        WriteReg(0x93, 33 - 5);      // ALDO2 = 3.3 V, ES7210
+        WriteReg(0x94, 33 - 5);      // ALDO3 = 3.3 V, camera
+        WriteReg(0x95, 33 - 5);      // ALDO4 = 3.3 V, TF
+        WriteReg(0x10, 0x30);        // PMU common config
+        WriteReg(0x27, 0x00);        // power key timing
+        WriteReg(0x69, 0x11);        // CHGLED
+        WriteReg(0x30, 0x0F);        // ADC enabled
         WriteReg(0x97, (0b11110 - 2));
-        WriteReg(0x69, 0b00110101);
-        WriteReg(0x30, 0b111111);
-        WriteReg(0x90, 0xBF);
-        WriteReg(0x94, 33 - 5);
-        WriteReg(0x95, 33 - 5);
-        WriteReg(0x27, 0x00);
 
         auto ret = setChargerConstantCurr(XPOWERS_AXP2101_CHG_CUR_700MA);
         if (!ret) {
@@ -615,10 +617,8 @@ public:
         InitializeAxp2101();
         InitializePowerSaveTimer();
         InitializeAw9523();
-        // Pulse the AW88298 reset line before the codec is used. After an
-        // aborted output open the amp can latch with a dead I2C interface;
-        // without this pulse every later EnableOutput() aborts the firmware.
-        aw9523_->ResetAw88298();
+        // AW9523 P0.2 is the AW88298 speaker enable (active high), not a
+        // reset. Keep it enabled; the codec driver configures the amp.
         I2cDetect();
         InitializeFt6336();
         InitializeSpi();
