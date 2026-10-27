@@ -15,8 +15,9 @@
 > near 已能实时；duplex 已首次出声约 12 秒，但随后被 CPU 饱和 + I2C 超时 abort。
 > 低复杂度 AEC + I2C 不 abort 的固件（app `0x3ce460`）已刷入；`lowcost01`
 > 输出打开仍遇 `I2C dev 6c` 超时（非 abort 生效但无播放）；冷启动后
-> `lowcost02/03` 又连续准备超时（DTLS/ICE），未 RUNNING。低复杂度 AEC 的
-> 60s 稳态仍无有效样本。语音打断尚未验收，M2 继续 HOLD。
+> `lowcost02/03/04` 又连续准备超时（DTLS/ICE），未 RUNNING。低复杂度 AEC 的
+> 60s 稳态仍无有效样本；连续失败更像服务端会话/网络侧，而非 AEC。语音打断
+> 尚未验收，M2 继续 HOLD。
 
 ---
 

@@ -1736,3 +1736,15 @@ perf03 near 第二次、aec06 duplex 第二次均 12.5/s。
 - 现象与历史偶发准备失败一致（B58/perf04）；冷启动并不保证首次连接成功。
 - 下一步：等链路稳定后重试，或先处理功放/I2C 锁死；不要用这两轮否定 low-cost。
 - 日志：`selfplay-12-lowcost-coldboot.log`、`selfplay-13-lowcost-retry.log`。
+
+**2026-10-27 重启后重试（`lowcost04`）**：
+- 仍为 `prepare_timeout stage=4 config=0`，DTLS 日志先出现
+  `SRTP connected OK`，随后持续 `handshake fail ret -0x6900`（WANT_READ/重试），
+  30s 内未进入 RUNNING；媒体计数 0。
+- 这是刷入 `0x3ce460` 后连续第 3 次准备失败（`lowcost02/03/04`），
+  且上一版固件 `retest01` 曾在冷启动后成功 RUNNING/出声。当前不能把
+  它归因于低复杂度 AEC（AFE 在 RUNNING 才启动）；更像服务端会话/网络侧
+  未完成 ICE/DC，或前一次崩溃留下的会话尚未清理。
+- 处置建议：冷却数分钟后再试；若仍失败，检查服务端并发/会话配额或改用
+  WebSocket 对照；不要用这些轮次评价 AEC/音质。
+- 日志：`selfplay-14-lowcost-retry2.log`。
