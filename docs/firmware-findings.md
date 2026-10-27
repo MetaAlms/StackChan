@@ -1679,3 +1679,20 @@ perf03 near 第二次、aec06 duplex 第二次均 12.5/s。
   `ESP_ERROR_CHECK` abort 路径以便降级运行。
 - 日志：`selfplay-05-aectask.log`、`selfplay-06-aectask.log`、
   `selfplay-07-ampreset.log`、`selfplay-08-powercycle.log`。
+
+### B63. self-play 首次出声：故事播放约 12s 后 CPU1 WDT + PMIC I2C 超时 abort
+
+**证据**：`retest01`（app `0x3ce3b0`，AEC=y，30s self）：
+- RUNNING 后输出打开成功，`decoded=614`（24k，约 12.3s 音频）、`sent=377/23s ≈16 包/秒`、
+  `mic_full=0`；用户确认听到“阿明”的故事，说明**喇叭/播放链路这次是通的**。
+- 20.1s 出现 `task_wdt: IDLE1 (CPU 1)`，CPU1 当前任务 `audio_communication`；
+  backtrace 在 `ProcessPendingFeed/AudioProcessorTask`。AEC 单块 near 实测
+  `avg 14.4ms/16ms`，播放时接近/超过实时，CPU1 没有 idle。
+- 23.1s I2C 超时：`Pmic::IsExternalPowerConnected()`（AXP2101，0x34）经
+  `esp_timer` 的 `PollPowerSaveState` 调用 `I2cDevice::ReadReg`，`ESP_ERROR_CHECK` abort；
+  同时 FT6336 读也超时。不是 AW88298 单独故障，而是**播放期间 I2C 总线/低优先级
+  任务被 CPU 饥饿拖死**，再被 `ESP_ERROR_CHECK` 放大成重启。
+- 结论：故事链路可行；当前阻塞是 AEC 计算占满 core1 + I2C 读超时直接 abort。
+  下一步单一变量：换低复杂度 AEC（`AEC_MODE_VOIP_LOW_COST` / `AFE_MODE_LOW_COST`）
+  并让 PMIC/触摸的 I2C 读失败可恢复，不再 abort。
+- 日志：`selfplay-10-retest.log`。
