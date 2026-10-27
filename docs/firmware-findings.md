@@ -1716,3 +1716,15 @@ perf03 near 第二次、aec06 duplex 第二次均 12.5/s。
 **判据**：`sent≈50/s`、`AFE feed avg_us` 明显低于 16000、无 IDLE1 WDT；
 若 I2C 仍超时应只看到日志、不重启；用户听感是否完整/是否滋啦。
 **边界**：低复杂度 AEC 的抑制效果可能下降，需双讲对比，不能只看 near 实时。
+
+**2026-10-27 首测补充（`lowcost01`，60s self）**：
+- 输出打开仍失败：`I2C dev 6c` 超时 → `CoreS3AudioCodec: output open failed:
+  ESP_ERR_NOT_SUPPORTED`；**非 abort 修复生效**，固件没有重启，但 M15 因
+  `write_failed=1` 在 1.1s 后 `reason=error` 停止，无播放。
+- `AFE feed: chunks=55 avg_us=19783 max_us=45511 dropped_samples=6656
+  max_backlog_ms=244`；只覆盖 1.1s，含启动瞬态，**不能**据此公平比较
+  low/high-perf；但至少没有显示低复杂度更省 CPU。
+- 与 `retest01`（冷启动后首次出声）对比，当前更像是**上次 PMIC I2C abort 后
+  功放/I2C 总线锁死**；开机 reset 脉冲不能解除，只有真正断电池+USB 冷启动
+  才恢复过一次。需冷启动后再测，才能判断低复杂度 AEC 的稳态成本与音质。
+- 日志：`selfplay-11-lowcost.log`。

@@ -13,8 +13,9 @@
 
 > 状态（2026-10-27）：M1.5 双向验证中。M1 上行已 PASS；设备 AEC 已启用，
 > near 已能实时；duplex 已首次出声约 12 秒，但随后被 CPU 饱和 + I2C 超时 abort。
-> 低复杂度 AEC + I2C 不 abort 的固件（app `0x3ce460`）已构建/刷入，**60 秒
-> self 验证尚未执行**。语音打断尚未验收，M2 继续 HOLD。
+> 低复杂度 AEC + I2C 不 abort 的固件（app `0x3ce460`）已刷入；首测 `lowcost01`
+> 在输出打开时仍遇 `I2C dev 6c` 超时，非 abort 修复生效但无播放，1.1s 后停止。
+> 需真正断电池+USB 冷启动后再测。语音打断尚未验收，M2 继续 HOLD。
 
 ---
 
@@ -208,9 +209,9 @@ Qwen 的 `response.create` 只定义 `type`/`event_id`，逐条 `instructions` �
 
 ## 5. 当前阻塞与未决项
 
-1. **低复杂度 AEC 验证**：`AEC_MODE_VOIP_LOW_COST` + 非 abort I2C 已刷入
-   `0x3ce460`，60 s self 测试待执行；要看 `sent` 是否 ≈50/s、`AFE feed avg`
-   是否明显低于 16 ms、是否还有 WDT / I2C abort。
+1. **低复杂度 AEC 验证**：`0x3ce460` 首测因功放 I2C 锁死未播放
+   （`AFE feed avg=19.8ms` 仅 1.1s 启动样本，不能公平比较）。需冷启动后重跑 60s；
+   看 `sent` 是否 ≈50/s、`AFE feed avg` 是否低于 16ms、是否还有 WDT / I2C 超时。
 2. **可打断（barge-in）**：用户明确要求；尚未做双讲。需先确认 AEC 有效
    （TTS 播放时用户插话，旧播放停止、上行不被自己回声打断）。
 3. **回声是否触发 VAD**：自播一轮 `speech=0` 是好信号，但单轮不能证明。
