@@ -1776,3 +1776,30 @@ perf03 near 第二次、aec06 duplex 第二次均 12.5/s。
 **修复**：`0x3ce400` 按官方值补齐 `0x92/0x93/0x10/0x69/0x30`，移除启动
 P0.2 低脉冲；待真机 60 s self 验证。若仍 NACK，再查总线/器件，而不是继续
 猜接线。
+
+### B66. DTLS 握手自 10-27 10:16 起再未成功：SDP/ICE 一致，媒体面在服务端未建立
+
+**对比同一固件 `0x3ce460` 的三轮**（2026-11-02 复核）：
+
+- `selfplay-11-lowcost.log`（10-27 10:16，`lowcost01`）：`SRTP connected OK`
+  → **`DTLS: Client handshake success`** → `Negotiated DTLS ciphersuite:
+  TLS-ECDHE-ECDSA-WITH-AES-256-GCM-SHA384` → `[state] CONNECTED (7)` → `RUNNING`；
+  12.9 s 后 `DATA_CHANNEL_DISCONNECTED (12)`（异常断开，无 teardown）。
+- `selfplay-12/13/14`（10:35 与 20:34 两轮）：SDP `http=200`、answer 1254 字节、
+  media 行与成功轮逐行相同；ICE `Connection OK 39.97.230.241:3478`、
+  `PAIRED (5)`、`CONNECTING (6)`；但 DTLS 只有
+  `CLient handshake fail ret -0x6900`（= `MBEDTLS_ERR_SSL_WANT_READ`，非致命），
+  **从未出现 `Client handshake success`**，state 永不进 `CONNECTED (7)`；
+  30 s 后 `prepare_timeout stage=4`。
+- 两轮失败之间没有换固件、没有换网络；ICE 选择完全相同
+  （`prflx 172.22.213.33` → `39.97.230.241:3478`）。
+
+**结论**：不是低复杂度 AEC、不是 SDP/ICE、也不是 B65 的 PMIC 配置差异。
+现象是 ClientHello 发出后收不到服务器握手 flight，媒体面会话在服务端没有真正建立；
+最符合 10:16 那轮 `DATA_CHANNEL_DISCONNECTED` 异常断开后**残留会话未释放**（与 B33 同形态）。
+
+**固件侧缺口**：`webrtc_transport.cc` 只 `POST` SDP，没有任何 DELETE/关闭请求；
+abort/断电路径不会给服务端任何释放信号，会话只能等服务端 TTL。
+
+**建议**：RUNNING 结束与准备失败时先优雅关闭 peer（DTLS close_notify）再重试；
+把 `WANT_READ` 的 `E` 级日志降为调试级，避免十几行假错误淹没真正的失败点。
