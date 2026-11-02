@@ -1,7 +1,10 @@
 #include <sdkconfig.h>
 
 // PROBE_GUARD
-#if CONFIG_STACKCHAN_WEBRTC_M1
+// M1 was the first consumer; M15 needs the same observation because its
+// prepare phase also stalls at `stage=server answer received` with no way to
+// tell "DTLS records never arrived" from "handshake never returned".
+#if CONFIG_STACKCHAN_WEBRTC_M1 || CONFIG_STACKCHAN_WEBRTC_M15
 
 #include <cstddef>
 #include <cstdint>

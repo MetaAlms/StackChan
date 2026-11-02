@@ -1,7 +1,7 @@
 #include <sdkconfig.h>
 
 // PROBE_GUARD
-#if CONFIG_STACKCHAN_WEBRTC_M1
+#if CONFIG_STACKCHAN_WEBRTC_M1 || CONFIG_STACKCHAN_WEBRTC_M15
 
 #include "dtls_short_probe.h"
 
@@ -374,8 +374,12 @@ extern "C" ssize_t __wrap_lwip_sendto(int s, const void* dataptr, size_t size, i
         else { ++st.rep.tx_short_write; }
     }
     // DTLS TX shares this socket with RTP/STUN. Each probe parses only what it
-    // recognises, so one wrapper feeds both without double-counting.
+    // recognises, so one wrapper feeds both without double-counting. The RTP
+    // probe only exists in the M1 build; M15 links this unit for its DTLS
+    // observation alone and must not call into a header that is guarded out.
+#if CONFIG_STACKCHAN_WEBRTC_M1
     rtp_probe::ObserveSendto(dataptr, size, rc, saved_errno);
+#endif
     errno = saved_errno;
     return rc;
 }

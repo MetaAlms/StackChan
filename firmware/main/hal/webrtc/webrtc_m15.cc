@@ -7,6 +7,7 @@
 #include "console_command.h"
 #include "channel_audit.h"
 #include "decimal_log_value.h"
+#include "dtls_short_probe.h"
 #include "session_run_control.h"
 #include "webrtc_transport.h"
 #include "audio_service.h"
@@ -405,6 +406,10 @@ void BeginCaptureWindow(Run& r) {
         r.command.run_id.c_str(), r.command.mode == RunMode::NearEnd ? "near" : r.command.mode == RunMode::SelfPlay ? "self" : "duplex",
         (unsigned long)r.session_tag, SignedDecimal(r.control.run_started_us()).c_str(), (unsigned long)r.command.duration_seconds,
         r.command.mode != RunMode::NearEnd, SignedDecimal(r.first_warm_afe_us.load()).c_str());
+    // Dump the DTLS probe once per connected run so a later prepare failure has
+    // a baseline: the counters that said "connected" are compared against the
+    // ones captured when the prepare budget expires.
+    dtls_probe::LogReport("connected");
     // Self-play: inject one user text turn, then ask for a response. Qwen's
     // response.create schema defines only type/event_id, so the instruction
     // must live in a conversation item rather than a per-response field.
@@ -438,6 +443,12 @@ void Report(Run& r, bool final) {
     if (!p.submitted_calls) p.last_submit_started_us = p.last_submit_finished_us = 0;
     if (p.stop_completed_us <= r.initial_playback.stop_completed_us) p.stop_completed_us = 0;
     const int64_t now = esp_timer_get_time();
+    if (final && r.control.stop_reason() == StopReason::PrepareTimeout) {
+        // The prepare budget expired. Report what the DTLS layer actually saw so
+        // the failure names the real boundary: no record written, nothing came
+        // back on the socket, or records both ways with no handshake result.
+        dtls_probe::LogReport("prepare-timeout");
+    }
     ESP_LOGW(kTag, "%s run=%s state=%s reason=%s stage=%d session_tag=%08lx elapsed_ms=%s config=%d transport_joined=%d",
         final ? "FINAL" : "PROGRESS", r.command.run_id.c_str(), StateName(r.control.state()), ReasonName(r.control.stop_reason()),
         r.transport.stage(), (unsigned long)r.session_tag,

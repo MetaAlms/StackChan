@@ -585,6 +585,24 @@ if(CONFIG_STACKCHAN_WEBRTC_M1)
     endif()
 endif()
 
+# M15 consumes the same DTLS observation unit, but not the RTP/SRTP wraps:
+# `srtp_protect` belongs to the M1 RTP probe and would need its own
+# `__wrap_srtp_protect` definition here. Only the mbedTLS and lwIP boundaries
+# are redirected, so the report can still say whether DTLS records were written
+# and whether any came back.
+if(CONFIG_STACKCHAN_WEBRTC_M15)
+    target_link_options(${COMPONENT_LIB} INTERFACE
+        "-Wl,--wrap=lwip_sendto"
+        "-Wl,--wrap=lwip_recvfrom"
+        "-Wl,--wrap=mbedtls_ssl_handshake"
+        "-Wl,--wrap=mbedtls_ssl_setup"
+        "-Wl,--wrap=mbedtls_ssl_config_free"
+        "-Wl,--wrap=mbedtls_ssl_free"
+        "-Wl,--wrap=mbedtls_ssl_config_defaults"
+        "-Wl,--wrap=mbedtls_ssl_conf_transport")
+    message(STATUS "M15 DTLS probe: handshake/UDP observation enabled")
+endif()
+
 # B35 is a media correctness fix, not an M1 diagnostic. Keep this separate
 # so later probe/product modes do not need to enable observation wrappers.
 if(CONFIG_STACKCHAN_WEBRTC_M0 OR CONFIG_STACKCHAN_WEBRTC_M1 OR CONFIG_STACKCHAN_WEBRTC_M15)

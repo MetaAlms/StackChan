@@ -1803,3 +1803,9 @@ abort/断电路径不会给服务端任何释放信号，会话只能等服务�
 
 **建议**：RUNNING 结束与准备失败时先优雅关闭 peer（DTLS close_notify）再重试；
 把 `WANT_READ` 的 `E` 级日志降为调试级，避免十几行假错误淹没真正的失败点。
+
+**2026-11-02 已补**：M15 之前只 wrap 了 SRTP profile 一个符号，`dtls_probe` 仅挂在 M1，
+所以失败日志里只有 `WANT_READ` 的假错误。现已把 `dtls_short_probe` 的守卫扩到
+M15，并在 `webrtc_m15.cc` 的 prepare 超时与 RUNNING 两处调用
+`dtls_probe::LogReport()`；M15 只 wrap mbedTLS + lwIP 边界，不动 `srtp_protect`
+（那是 M1 RTP 探针的，需要自己的 `__wrap` 定义）。`idf.py build` 通过。
