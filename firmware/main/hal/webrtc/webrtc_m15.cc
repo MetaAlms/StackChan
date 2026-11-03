@@ -398,6 +398,11 @@ void HandleEvent(Run& r, const Event& e) {
 }
 void BeginCaptureWindow(Run& r) {
     if (r.control.state() != RunState::Preparing || !r.configuration_ok || !r.first_warm_afe_us.load()) return;
+    // A run is only "running" once the peer's data channel is actually open.
+    // Gating on the AFE alone let a stalled DTLS handshake be reported as
+    // RUNNING with sent=0, a negative elapsed and no prepare timeout (B71).
+    // Stage 6 is the transport's kStageDataChannel.
+    if (r.transport.stage() < 6) return;
     if (!r.control.Ready(r.command.run_id, esp_timer_get_time())) return;
     if (!r.capture_gate.Open()) { Continue(r); return; }
     r.capture_warming = false;
@@ -568,7 +573,11 @@ void RunBody(Run& r) {
     // on one attempt and timed out on the next. Retry the prepare phase with a
     // brand-new peer instead of failing the whole run on one lost flight. The
     // run id, mode and duration stay the same, so the console still sees one run.
-    constexpr int kMaxPrepareAttempts = 3;
+    // Retrying in firmware is wrong: Transport::Reset() runs on_before_close,
+    // which tears down the capture/playback pipeline for the run, so the second
+    // attempt connects but never re-warms the AFE (read_ok=0, never RUNNING).
+    // Retry at the command level instead: a fresh START rebuilds the whole Run.
+    constexpr int kMaxPrepareAttempts = 1;
     int prepare_attempt = 0;
 prepare_retry:
     ++prepare_attempt;
@@ -676,6 +685,11 @@ prepare_retry:
             std::string retry_error;
             if (r.transport.Start({}, Callbacks(r), &retry_error)) {
                 ESP_LOGW(kTag, "PREPARE retry %d/%d started", prepare_attempt + 1, kMaxPrepareAttempts);
+                // The AFE was already warm from the failed attempt, so without
+                // re-arming warm-up the next iteration would call Ready() at
+                // once and burn the run window on a peer that is not connected.
+                r.first_warm_afe_us.store(0);
+                r.capture_warming = true;
                 PublishState(r);
                 goto prepare_retry;
             }
@@ -904,6 +918,14 @@ void WebRtcM15Run() {
                 const bool idle = !g_run || (finished && g_run->reusable);
                 ESP_LOGW(kTag, "STATUS run=%s state=%s restart_requires_reboot=%d", g_run ? g_run->command.run_id.c_str() : "none",
                     idle ? "Idle" : StateName(g_run->state.load()), finished && !g_run->reusable);
+            } else if (c.kind == webrtc_media::CommandKind::Volume) {
+                auto* codec = Board::GetInstance().GetAudioCodec();
+                if (codec == nullptr) {
+                    ESP_LOGW(kTag, "VOLUME rejected: codec unavailable");
+                    continue;
+                }
+                codec->SetOutputVolume(c.volume);
+                ESP_LOGW(kTag, "VOLUME set=%u effective=%d", (unsigned)c.volume, codec->output_volume());
             } else if (c.kind == webrtc_media::CommandKind::Audit) {
                 if (g_run && !g_run->worker_finished.load()) {
                     ESP_LOGW(kTag, "AUDIT rejected: worker still active");

@@ -1,5 +1,5 @@
 diff --git a/main/audio/processors/afe_audio_processor.cc b/main/audio/processors/afe_audio_processor.cc
-index 15e9cc5..4660e8f 100644
+index 15e9cc5..7625cd6 100644
 --- a/main/audio/processors/afe_audio_processor.cc
 +++ b/main/audio/processors/afe_audio_processor.cc
 @@ -1,5 +1,6 @@
@@ -19,7 +19,26 @@ index 15e9cc5..4660e8f 100644
      afe_config->vad_mode = VAD_MODE_0;
      afe_config->vad_min_noise_ms = 100;
      if (vad_model_name != nullptr) {
-@@ -66,12 +68,30 @@ void AfeAudioProcessor::Initialize(AudioCodec* codec, int frame_duration_ms, srm
+@@ -47,8 +49,18 @@ void AfeAudioProcessor::Initialize(AudioCodec* codec, int frame_duration_ms, srm
+ 
+     if (ns_model_name != nullptr) {
+         afe_config->ns_init = true;
++#if CONFIG_SR_NSN_WEBRTC
++        // The NSNet denoiser runs a CNN inference per frame and was the largest
++        // single cost in the AFE feed path (B69: 13.2 ms per 16 ms chunk, 82 %
++        // of one core). The WebRTC NS is fixed-cost DSP, which is what lets AEC
++        // share a core with the media loop again. esp-sr selects it by the
++        // literal model name "WEBRTC".
++        afe_config->ns_model_name = const_cast<char*>("WEBRTC");
++        afe_config->afe_ns_mode = AFE_NS_MODE_WEBRTC;
++#else
+         afe_config->ns_model_name = ns_model_name;
+         afe_config->afe_ns_mode = AFE_NS_MODE_NET;
++#endif
+     } else {
+         afe_config->ns_init = false;
+     }
+@@ -66,12 +78,30 @@ void AfeAudioProcessor::Initialize(AudioCodec* codec, int frame_duration_ms, srm
  
      afe_iface_ = esp_afe_handle_from_config(afe_config);
      afe_data_ = afe_iface_->create_from_config(afe_config);
@@ -50,7 +69,7 @@ index 15e9cc5..4660e8f 100644
  }
  
  AfeAudioProcessor::~AfeAudioProcessor() {
-@@ -99,25 +119,139 @@ void AfeAudioProcessor::Feed(std::vector<int16_t>&& data) {
+@@ -99,25 +129,139 @@ void AfeAudioProcessor::Feed(std::vector<int16_t>&& data) {
          return;
      }
      input_buffer_.insert(input_buffer_.end(), data.begin(), data.end());
@@ -190,7 +209,7 @@ index 15e9cc5..4660e8f 100644
  }
  
  bool AfeAudioProcessor::IsRunning() {
-@@ -138,10 +272,51 @@ void AfeAudioProcessor::AudioProcessorTask() {
+@@ -138,10 +282,51 @@ void AfeAudioProcessor::AudioProcessorTask() {
      ESP_LOGI(TAG, "Audio communication task started, feed size: %d fetch size: %d",
          feed_size, fetch_size);
  
@@ -242,7 +261,7 @@ index 15e9cc5..4660e8f 100644
          if ((xEventGroupGetBits(event_group_) & PROCESSOR_RUNNING) == 0) {
              continue;
          }
-@@ -187,6 +362,10 @@ void AfeAudioProcessor::AudioProcessorTask() {
+@@ -187,6 +372,10 @@ void AfeAudioProcessor::AudioProcessorTask() {
  }
  
  void AfeAudioProcessor::EnableDeviceAec(bool enable) {

@@ -10,7 +10,7 @@
 
 namespace webrtc_media {
 
-enum class CommandKind { None, Start, Stop, Status, Audit };
+enum class CommandKind { None, Start, Stop, Status, Audit, Volume };
 
 struct ConsoleCommand {
     CommandKind kind = CommandKind::None;
@@ -19,6 +19,8 @@ struct ConsoleCommand {
     uint32_t duration_seconds = 0;
     // AUDIT is a local hardware/channel check; it never opens the network.
     uint32_t audit_seconds = 0;
+    // VOLUME is applied immediately and persisted by the codec.
+    uint8_t volume = 0;
 };
 
 // One owner feeds bytes and consumes Command results. No command is exposed
@@ -85,6 +87,19 @@ private:
         return true;
     }
 
+    static bool VolumePercent(std::string_view text, uint8_t& percent)
+    {
+        if (text.empty() || text.size() > 3) return false;
+        uint32_t value = 0;
+        for (unsigned char ch : text) {
+            if (ch < '0' || ch > '9') return false;
+            value = value * 10 + ch - '0';
+        }
+        if (value > 100) return false;
+        percent = (uint8_t)value;
+        return true;
+    }
+
     static bool Duration(std::string_view text, uint32_t& seconds)
     {
         if (text.empty() || text.size() > 3 || text.front() == '0') return false;
@@ -111,6 +126,12 @@ private:
         }
         if (count == 1 && tokens[0] == "STATUS") {
             last_command_.kind = CommandKind::Status;
+            return true;
+        }
+        uint8_t volume = 0;
+        if (count == 2 && tokens[0] == "VOLUME" && VolumePercent(tokens[1], volume)) {
+            last_command_.kind = CommandKind::Volume;
+            last_command_.volume = volume;
             return true;
         }
         uint32_t audit_seconds = 0;

@@ -1,83 +1,8 @@
---- a/main/audio/audio_service.h
-+++ b/main/audio/audio_service.h
-@@ -2,6 +2,10 @@
- #define AUDIO_SERVICE_H
- 
- #include <memory>
-+#if CONFIG_STACKCHAN_WEBRTC_M15
-+#include <atomic>
-+#include "hal/webrtc/capture_lifecycle.h"
-+#endif
- #include <deque>
- #include <condition_variable>
- #include <chrono>
-@@ -93,6 +97,9 @@
-     AudioTaskType type;
-     std::vector<int16_t> pcm;
-     uint32_t timestamp;
-+#if CONFIG_STACKCHAN_WEBRTC_M15
-+    uint64_t playback_epoch = 0;  // zero belongs to the original playback path
-+#endif
- };
- 
- struct DebugStatistics {
-@@ -133,8 +140,46 @@
-     bool ReadAudioData(std::vector<int16_t>& data, int sample_rate, int samples);
-     void ResetDecoder();
-     void SetModelsList(srmodel_list_t* models_list);
-+#if CONFIG_STACKCHAN_WEBRTC_M15
-+    enum class WebRtcPcmAdmission { Accepted, Invalid, Stopped, Stale, Contended, Full };
-+    struct WebRtcPlaybackSnapshot {
-+        uint64_t queued_samples;
-+        uint64_t inflight_samples;
-+        // Completed OutputData calls, including any underlying write failure.
-+        // These are API submission attempts, not acoustically played samples.
-+        uint64_t submitted_samples;
-+        uint64_t submitted_calls;
-+        int64_t last_submit_started_us;
-+        int64_t last_submit_finished_us;
-+        int64_t stop_completed_us;
-+    };
-+    // Install before Start; sink must not block or retain borrowed storage.
-+    void SetWebRtcPcmSink(std::function<void(std::vector<int16_t>&&)> sink) { webrtc_pcm_sink_ = std::move(sink); }
-+    uint32_t WebRtcCaptureConversionFailed() const { return webrtc_capture_conversion_failed_.load(); }
-+    uint32_t WebRtcCaptureDrainFailed() const { return webrtc_capture_drain_failed_.load(); }
-+    uint32_t WebRtcCaptureDrainedFrames() const { return webrtc_capture_drained_frames_.load(); }
-+    uint32_t WebRtcAfeResetFailed() const;
-+    uint64_t WebRtcPlaybackEpoch() const { return webrtc_playback_epoch_.load(); }
-+    WebRtcPcmAdmission PushWebRtcPcm(std::vector<int16_t>&& pcm, uint64_t epoch);
-+    // Nonblocking observations: fields can straddle a worker transition.
-+    WebRtcPlaybackSnapshot GetWebRtcPlaybackSnapshot() const;
-+    // Worker only: synchronizes against hardware submission, not a network callback.
-+    void StopWebRtcPlayback();
-+#endif
- 
- private:
-+#if CONFIG_STACKCHAN_WEBRTC_M15
-+    std::function<void(std::vector<int16_t>&&)> webrtc_pcm_sink_;
-+    std::atomic<uint64_t> webrtc_playback_epoch_{1};
-+    std::atomic<uint32_t> webrtc_capture_conversion_failed_{0};
-+    std::atomic<uint32_t> webrtc_capture_drain_failed_{0}, webrtc_capture_drained_frames_{0};
-+    webrtc_media::CaptureLifecycle webrtc_capture_lifecycle_;
-+    std::atomic<uint64_t> webrtc_queued_samples_{0}, webrtc_inflight_samples_{0};
-+    std::atomic<uint64_t> webrtc_submitted_samples_{0}, webrtc_submitted_calls_{0};
-+    std::atomic<int64_t> webrtc_last_submit_started_us_{0}, webrtc_last_submit_finished_us_{0};
-+    std::atomic<int64_t> webrtc_stop_completed_us_{0};
-+    std::mutex webrtc_output_mutex_;
-+#endif
-     AudioCodec* codec_ = nullptr;
-     AudioServiceCallbacks callbacks_;
-     std::unique_ptr<AudioProcessor> audio_processor_;
-@@ -192,4 +237,4 @@
-     void CheckAndUpdateAudioPowerState();
- };
- 
--#endif
-\ No newline at end of file
-+#endif
+diff --git a/main/audio/audio_service.cc b/main/audio/audio_service.cc
+index 350ac58..a1aef8b 100644
 --- a/main/audio/audio_service.cc
 +++ b/main/audio/audio_service.cc
-@@ -63,6 +63,9 @@
+@@ -63,6 +63,9 @@ void AudioService::Initialize(AudioCodec* codec) {
      codec_ = codec;
      codec_->Start();
  
@@ -87,7 +12,7 @@
      esp_opus_dec_cfg_t opus_dec_cfg = OPUS_DEC_CFG(codec->output_sample_rate(), OPUS_FRAME_DURATION_MS);
      auto ret = esp_opus_dec_open(&opus_dec_cfg, sizeof(esp_opus_dec_cfg_t), &opus_decoder_);
      if (opus_decoder_ == nullptr) {
-@@ -83,6 +86,7 @@
+@@ -83,6 +86,7 @@ void AudioService::Initialize(AudioCodec* codec) {
          encoder_frame_size_ = encoder_frame_size_ / sizeof(int16_t);
      }
  
@@ -95,7 +20,7 @@
      if (codec->input_sample_rate() != 16000) {
          esp_ae_rate_cvt_cfg_t input_resampler_cfg = RATE_CVT_CFG(
              codec->input_sample_rate(), ESP_AUDIO_SAMPLE_RATE_16K, codec->input_channels());
-@@ -99,6 +103,12 @@
+@@ -99,6 +103,12 @@ void AudioService::Initialize(AudioCodec* codec) {
  #endif
  
      audio_processor_->OnOutput([this](std::vector<int16_t>&& data) {
@@ -108,7 +33,7 @@
          PushTaskToEncodeQueue(kAudioTaskTypeEncodeToSendQueue, std::move(data));
      });
  
-@@ -158,12 +168,14 @@
+@@ -158,12 +168,14 @@ void AudioService::Start() {
      }, "audio_output", 2048, this, 4, &audio_output_task_handle_);
  #endif
  
@@ -123,7 +48,7 @@
  }
  
  void AudioService::Stop() {
-@@ -177,6 +189,9 @@
+@@ -177,6 +189,9 @@ void AudioService::Stop() {
      audio_encode_queue_.clear();
      audio_decode_queue_.clear();
      audio_playback_queue_.clear();
@@ -133,7 +58,7 @@
      audio_testing_queue_.clear();
      audio_queue_cv_.notify_all();
  }
-@@ -193,15 +208,40 @@
+@@ -193,15 +208,40 @@ bool AudioService::ReadAudioData(std::vector<int16_t>& data, int sample_rate, in
          if (!codec_->InputData(data)) {
              return false;
          }
@@ -176,7 +101,7 @@
              resampled.resize(actual_output * codec_->input_channels());
              data = std::move(resampled);
          }
-@@ -229,6 +269,9 @@
+@@ -229,6 +269,9 @@ bool AudioService::ReadAudioData(std::vector<int16_t>& data, int sample_rate, in
  
  void AudioService::AudioInputTask() {
      while (true) {
@@ -186,7 +111,7 @@
          EventBits_t bits = xEventGroupWaitBits(event_group_, AS_EVENT_AUDIO_TESTING_RUNNING |
              AS_EVENT_WAKE_WORD_RUNNING | AS_EVENT_AUDIO_PROCESSOR_RUNNING,
              pdFALSE, pdFALSE, portMAX_DELAY);
-@@ -236,6 +279,52 @@
+@@ -236,6 +279,52 @@ void AudioService::AudioInputTask() {
          if (service_stopped_) {
              break;
          }
@@ -239,7 +164,7 @@
          if (audio_input_need_warmup_) {
              audio_input_need_warmup_ = false;
              vTaskDelay(pdMS_TO_TICKS(120));
-@@ -282,6 +371,7 @@
+@@ -282,6 +371,7 @@ void AudioService::AudioInputTask() {
  
          // Read timeout/error should not terminate the input task.
          vTaskDelay(pdMS_TO_TICKS(10));
@@ -247,7 +172,7 @@
      }
  
      ESP_LOGW(TAG, "Audio input task stopped");
-@@ -297,19 +387,64 @@
+@@ -297,19 +387,64 @@ void AudioService::AudioOutputTask() {
  
          auto task = std::move(audio_playback_queue_.front());
          audio_playback_queue_.pop_front();
@@ -273,12 +198,11 @@
              esp_timer_start_periodic(audio_power_timer_, AUDIO_POWER_CHECK_INTERVAL_MS * 1000);
              codec_->EnableOutput(true);
          }
--
--        codec_->OutputData(task->pcm);
 +#if CONFIG_STACKCHAN_WEBRTC_M15
 +        }
 +#endif
-+
+ 
+-        codec_->OutputData(task->pcm);
 +#if CONFIG_STACKCHAN_WEBRTC_M15
 +        if (task->playback_epoch != 0) {
 +            for (size_t offset = 0; offset < task->pcm.size(); offset += 480) {
@@ -314,7 +238,7 @@
          debug_statistics_.playback_count++;
  
  #if CONFIG_USE_SERVER_AEC
-@@ -577,6 +712,24 @@
+@@ -577,6 +712,24 @@ void AudioService::EnableWakeWordDetection(bool enable) {
  }
  
  void AudioService::EnableVoiceProcessing(bool enable) {
@@ -339,24 +263,24 @@
      ESP_LOGD(TAG, "%s voice processing", enable ? "Enabling" : "Disabling");
      if (enable) {
          if (!audio_processor_initialized_) {
-@@ -601,7 +754,15 @@
+@@ -601,8 +754,16 @@ void AudioService::EnableVoiceProcessing(bool enable) {
          audio_processor_->Stop();
          xEventGroupClearBits(event_group_, AS_EVENT_AUDIO_PROCESSOR_RUNNING);
      }
--}
 +#endif
-+}
-+
+ }
+ 
 +#if CONFIG_STACKCHAN_WEBRTC_M15
 +uint32_t AudioService::WebRtcAfeResetFailed() const {
 +    return audio_processor_ == nullptr ? 0 :
 +        static_cast<AfeAudioProcessor*>(audio_processor_.get())->WebRtcResetFailed();
 +}
 +#endif
- 
++
  void AudioService::EnableAudioTesting(bool enable) {
      ESP_LOGI(TAG, "%s audio testing", enable ? "Enabling" : "Disabling");
-@@ -675,11 +836,18 @@
+     if (enable) {
+@@ -675,11 +836,18 @@ void AudioService::ResetDecoder() {
      timestamp_queue_.clear();
      audio_decode_queue_.clear();
      audio_playback_queue_.clear();
@@ -375,7 +299,7 @@
      auto now = std::chrono::steady_clock::now();
      auto input_elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_input_time_).count();
      auto output_elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_output_time_).count();
-@@ -695,6 +863,9 @@
+@@ -695,6 +863,9 @@ void AudioService::CheckAndUpdateAudioPowerState() {
      if (!codec_->input_enabled() && !codec_->output_enabled()) {
          esp_timer_stop(audio_power_timer_);
      }
@@ -385,7 +309,7 @@
  }
  
  void AudioService::SetModelsList(srmodel_list_t* models_list) {
-@@ -732,3 +903,50 @@
+@@ -732,3 +903,63 @@ bool AudioService::IsAfeWakeWord() {
      return false;
  #endif
  }
@@ -398,6 +322,19 @@
 +    if (service_stopped_) return WebRtcPcmAdmission::Stopped;
 +    if (epoch != webrtc_playback_epoch_.load()) return WebRtcPcmAdmission::Stale;
 +    if (audio_playback_queue_.size() >= MAX_PLAYBACK_TASKS_IN_QUEUE) return WebRtcPcmAdmission::Full;
++    // The model's TTS arrives well below full scale (B71: max_abs 13580 = -8 dBFS
++    // with the codec already at volume 100), so the speaker sounds quiet even at
++    // maximum. Apply software gain here, where the signal is 24 kHz mono int16,
++    // and clamp instead of wrapping so peaks cannot turn into clicks.
++    {
++        constexpr int kGainPercent = 200;  // 2.0x; source peaks leave ~2.4x headroom
++        for (auto& sample : pcm) {
++            int scaled = static_cast<int>(sample) * kGainPercent / 100;
++            if (scaled > 32767) scaled = 32767;
++            else if (scaled < -32768) scaled = -32768;
++            sample = static_cast<int16_t>(scaled);
++        }
++    }
 +    auto task = std::make_unique<AudioTask>();
 +    task->type = kAudioTaskTypeDecodeToPlaybackQueue;
 +    task->timestamp = 0;
@@ -435,4 +372,83 @@
 +    webrtc_stop_completed_us_ = esp_timer_get_time();
 +    audio_queue_cv_.notify_all();
 +}
++#endif
+diff --git a/main/audio/audio_service.h b/main/audio/audio_service.h
+index 99db546..17b6fee 100644
+--- a/main/audio/audio_service.h
++++ b/main/audio/audio_service.h
+@@ -2,6 +2,10 @@
+ #define AUDIO_SERVICE_H
+ 
+ #include <memory>
++#if CONFIG_STACKCHAN_WEBRTC_M15
++#include <atomic>
++#include "hal/webrtc/capture_lifecycle.h"
++#endif
+ #include <deque>
+ #include <condition_variable>
+ #include <chrono>
+@@ -93,6 +97,9 @@ struct AudioTask {
+     AudioTaskType type;
+     std::vector<int16_t> pcm;
+     uint32_t timestamp;
++#if CONFIG_STACKCHAN_WEBRTC_M15
++    uint64_t playback_epoch = 0;  // zero belongs to the original playback path
++#endif
+ };
+ 
+ struct DebugStatistics {
+@@ -133,8 +140,46 @@ public:
+     bool ReadAudioData(std::vector<int16_t>& data, int sample_rate, int samples);
+     void ResetDecoder();
+     void SetModelsList(srmodel_list_t* models_list);
++#if CONFIG_STACKCHAN_WEBRTC_M15
++    enum class WebRtcPcmAdmission { Accepted, Invalid, Stopped, Stale, Contended, Full };
++    struct WebRtcPlaybackSnapshot {
++        uint64_t queued_samples;
++        uint64_t inflight_samples;
++        // Completed OutputData calls, including any underlying write failure.
++        // These are API submission attempts, not acoustically played samples.
++        uint64_t submitted_samples;
++        uint64_t submitted_calls;
++        int64_t last_submit_started_us;
++        int64_t last_submit_finished_us;
++        int64_t stop_completed_us;
++    };
++    // Install before Start; sink must not block or retain borrowed storage.
++    void SetWebRtcPcmSink(std::function<void(std::vector<int16_t>&&)> sink) { webrtc_pcm_sink_ = std::move(sink); }
++    uint32_t WebRtcCaptureConversionFailed() const { return webrtc_capture_conversion_failed_.load(); }
++    uint32_t WebRtcCaptureDrainFailed() const { return webrtc_capture_drain_failed_.load(); }
++    uint32_t WebRtcCaptureDrainedFrames() const { return webrtc_capture_drained_frames_.load(); }
++    uint32_t WebRtcAfeResetFailed() const;
++    uint64_t WebRtcPlaybackEpoch() const { return webrtc_playback_epoch_.load(); }
++    WebRtcPcmAdmission PushWebRtcPcm(std::vector<int16_t>&& pcm, uint64_t epoch);
++    // Nonblocking observations: fields can straddle a worker transition.
++    WebRtcPlaybackSnapshot GetWebRtcPlaybackSnapshot() const;
++    // Worker only: synchronizes against hardware submission, not a network callback.
++    void StopWebRtcPlayback();
++#endif
+ 
+ private:
++#if CONFIG_STACKCHAN_WEBRTC_M15
++    std::function<void(std::vector<int16_t>&&)> webrtc_pcm_sink_;
++    std::atomic<uint64_t> webrtc_playback_epoch_{1};
++    std::atomic<uint32_t> webrtc_capture_conversion_failed_{0};
++    std::atomic<uint32_t> webrtc_capture_drain_failed_{0}, webrtc_capture_drained_frames_{0};
++    webrtc_media::CaptureLifecycle webrtc_capture_lifecycle_;
++    std::atomic<uint64_t> webrtc_queued_samples_{0}, webrtc_inflight_samples_{0};
++    std::atomic<uint64_t> webrtc_submitted_samples_{0}, webrtc_submitted_calls_{0};
++    std::atomic<int64_t> webrtc_last_submit_started_us_{0}, webrtc_last_submit_finished_us_{0};
++    std::atomic<int64_t> webrtc_stop_completed_us_{0};
++    std::mutex webrtc_output_mutex_;
++#endif
+     AudioCodec* codec_ = nullptr;
+     AudioServiceCallbacks callbacks_;
+     std::unique_ptr<AudioProcessor> audio_processor_;
+@@ -192,4 +237,4 @@ private:
+     void CheckAndUpdateAudioPowerState();
+ };
+ 
+-#endif
+\ No newline at end of file
 +#endif

@@ -25,7 +25,10 @@ class SessionRunControl {
 public:
     static constexpr size_t kMaxItems = 64;
     static constexpr size_t kMaxItemIdBytes = 128;
-    static constexpr int64_t kPrepareTimeoutUs = 30000000;
+    // A stalled DTLS handshake does not recover by waiting: in B71 the first
+    // attempt burned the full 30 s and the next fresh START connected in 1.9 s.
+    // Fail fast so the command-level retry can start a new run instead.
+    static constexpr int64_t kPrepareTimeoutUs = 10000000;
 
     bool Start(const std::string& run_id, RunMode mode, uint32_t duration_seconds, int64_t now_us)
     {
