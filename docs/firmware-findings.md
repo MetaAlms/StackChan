@@ -1855,3 +1855,33 @@ DTLS 首次即成功（12295 ms，`Client handshake success` → `CONNECTED (7)`
 
 **结论**：链路（DTLS/ICE/SRTP/数据通道/播放）已通；下一个唯一卡点是
 **AEC 计算负载**，下一步只动它。
+
+### B69. Wi-Fi modem sleep 是下行卡顿/丢包主因；AEC 与媒体循环争抢 core1
+
+**背景**：`m1-04` 之后用户反馈“有电流声、卡顿”，本地 `AUDIT` 音调是干净正弦音，
+说明功放/I2S/供电正常，问题在网络/解码/调度链路。
+
+**主因（已确认）**：M15 路径从未调用 `SetPowerSaveLevel`，设备整轮跑在
+`WIFI_PS_MIN_MODEM` 下。关闭省电（`PowerSaveLevel::PERFORMANCE`）后：
+
+| 指标 | PS 开（m1-07） | PS 关（m1-08） |
+|---|---|---|
+| `rx_full` | 13 | **0** |
+| `mic_full` | 247 | **0** |
+| `decoded` | 574 | **1323**（26.5 s） |
+| `max_abs` | 32768 | 26030 |
+| 对端 keepalive 失败 | 有（2/3/4） | 无 |
+
+**未解决（调度二选一）**：AEC feed 实测 **13.2 ms / 16 ms 块 = 82% 一个核**，
+且与媒体循环无法共存：
+
+- 媒体循环**固定 core0**：AEC 正常（13.2 ms，dropped=0），但下行被
+  audio_input/Wi-Fi 挤掉（`rx_full=92`，`decoded=748`）；
+- 媒体循环**不固定**：下行正常（`rx_full=0`），但 AEC 被抢到 23–24 ms，
+  上行丢 34–35 万样本。
+
+**已排除**：把 AFE 降噪从 NSNet 换成 WebRTC NS 后 `avg` 仍是 13.2 ms ——降噪不是
+瓶颈，AEC 算法本身才是；`max_abs=32768` 只是偶发单样本满幅，不是持续杂音来源。
+
+**当前最优（以下行为准）**：PS 关 + 媒体循环不固定；上行欠载待单独解决
+（降 AEC 复杂度、或把 Opus 编码从媒体循环里拆出去）。
