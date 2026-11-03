@@ -105,6 +105,19 @@ public:
     /** Stop the sender via on_before_close, then tear everything down. */
     void Stop();
 
+    /**
+     * @brief Stop, then free the context so a later Start() builds a fresh peer.
+     *
+     * Stop() alone keeps the context alive (a second Stop() must stay safe and
+     * the destructor still owns it), so it cannot be followed by another
+     * Start(). A prepare-phase retry needs exactly that: join the tasks, close
+     * the old peer, drop it, and negotiate a new session from scratch.
+     *
+     * A context that cleanup had to leak (a task never confirmed exit) is NOT
+     * freed; the transport stays unusable and the caller must fail the run.
+     */
+    void Reset();
+
     /** True only after every transport task has exited and resources closed. */
     bool Stopped() const;
 

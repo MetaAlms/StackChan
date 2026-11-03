@@ -554,6 +554,14 @@ void RunBody(Run& r) {
     const uint64_t playback_epoch = g_audio.WebRtcPlaybackEpoch();
     std::vector<uint8_t> encoded;
     std::vector<int16_t> pcm;
+    // B67: the DTLS stall is intermittent - the same firmware reached CONNECTED
+    // on one attempt and timed out on the next. Retry the prepare phase with a
+    // brand-new peer instead of failing the whole run on one lost flight. The
+    // run id, mode and duration stay the same, so the console still sees one run.
+    constexpr int kMaxPrepareAttempts = 3;
+    int prepare_attempt = 0;
+prepare_retry:
+    ++prepare_attempt;
     while (Continue(r)) {
         const int64_t loop_start_us = esp_timer_get_time();
         // Poll before admitting events: delayed evidence cannot extend the window.
@@ -643,6 +651,28 @@ void RunBody(Run& r) {
         const int64_t loop_dt_us = esp_timer_get_time() - loop_start_us;
         if (loop_dt_us > r.loop_max_us) r.loop_max_us = loop_dt_us;
         vTaskDelay(1);
+    }
+    if (r.control.stop_reason() == StopReason::PrepareTimeout &&
+        prepare_attempt < kMaxPrepareAttempts) {
+        ESP_LOGW(kTag, "PREPARE retry %d/%d run=%s stage=%d", prepare_attempt + 1,
+                 kMaxPrepareAttempts, r.command.run_id.c_str(), r.transport.stage());
+        r.transport.Reset();   // join both tasks, close the peer, drop the context
+        const int64_t retry_deadline = esp_timer_get_time() + 2000000;
+        while (!r.transport.Stopped() && esp_timer_get_time() < retry_deadline) vTaskDelay(1);
+        // Give the server a moment to release the abandoned session before the
+        // next offer asks for a new one (B66: stale sessions outlive the peer).
+        vTaskDelay(pdMS_TO_TICKS(2000));
+        if (r.control.RetryPrepare(r.command.run_id, esp_timer_get_time())) {
+            std::string retry_error;
+            if (r.transport.Start({}, Callbacks(r), &retry_error)) {
+                ESP_LOGW(kTag, "PREPARE retry %d/%d started", prepare_attempt + 1, kMaxPrepareAttempts);
+                PublishState(r);
+                goto prepare_retry;
+            }
+            ESP_LOGE(kTag, "PREPARE retry start failed run=%s: %s",
+                     r.command.run_id.c_str(), retry_error.c_str());
+            Stop(r, StopReason::Error);
+        }
     }
     r.capture_gate.Cancel();
     r.accept_peer = false;
@@ -872,7 +902,10 @@ void WebRtcM15Run() {
                     delete g_run;
                 }
                 g_run = new Run(c);
-                if (!g_worker && xTaskCreate(Worker, "webrtc_media", 32768, nullptr, 5, &g_worker) != pdPASS) {
+                // Core 0, not core 1: the priority-3 AEC feed/fetch task owns
+                // core 1 (B68), and this priority-5 loop was preempting it
+                // whenever an unpinned task landed there.
+                if (!g_worker && xTaskCreatePinnedToCore(Worker, "webrtc_media", 32768, nullptr, 5, &g_worker, 0) != pdPASS) {
                     g_run->state = RunState::Failed;
                     g_run->reusable = true;
                     g_run->worker_finished = true;

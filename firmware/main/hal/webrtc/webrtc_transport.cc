@@ -508,15 +508,21 @@ bool Transport::Start(const Config& cfg, const Callbacks& cb, std::string* err)
     }
 
     // Handles are saved so Stop() can actually join instead of guessing.
+    //
+    // Both peer tasks are pinned to core 0 on purpose. They are priority 5, and
+    // an unpinned priority-5 task may be scheduled onto core 1, where the
+    // device-AEC feed/fetch task runs at priority 3 (B68: AFE feed averaged
+    // 25 ms per 16 ms chunk, max 95 ms). Leaving core 1 to the AEC task is what
+    // makes that budget measurable instead of contention-dominated.
     p->loop_created.store(true);
-    if (xTaskCreate(loop_task, "m_peer_loop", kPeerTaskStackBytes, p, 5, &p->loop_task) != pdPASS) {
+    if (xTaskCreatePinnedToCore(loop_task, "m_peer_loop", kPeerTaskStackBytes, p, 5, &p->loop_task, 0) != pdPASS) {
         p->loop_created.store(false);
         *err = "peer loop task create failed";
         cleanup(p);
         return false;
     }
     p->sig_created.store(true);
-    if (xTaskCreate(signal_task, "m_peer_sig", kPeerTaskStackBytes, p, 5, &p->sig_task) != pdPASS) {
+    if (xTaskCreatePinnedToCore(signal_task, "m_peer_sig", kPeerTaskStackBytes, p, 5, &p->sig_task, 0) != pdPASS) {
         p->sig_created.store(false);
         *err = "signaling task create failed";
         cleanup(p);
@@ -702,6 +708,28 @@ void Transport::Stop()
         p->cb.on_before_close = nullptr;
     }
     cleanup(p);
+}
+
+void Transport::Reset()
+{
+    auto* p = impl_;
+    if (p == nullptr) {
+        return;
+    }
+    Stop();
+    // cleanup() joins both tasks before it marks the context released; a leak
+    // means a task never confirmed exit, so the pointer must stay alive and the
+    // transport must not be restarted on top of it.
+    if (p->leaked.load()) {
+        ESP_LOGE(TAG, "context retained after cleanup; transport cannot restart");
+        return;
+    }
+    if (!p->released.load()) {
+        ESP_LOGE(TAG, "cleanup did not release the context; transport cannot restart");
+        return;
+    }
+    delete p;
+    impl_ = nullptr;
 }
 
 }  // namespace webrtc_transport

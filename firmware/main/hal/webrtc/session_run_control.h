@@ -58,6 +58,20 @@ public:
         return true;
     }
 
+    // Re-arm the prepare deadline after an intermittent prepare-phase failure.
+    // Only the prepare window is reset: run id, mode, duration and the evidence
+    // boundary stay the same, so the console still sees one run. Refuses any
+    // other stop reason, so a real error is never silently retried.
+    bool RetryPrepare(const std::string& run_id, int64_t now_us)
+    {
+        if (run_id != run_id_ || state_ != RunState::Stopping ||
+            stop_reason_ != StopReason::PrepareTimeout || now_us < 0) return false;
+        stop_reason_ = StopReason::None;
+        prepare_started_us_ = now_us;
+        state_ = RunState::Preparing;
+        return true;
+    }
+
     // Returns true only when this call requests timeout cleanup. The caller
     // still owns closing admission, stopping tasks and joining callbacks.
     bool Poll(int64_t now_us)
