@@ -1905,3 +1905,30 @@ DTLS 首次即成功（12295 ms，`Client handshake success` → `CONNECTED (7)`
 
 **仍待验证（代码已写，未上机）**：AW88298 打开失败时
 `i2c_master_bus_reset()` + 重试 3 次（`30 ms` 间隔），替换原来直接判死。
+
+### B71. I2C 恢复 + RUNNING 门禁生效；下行可用，上行仍欠载
+
+**`m1-81`（01:20 之后，单次命令层重试）实测**：
+
+- `RUNNING` 在 **34.6 s** 才建立（DTLS 握手前 34 s 一直 `WANT_READ`），
+  此前 30 s 准备窗口几乎被吃满 —— 用户听感就是「先静音半分钟」。
+- 进入 RUNNING 后立即出现
+  `output open failed (ESP_ERR_NOT_SUPPORTED); recovering I2C bus and retrying`
+  —— **B70 的 I2C 恢复第一次真正触发**，随后功放正常：
+  `write_ok=1349 write_failed=0`、`submitted=647520`（≈27 s）、`max_abs=17197`（不削波）。
+- 用户听感：「比之前好多了」。
+
+**同时确认的两个修复**：
+1. 固件内 prepare 重试已关闭（`kMaxPrepareAttempts=1`）——它会在
+   `Transport::Reset()` 里触发 `on_before_close`，把采集/播放链路拆掉，
+   导致第二次虽然握手成功却 `read_ok=0`、永远进不了 RUNNING。重试改在**命令层**
+   （失败后发新的 `START`，完整重建 Run）。
+2. `BeginCaptureWindow` 增加传输门禁：`stage() < 6` 不再允许 `Ready()`，
+   杜绝「没连上也报 RUNNING、`sent=0`、`elapsed_ms` 为负」的假状态。
+
+**仍未解决**：`AFE feed avg=25.08 ms / 16 ms`、`dropped=391168`
+——媒体循环不固定核时仍会挤占 AEC，**上行（用户声音）严重欠载**。
+下一步要么把 Opus 编解码从媒体循环里拆出去，要么真正降低 AEC 单块耗时。
+
+**待办**：准备超时 30 s 对当前 DTLS 握手（约 34 s）偏紧，建议放宽到 45–60 s，
+避免慢连接被误判为失败。
