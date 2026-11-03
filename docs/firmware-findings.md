@@ -1809,3 +1809,28 @@ abort/断电路径不会给服务端任何释放信号，会话只能等服务�
 M15，并在 `webrtc_m15.cc` 的 prepare 超时与 RUNNING 两处调用
 `dtls_probe::LogReport()`；M15 只 wrap mbedTLS + lwIP 边界，不动 `srtp_protect`
 （那是 M1 RTP 探针的，需要自己的 `__wrap` 定义）。`idf.py build` 通过。
+
+### B67. 2026-11-03 复测：DTLS 恢复，新卡点回到 AW88298 I2C / 输出打开
+
+**环境**：`0x3d02b0`（11-02 构建，M15 + DTLS probe），`START m1-01 self 30`。
+
+**DTLS 已恢复（B66 推断成立）**：同一轮里
+`DTLS: Client handshake success`（640 ms，`TLS-ECDHE-ECDSA-WITH-AES-256-GCM-SHA384`，
+SRTP `profile=1`=SHA1_80），probe 报 `dtls=1 ok=1 fail=0`、**TX 28 / RX 36** 条记录；
+ICE 对端从 `39.97.230.241` 变成 **`8.141.115.69:3478`**。说明 10-27 起的
+`stage=4` 僵局是服务端媒体面侧，不是固件（与 B66 判断一致，且已自愈）。
+
+**当轮失败点**：RUNNING 后 2.6 s：
+```
+I2C_If: Fail to read from dev 6c        (AW88298)
+I2C_If: Fail to write to dev 6c
+CoreS3AudioCodec: output open failed: ESP_ERR_NOT_SUPPORTED
+FINAL ... state=Failed reason=error stage=6 elapsed_ms=2610
+```
+同期 FT6336（触摸，共用 I2C）也连续超时；`AFE feed: avg=20.1 ms / 16 ms 块`、
+`max=95 ms`、`dropped=13824`、`max_backlog=260 ms` —— 即 B63 的链：
+**AEC 食量 > 实时 → I2C 总线被拖垮 → 功放打不开**。
+
+**结论**：ALDO1/ALDO2 寄存器级修复已生效（`ALDO1=0x0D ALDO2=0x1C` 与期望一致），
+但**不解决功放打不开**；根因是 CPU 饱和下的 I2C 争用，不是供电配置。
+下一步针对 AEC 负载（而非继续改 PMIC），一次只改一个变量。
