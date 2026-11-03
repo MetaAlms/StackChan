@@ -1834,3 +1834,24 @@ FINAL ... state=Failed reason=error stage=6 elapsed_ms=2610
 **结论**：ALDO1/ALDO2 寄存器级修复已生效（`ALDO1=0x0D ALDO2=0x1C` 与期望一致），
 但**不解决功放打不开**；根因是 CPU 饱和下的 I2C 争用，不是供电配置。
 下一步针对 AEC 负载（而非继续改 PMIC），一次只改一个变量。
+
+### B68. 2026-11-03 首次 30 s self 完整跑通（有下行音频、无 abort）
+
+**环境**：`0x3d0300`（11-02 重试版），`START m1-04 self 30`。
+
+**结果**：`FINAL state=Done reason=run_timeout elapsed_ms=30009`，
+DTLS 首次即成功（12295 ms，`Client handshake success` → `CONNECTED (7)`）。
+
+- 媒体：`sent=879 decoded=1364`；`PLAYBACK accepted=1338 submitted=642240` 样本
+  ≈ **26.8 s 音频**送到功放；`PCM max_abs=19212`（未削波）。
+- 硬件：`write_ok=1338 write_failed=0` —— 本轮 AW88298 **没有** I2C 失败，
+  与 B67 那轮（2.6 s 就 `output open failed`）形成对照。
+- 证据：`responses=1 self_play=1 speech=0`。
+
+**仍未解决**：`AFE feed chunks=1108 avg=25.05 ms`（16 ms 块 → **156% 实时**）、
+`max=94.9 ms`、`dropped_samples=395264`（≈16.5 s 麦克风样本被丢）、
+`max_backlog=454 ms`。即 AEC 仍严重超预算，上行音质不可信；
+本轮能跑完是因为丢样本而不是因为负载达标。
+
+**结论**：链路（DTLS/ICE/SRTP/数据通道/播放）已通；下一个唯一卡点是
+**AEC 计算负载**，下一步只动它。
