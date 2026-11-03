@@ -1885,3 +1885,23 @@ DTLS 首次即成功（12295 ms，`Client handshake success` → `CONNECTED (7)`
 
 **当前最优（以下行为准）**：PS 关 + 媒体循环不固定；上行欠载待单独解决
 （降 AEC 复杂度、或把 Opus 编码从媒体循环里拆出去）。
+
+### B70. “设备锁死”实为 USB 链路/CDC 通道失效，不是固件死机
+
+**证据链**：
+- `m1-10` 跑完后设备仍活着：60.1 s 时回 `STATUS state=Idle reusable=1`；
+  真正变哑发生在新进程**重新打开串口**之后。
+- 之后出现两种不同形态：
+  1. **静默但枚举**（`ioreg` 仍能看到 `Espressif USB JTAG/serial debug unit`）——
+     串口能打开但无任何数据，esptool 也 `No serial data received`；
+  2. **整个消失**（`/dev/cu.usbmodem*` 不存在、`ioreg` 也查不到）——物理链路掉了。
+- 形态 2 只能用拔插/换线恢复，形态 1 只能靠重新 boot 恢复。
+
+**结论**：反复出现的“锁死”不是 teardown 死锁，而是
+**USB-C 链路 + 一次 boot 只允许一次 host 打开的 CDC 行为**叠加。
+软件侧对策（已落地）：
+- 测试全程**只开一个串口句柄**，所有轮次共用；
+- 刷机前用同一句柄脉冲 RTS 复位，保证“关→开”发生在一次全新 boot 之后。
+
+**仍待验证（代码已写，未上机）**：AW88298 打开失败时
+`i2c_master_bus_reset()` + 重试 3 次（`30 ms` 间隔），替换原来直接判死。

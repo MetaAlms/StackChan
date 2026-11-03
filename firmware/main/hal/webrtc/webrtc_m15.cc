@@ -111,6 +111,7 @@ struct Run {
     std::atomic<RunState> state{RunState::Preparing};
     std::atomic<bool> worker_finished{false};
     bool reusable = false;  // Published by worker_finished after RunBody returns.
+    bool power_save_raised = false;  // True while this run holds Wi-Fi out of modem sleep.
     webrtc_media::MediaAdmission capture_gate;
     std::atomic<bool> accept_peer{true}, stop_requested{false}, disconnected{false};
     std::atomic<int64_t> stop_requested_us{0};
@@ -522,6 +523,15 @@ void RunBody(Run& r) {
         g_network_initialized = true;
     }
     while (Continue(r) && !WifiManager::GetInstance().IsConnected()) vTaskDelay(pdMS_TO_TICKS(20));
+    if (Continue(r)) {
+        // Real-time media cannot tolerate Wi-Fi modem sleep: with the default
+        // WIFI_PS_MIN_MODEM the peer logs periodic keepalive failures and the
+        // downlink queue overflows (B69: rx_full>0, audible stalls). Nothing in
+        // the M15 path ever asked for PERFORMANCE, so the device ran whole runs
+        // in power save. Hold the radio awake for the run and restore at teardown.
+        Board::GetInstance().SetPowerSaveLevel(PowerSaveLevel::PERFORMANCE);
+        r.power_save_raised = true;
+    }
     if (Continue(r) && !r.codec.Open()) { ++r.failures; Stop(r, StopReason::Error); }
     if (Continue(r)) {
         auto* h = static_cast<CoreS3AudioCodec*>(Board::GetInstance().GetAudioCodec());
@@ -695,6 +705,12 @@ prepare_retry:
     while (r.events.Pop(discarded_event)) ++r.stop_discard_event;
     while (r.diagnostics.Pop(discarded_diagnostic)) ++r.stop_discard_diagnostic;
     r.codec.Close();
+    if (r.power_save_raised) {
+        // Media has stopped: hand the radio back to its normal power-save mode
+        // so an idle device does not burn the battery at full performance.
+        Board::GetInstance().SetPowerSaveLevel(PowerSaveLevel::LOW_POWER);
+        r.power_save_raised = false;
+    }
     const bool reset_ok = !r.audio_started || g_audio.WebRtcAfeResetFailed() == r.initial_afe_reset_failed;
     const bool finished_cleanly = reset_ok && !r.failures && r.transport.Stopped() && !r.capture_callbacks.load() &&
         r.control.stop_reason() != StopReason::PrepareTimeout && r.control.stop_reason() != StopReason::Disconnected;
@@ -902,10 +918,11 @@ void WebRtcM15Run() {
                     delete g_run;
                 }
                 g_run = new Run(c);
-                // Core 0, not core 1: the priority-3 AEC feed/fetch task owns
-                // core 1 (B68), and this priority-5 loop was preempting it
-                // whenever an unpinned task landed there.
-                if (!g_worker && xTaskCreatePinnedToCore(Worker, "webrtc_media", 32768, nullptr, 5, &g_worker, 0) != pdPASS) {
+                // Left unpinned: the media loop must service the downlink promptly
+                // and pinning it to core 0 starves it behind audio_input/Wi-Fi
+                // (B69: rx_full 0 -> 92, decoded 1323 -> 748). The AEC uplink
+                // deficit this causes is tracked separately, not hidden here.
+                if (!g_worker && xTaskCreate(Worker, "webrtc_media", 32768, nullptr, 5, &g_worker) != pdPASS) {
                     g_run->state = RunState::Failed;
                     g_run->reusable = true;
                     g_run->worker_finished = true;

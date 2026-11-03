@@ -6,6 +6,13 @@
 
 #define TAG "CoreS3AudioCodec"
 
+// Declared here instead of including hal_bridge.h: that header pulls in LVGL and
+// the camera stack, neither of which this translation unit needs. The symbol is
+// defined by stackchan.cc in this component.
+namespace hal_bridge {
+i2c_master_bus_handle_t board_get_i2c_bus();
+}
+
 CoreS3AudioCodec::CoreS3AudioCodec(void* i2c_master_handle, int input_sample_rate, int output_sample_rate,
     gpio_num_t mclk, gpio_num_t bclk, gpio_num_t ws, gpio_num_t dout, gpio_num_t din,
     uint8_t aw88298_addr, uint8_t es7210_addr, bool input_reference) {
@@ -262,8 +269,22 @@ void CoreS3AudioCodec::EnableOutput(bool enable) {
             .mclk_multiple = 0,
         };
         // A transient I2C timeout on the AW88298 must not abort a live media
-        // run. Report it and let the caller retry on the next output enable.
-        const esp_err_t open_err = esp_codec_dev_open(output_dev_, &fs);
+        // run. The amp shares the bus with the PMIC and the touch controller
+        // (B70: touch timeouts appear in the same millisecond), so recover the
+        // bus and retry before reporting failure.
+        esp_err_t open_err = esp_codec_dev_open(output_dev_, &fs);
+        if (open_err != ESP_OK) {
+            ESP_LOGW(TAG, "output open failed (%s); recovering I2C bus and retrying",
+                     esp_err_to_name(open_err));
+            for (int attempt = 0; attempt < 3 && open_err != ESP_OK; ++attempt) {
+                vTaskDelay(pdMS_TO_TICKS(30));
+                const esp_err_t reset_err = i2c_master_bus_reset(hal_bridge::board_get_i2c_bus());
+                if (reset_err != ESP_OK) {
+                    ESP_LOGW(TAG, "i2c bus reset failed: %s", esp_err_to_name(reset_err));
+                }
+                open_err = esp_codec_dev_open(output_dev_, &fs);
+            }
+        }
         if (open_err != ESP_OK) {
             ESP_LOGE(TAG, "output open failed: %s", esp_err_to_name(open_err));
             return;
