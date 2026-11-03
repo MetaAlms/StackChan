@@ -1932,3 +1932,41 @@ DTLS 首次即成功（12295 ms，`Client handshake success` → `CONNECTED (7)`
 
 **待办**：准备超时 30 s 对当前 DTLS 握手（约 34 s）偏紧，建议放宽到 45–60 s，
 避免慢连接被误判为失败。
+
+### B72. 2026-11-04 定版：可用配置、踩过的坑与正确做法
+
+**用户验收**：音量足够、无破音/电流声；下行 27 s 连续播放。
+
+#### 可用配置（已验证，按此复现）
+
+| 项 | 值 | 作用 |
+|---|---|---|
+| Wi-Fi 省电 | 运行期间 `SetPowerSaveLevel(PERFORMANCE)`，结束恢复 `LOW_POWER` | 下行零丢包（B69） |
+| 输出音量 | `VOLUME 100`（新增控制台命令，持久化） | 满量程 |
+| 软件增益 | `PushWebRtcPcm` 内 2.0x + 钳位 | 响度；实测 `max_abs≈15.6k`，余量充足 |
+| 准备超时 | **10 s**（原 30 s） | 卡住快速失败，交给命令层重试 |
+| 进入 RUNNING | 必须 `transport.stage() >= 6`（数据通道已开） | 杜绝假 Running |
+| 功放打开失败 | **只重试 3 次（30 ms）**，绝不复位 I2C 总线 | 不伤其他设备 |
+| 重试策略 | **命令层**：失败后发新的 `START`（完整重建 Run） | 固件内重试会拆链路 |
+
+#### 踩过的坑（明确不要重犯）
+
+1. **固件内 prepare 重试**：`Transport::Reset()` 触发 `on_before_close`，
+   把采集/播放链路拆掉 → 第二次握手成功却 `read_ok=0`、永远不 RUNNING、无声。
+2. **`i2c_master_bus_reset()`**：同总线上的 PMIC / FT6336 句柄失效，
+   下一次 `WriteReg` 触发 `ESP_ERROR_CHECK` abort（`ESP_ERR_INVALID_STATE`）→ 整机重启。
+3. **反复 open/close 串口**：ESP32-S3 USB-Serial/JTAG 一次 boot 只能被一个 host
+   打开，关掉再开可能永久静默（芯片活着、esptool 也连不上）。必须**一个句柄跑到底**。
+4. **启动过程中发 START**：命令进入缓冲后被当成半条命令，表现为“进了 Running 但 sent=0”。
+   必须先等到 `IDLE; USB commands` 横幅再发。
+5. **把 AFE 降噪从 NSNet 换 WebRTC NS**：`AFE feed avg` 仍是 13.2 ms，
+   降噪不是瓶颈，AEC 算法本身才是（B69）。
+6. **媒体循环固定 core0**：AEC 正常但下行被 audio_input/Wi-Fi 挤死（`rx_full` 飙升）；
+   不固定则 AEC 被抢（25 ms/16 ms）。两者不可兼得，见“剩余问题”。
+
+#### 剩余问题
+
+- **上行 AEC 欠载**：`AFE feed avg≈25 ms / 16 ms`、`dropped≈39 万`
+  ——模型听到的用户声音是断续的。需要在“降 AEC 单块耗时”或“把 Opus 编解码移出媒体循环”里选一条。
+- **DTLS 握手慢**：实测 1.9 s ～ 34 s 波动（服务端 `WANT_READ` 重传），
+  准备超时 10 s 偶有误判，可考虑 15 s。

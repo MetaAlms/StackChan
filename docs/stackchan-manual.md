@@ -31,6 +31,11 @@
 > 功放 I2C 零失败、`max_abs=19212` 未削波（B68）。剩余唯一卡点：
 > **AEC feed 25 ms / 16 ms 块（156% 实时）**，丢 16.5 s 麦克风样本。
 > 已加 prepare 阶段有界重试（最多 3 次，新 peer + 新 SDP，退避 2 s）。
+>
+> **2026-11-04 定版**：下行可用——Wi-Fi 省电关闭、`VOLUME 100` + 2× PCM 增益、
+> I2C 写失败只重试（**禁止复总线**）、准备超时 10 s + 命令层重试、RUNNING 需数据通道已开。
+> 用户验收“音量足够、无破音”。剩余：**上行 AEC 欠载 25 ms/16 ms**、DTLS 握手 2–34 s 波动。
+> 完整可用配置与踩坑清单见 findings **B72**。
 
 ---
 
@@ -149,6 +154,7 @@ git apply --check --reverse ../patches/stackchan-webrtc-afe-lifecycle.patch
 | `STOP <id>` | 停止匹配的 run |
 | `STATUS` | 查看 state / run / 是否需要重启 |
 | `AUDIT <3..10>` | 本地扬声器 tone + 2 通道采集，不联网；需 boot 后未初始化 AudioService |
+| `VOLUME <0..100>` | 设置并持久化输出音量，立即生效（`effective=100` 表示已拉满） |
 
 `self` 的协议细节：`conversation.item.create`（`input_text`）→ `response.create`。
 Qwen 的 `response.create` 只定义 `type`/`event_id`，逐条 `instructions` 不在字段表内。
@@ -249,8 +255,14 @@ Qwen 的 `response.create` 只定义 `type`/`event_id`，逐条 `instructions` �
 | 故事播放后无声 | run 窗口结束、abort、输出未开 | 看 `FINAL`/`PLAYBACK`/`LIFECYCLE`；区分正常停止与崩溃 |
 | WDT IDLE0/IDLE1 | 高优先级任务占满核 | 找 backtrace；不要只加延时掩盖 |
 
+| 串口静默但 `ioreg` 仍能看到设备 | 一次 boot 只允许一次 host 打开（B70） | 不要再 open/close；一个句柄跑到底，或物理重插 |
+| `ESP_ERROR_CHECK ... I2cDevice::WriteReg` | 有人调过 `i2c_master_bus_reset()`（B72） | 禁止复位总线；功放打开失败只重试 |
+| `RUNNING` 出现但 `sent=0` | START 在启动过程中发出，或传输未连上（B71） | 等 `IDLE` 横幅再发命令；RUNNING 已加传输门禁 |
+
 **USB CDC 已知坑**：设备一次 boot 往往只接受第一个 host 打开；后续可能读写无响应，
-需物理 RST/重插。测试脚本应先等 boot 完成，再发 `STATUS`，并容忍首条命令丢失。
+需物理 RST/重插。测试脚本应先等 `IDLE; USB commands` 横幅，再发 `STATUS`，并容忍首条命令丢失。
+**正确做法**：一次测试会话只开一个串口句柄；要刷机时用同一句柄脉冲 RTS 复位，让“关→开”
+发生在一次全新 boot 之后（B70/B72）。
 
 ---
 
