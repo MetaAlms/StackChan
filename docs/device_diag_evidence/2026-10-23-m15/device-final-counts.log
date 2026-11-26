@@ -1,0 +1,40 @@
+# Sanitized counters only; excludes SDP, credentials and utterance text.
+W (7757) M1.5: prerequisite sent=0 decoded=0 failures=0 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (7757) M1.5: observations speech_started=0 asr_completed=0 responses=0 echo_matches=0
+W (7767) M1.5: hardware read_ok=0 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=0 dram=22431 stack=27280
+W (9587) M1.5: session config verified=1
+W (12767) M1.5: prerequisite sent=147 decoded=0 failures=0 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (12767) M1.5: observations speech_started=1 asr_completed=0 responses=0 echo_matches=0
+W (12767) M1.5: hardware read_ok=302 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=0 dram=22271 stack=9360
+W (13717) M1.5: fixture ended; all uplink PCM now from microphone
+W (17787) M1.5: prerequisite sent=395 decoded=87 failures=0 mic_drop=0 rx_drop=0 playback_drop=2 event_drop=0
+W (17787) M1.5: observations speech_started=3 asr_completed=2 responses=2 echo_matches=0
+W (17787) M1.5: hardware read_ok=803 read_failed=0 write_ok=85 write_failed=0 capture_cvt_failed=0 dram=24343 stack=9360
+W (22787) M1.5: prerequisite sent=645 decoded=179 failures=0 mic_drop=2 rx_drop=0 playback_drop=2 event_drop=0
+W (22787) M1.5: observations speech_started=4 asr_completed=4 responses=4 echo_matches=0
+W (22787) M1.5: hardware read_ok=1303 read_failed=0 write_ok=177 write_failed=0 capture_cvt_failed=0 dram=24075 stack=9360
+W (27797) M1.5: prerequisite sent=895 decoded=263 failures=0 mic_drop=2 rx_drop=0 playback_drop=2 event_drop=0
+W (27797) M1.5: observations speech_started=6 asr_completed=6 responses=6 echo_matches=0
+W (27807) M1.5: hardware read_ok=1804 read_failed=0 write_ok=261 write_failed=0 capture_cvt_failed=0 dram=23403 stack=9360
+W (32807) M1.5: prerequisite sent=1146 decoded=341 failures=0 mic_drop=2 rx_drop=0 playback_drop=2 event_drop=0
+W (32807) M1.5: observations speech_started=8 asr_completed=8 responses=8 echo_matches=0
+W (32817) M1.5: hardware read_ok=2305 read_failed=0 write_ok=339 write_failed=0 capture_cvt_failed=0 dram=24131 stack=9360
+W (37827) M1.5: prerequisite sent=1397 decoded=439 failures=0 mic_drop=2 rx_drop=0 playback_drop=2 event_drop=0
+W (37827) M1.5: observations speech_started=10 asr_completed=10 responses=10 echo_matches=0
+W (37837) M1.5: hardware read_ok=2808 read_failed=0 write_ok=437 write_failed=0 capture_cvt_failed=0 dram=24263 stack=9360
+W (42847) M1.5: prerequisite sent=1648 decoded=538 failures=0 mic_drop=2 rx_drop=0 playback_drop=2 event_drop=0
+W (42847) M1.5: observations speech_started=12 asr_completed=11 responses=11 echo_matches=0
+W (42847) M1.5: hardware read_ok=3309 read_failed=0 write_ok=536 write_failed=0 capture_cvt_failed=0 dram=24083 stack=9360
+W (47857) M1.5: prerequisite sent=1899 decoded=660 failures=0 mic_drop=2 rx_drop=0 playback_drop=2 event_drop=0
+W (47867) M1.5: observations speech_started=14 asr_completed=13 responses=13 echo_matches=0
+W (47867) M1.5: hardware read_ok=3811 read_failed=0 write_ok=658 write_failed=0 capture_cvt_failed=0 dram=24055 stack=9360
+W (52867) M1.5: prerequisite sent=2148 decoded=753 failures=0 mic_drop=3 rx_drop=0 playback_drop=2 event_drop=0
+W (52867) M1.5: observations speech_started=15 asr_completed=15 responses=15 echo_matches=0
+W (52877) M1.5: hardware read_ok=4312 read_failed=0 write_ok=751 write_failed=0 capture_cvt_failed=0 dram=24255 stack=9360
+W (57867) M1.5: prerequisite sent=2396 decoded=874 failures=0 mic_drop=5 rx_drop=0 playback_drop=2 event_drop=0
+W (57877) M1.5: observations speech_started=17 asr_completed=16 responses=16 echo_matches=0
+W (57877) M1.5: hardware read_ok=4812 read_failed=0 write_ok=872 write_failed=0 capture_cvt_failed=0 dram=23839 stack=9360
+W (62867) M1.5: prerequisite sent=2646 decoded=970 failures=0 mic_drop=5 rx_drop=0 playback_drop=2 event_drop=0
+W (62877) M1.5: observations speech_started=19 asr_completed=18 responses=18 echo_matches=0
+W (62877) M1.5: hardware read_ok=5312 read_failed=0 write_ok=968 write_failed=0 capture_cvt_failed=0 dram=23527 stack=9360
+W (67797) M1.5: bounded probe ended; T1-T4 NOT RUN; no AEC/interruption verdict

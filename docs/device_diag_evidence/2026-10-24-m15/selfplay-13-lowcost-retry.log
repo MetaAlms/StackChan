@@ -1,0 +1,364 @@
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x15 (USB_UART_CHIP_RESET),boot:0x28 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4038c2de
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x1744
+load:0x403c8700,len:0xf40
+load:0x403cb700,len:0x3610
+entry 0x403c89c4
+I (24) boot: ESP-IDF v5.5.4 2nd stage bootloader
+I (24) boot: compile time Oct  6 2026 21:30:34
+I (25) boot: Multicore bootloader
+I (25) boot: chip revision: v0.2
+I (28) boot: efuse block revision: v1.3
+I (31) qio_mode: Enabling default flash chip QIO
+I (36) boot.esp32s3: Boot SPI Speed : 80MHz
+I (39) boot.esp32s3: SPI Mode       : QIO
+I (43) boot.esp32s3: SPI Flash Size : 16MB
+I (47) boot: Enabling RNG early entropy source...
+I (51) boot: Partition Table:
+I (54) boot: ## Label            Usage          Type ST Offset   Length
+I (60) boot:  0 nvs              WiFi data        01 02 00009000 00004000
+I (67) boot:  1 otadata          OTA data         01 00 0000d000 00002000
+I (73) boot:  2 phy_init         RF data          01 01 0000f000 00001000
+I (80) boot:  3 ota_0            OTA app          00 10 00020000 004f0000
+I (86) boot:  4 ota_1            OTA app          00 11 00510000 004f0000
+I (93) boot:  5 assets           Unknown data     01 82 00a00000 00400000
+I (99) boot:  6 coredump         Unknown data     01 03 00e00000 00010000
+I (106) boot: End of partition table
+I (109) esp_image: segment 0: paddr=00020020 vaddr=3c290020 size=11efd0h (1175504) map
+I (280) esp_image: segment 1: paddr=0013eff8 vaddr=3fca9f00 size=01020h (  4128) load
+I (281) esp_image: segment 2: paddr=00140020 vaddr=42000020 size=28478ch (2639756) map
+I (651) esp_image: segment 3: paddr=003c47b4 vaddr=3fcaaf20 size=07e48h ( 32328) load
+I (656) esp_image: segment 4: paddr=003cc604 vaddr=40378000 size=21e10h (138768) load
+I (680) esp_image: segment 5: paddr=003ee41c vaddr=50000000 size=00020h (    32) load
+I (693) boot: Loaded app from partition at offset 0x20000
+I (693) boot: Disabling RNG early entropy source...
+I (704) esp_psram: Found 8MB PSRAM device
+I (704) esp_psram: Speed: 80MHz
+I (704) cpu_start: Multicore app
+I (713) cpu_start: GPIO 44 and 43 are used as console UART I/O pins
+I (714) cpu_start: Pro cpu start user code
+I (714) cpu_start: cpu freq: 240000000 Hz
+I (716) app_init: Application information:
+I (719) app_init: Project name:     stack-chan
+I (724) app_init: App version:      1.5.1
+I (727) app_init: Compile time:     Oct 26 2026 20:43:50
+I (732) app_init: ELF file SHA256:  5745da465...
+I (737) app_init: ESP-IDF:          v5.5.4
+I (740) efuse_init: Min chip rev:     v0.0
+I (744) efuse_init: Max chip rev:     v0.99 
+I (748) efuse_init: Chip rev:         v0.2
+I (752) heap_init: Initializing. RAM available for dynamic allocation:
+I (758) heap_init: At 3FCBD560 len 0002C1B0 (176 KiB): RAM
+I (764) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (769) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (774) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (779) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (786) spi_flash: detected chip: generic
+I (789) spi_flash: flash io: qio
+I (794) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (799) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (814) main_task: Started on CPU0
+I (824) esp_psram: Reserving pool of 64K of internal memory for DMA/internal allocations
+I (824) main_task: Calling app_main()
+[1793068416981] [[32minfo[0m] [HAL] creating hal instance
+[1793068416986] [[32minfo[0m] [HAL] init
+[1793068417004] [[32minfo[0m] [HAL] xiaozhi board init
+I (854) Board: UUID=13d885f2-f0c0-4c7f-b5f9-ad9dd41a8f60 SKU=m5stack-stack-chan
+I (854) M5Stack-StackChan-Board: Init AXP2101
+I (854) M5Stack-StackChan-Board: Set charge current success
+I (864) M5Stack-StackChan-Board: Init power save timer: sleep=300 s, shutdown=600 s, allow_shutdown_when_charging=0
+I (874) M5Stack-StackChan-Board: Init AW9523
+I (924) M5Stack-StackChan-Board: Reset AW88298
+     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
+
+00: 00 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+
+10: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+
+20: -- 21 -- 23 -- -- -- -- -- -- -- -- -- -- -- -- 
+
+30: -- -- -- -- 34 -- 36 -- 38 -- -- -- -- -- -- -- 
+
+40: 40 41 -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+
+50: 50 51 -- -- -- -- -- -- 58 -- -- -- -- -- -- -- 
+
+60: -- -- -- -- -- -- -- -- 68 69 -- -- -- -- -- 6f 
+
+70: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+
+I (1014) M5Stack-StackChan-Board: Init FT6336
+I (1014) M5Stack-StackChan-Board: Init IlI9342
+I (1024) ili9341: LCD panel create success, version: 1.2.0
+I (1044) M5Stack-StackChan-Board: Reset IlI9342
+I (1174) M5Stack-StackChan-Board: CIPHER:0x64 / FIRMID:0x03 / VENDID:0x01, panel:ILI9342C
+I (1174) Display: Power management not supported
+I (1234) StackChanAvatarDisplay: Turning display on
+I (1234) StackChanAvatarDisplay: Initialize LVGL library
+I (1234) StackChanAvatarDisplay: Use 2MB of PSRAM for image cache
+I (1234) StackChanAvatarDisplay: Initialize LVGL port
+I (1244) StackChanAvatarDisplay: Adding LCD display
+I (1244) LVGL: Starting LVGL task
+I (1254) StackChanAvatarDisplay: Create boot logo label
+I (1294) M5Stack-StackChan-Board: Init Camera
+I (1294) gc0308: Detected Camera sensor PID=0x9b
+I (1374) StackChanCamera: Camera init success
+I (1384) Backlight: Set brightness to 75
+[1793068417532] [[32minfo[0m] [HAL-MCP] init
+[1793068417533] [[32minfo[0m] [HAL-MCP] add robot.get_head_angles tool
+I (1384) MCP: Add tool: self.robot.get_head_angles
+[1793068417542] [[32minfo[0m] [HAL-MCP] add robot.set_head_angles tool
+I (1394) MCP: Add tool: self.robot.set_head_angles
+[1793068417553] [[32minfo[0m] [HAL-MCP] add robot.set_led_color tool
+I (1404) MCP: Add tool: self.robot.set_led_color
+[1793068417564] [[32minfo[0m] [HAL-MCP] add robot.create_reminder tool
+I (1414) MCP: Add tool: self.robot.create_reminder
+[1793068417575] [[32minfo[0m] [HAL-MCP] add robot.get_reminders tool
+I (1424) MCP: Add tool: self.robot.get_reminders
+[1793068417585] [[32minfo[0m] [HAL-MCP] add robot.stop_reminder tool
+I (1444) MCP: Add tool: self.robot.stop_reminder
+[1793068417596] [[32minfo[0m] [HAL-HeadTouch] init
+I (1444) Si12T: Si12T initialized, version: 0.0.2
+I (1464) Si12T: Si12T setup done
+[1793068417616] [[1793068417616] [32minfo[0m] [[32minfo[0m[HAL-IOE] init
+] [HAL-HeadTouch] start update task
+I (1664) PY32IOExpander: Version: 0x41
+[1793068418268] [[32minfo[0m] [HAL-IOE] init done
+[1793068418268] [[32minfo[0m] [HAL-RTC] init
+[1793068418268] [[32minfo[0m] [HAL-RTC] PCF8563 init ok
+[1793068418271] [[32minfo[0m] [HAL-RTC] load timezone from nvs: GMT0
+[1793068418000] [[32minfo[0m] [HAL-RTC] rtc synced to system (UTC): 2026-10-27 02:33:38
+[1793068418007] [[32minfo[0m] [HAL-IMU] init
+[1793068418309] [[32minfo[0m] [HAL-IMU] BMI270 init ok
+[1793068418309] [[32minfo[0m] [HAL-Servo] init
+I (2434) uart: ESP_INTR_FLAG_IRAM flag not set while CONFIG_UART_ISR_IN_IRAM is enabled, flag updated
+[1793068418317] [[32minfo[0m] [ScsServo] id: 1 get zero pos: 501 from settings
+[1793068418326] [[32minfo[0m] [ScsServo] id: 2 get zero pos: 635 from settings
+[1793068418333] [[32minfo[0m] [HAL] lvgl init
+[1793068418335] [[32minfo[0m] [HAL] create lvgl touchpad indev
+W (2464) WebRTC-Run: IDLE; USB commands: START <run_id> near|duplex|self <5..180 seconds>, STOP <run_id>, STATUS, AUDIT <3..10 seconds>; fresh run ID for each start
+W (2484) WebRTC-Run: STATUS run=none state=Idle restart_requires_reboot=0
+W (2484) WebRTC-Run: STATUS run=none state=Idle restart_requires_reboot=0
+I (3184) WifiManager: Initializing...
+I (3184) pp: pp rom version: e7ae62f
+I (3184) net80211: net80211 rom version: e7ae62f
+W (3184) WebRTC-Run: PREPARING run=lowcost03; wait for RUNNING before any action
+I (3194) wifi:wifi driver task: 3fce7600, prio:23, stack:6144, core=0
+I (3194) wifi:wifi firmware version: 0947e8b
+I (3194) wifi:wifi certification version: v7.0
+I (3204) wifi:config NVS flash: disabled
+I (3204) wifi:config nano formatting: enabled
+I (3214) wifi:Init data frame dynamic rx buffer num: 6
+I (3214) wifi:Init dynamic rx mgmt buffer num: 5
+I (3224) wifi:Init management short buffer num: 32
+I (3224) wifi:Init dynamic tx buffer num: 32
+I (3224) wifi:Init static tx FG buffer num: 2
+I (3234) wifi:Init static rx buffer size: 1600
+I (3234) wifi:Init static rx buffer num: 3
+I (3244) wifi:Init dynamic rx buffer num: 6
+I (3244) wifi_init: rx ba win: 3
+I (3244) wifi_init: accept mbox: 6
+I (3254) wifi_init: tcpip mbox: 16
+I (3254) wifi_init: udp mbox: 6
+I (3254) wifi_init: tcp mbox: 6
+I (3254) wifi_init: tcp tx win: 5760
+I (3264) wifi_init: tcp rx win: 5760
+I (3264) wifi_init: tcp mss: 1440
+I (3264) WifiManager: Initialized
+I (3274) WifiBoard: Starting WiFi connection attempt
+I (3274) WifiManager: Starting station
+I (3284) phy_init: phy_version 711,97bcf0a2,Aug 25 2025,19:04:10
+I (3324) wifi:mode : sta (<BSSID>)
+I (3324) wifi:enable tsf
+I (3324) WifiBoard: WiFi scanning
+I (5734) WifiStation: Found AP: <SSID>, BSSID: <BSSID>, RSSI: -69, Channel: 3, Authmode: 4
+I (5734) WifiBoard: WiFi connecting to <SSID>
+W (5734) wifi:Password length matches WPA2 standards, authmode threshold changes from OPEN to WPA2
+I (6064) wifi:new:<3,0>, old:<1,0>, ap:<255,255>, sta:<3,0>, prof:1, snd_ch_cfg:0x0
+I (6064) wifi:state: init -> auth (0xb0)
+I (6074) wifi:state: auth -> assoc (0x0)
+I (6074) wifi:state: assoc -> run (0x10)
+I (6184) wifi:connected with <SSID>, aid = 3, channel 3, BW20, bssid = <BSSID>
+I (6184) wifi:security: WPA2-PSK, phy: bgn, rssi: -69, cipher(pairwise:0x3, group:0x1), pmf:0
+I (6194) wifi:pm start, type: 1
+
+I (6194) wifi:dp: 1, bi: 102400, li: 10, scale listen interval from 1024000 us to 1024000 us
+I (6204) wifi:set rx beacon pti, rx_bcn_pti: 14, bcn_timeout: 25000, mt_pti: 14, mt_time: 10000
+I (6214) wifi:<ba-add>idx:0 (ifx:0, <BSSID>), tid:0, ssn:2, winSize:64
+I (6304) wifi:AP's beacon interval = 102400 us, DTIM period = 1
+I (7524) esp_netif_handlers: sta ip: 192.168.1.x, mask: 255.255.255.0, gw: 192.168.1.x
+I (7524) WifiStation: Got IP: 192.168.1.x
+I (7524) WifiBoard: Connected to WiFi: <SSID>
+I (7534) CoreS3AudioCodec: Audio IOs: mclk: 0, bclk: 34, ws: 33, dout: 13, din: 14
+I (7534) CoreS3AudioCodec: Duplex channels created
+I (7544) ES7210: Work in Slave mode
+I (7544) ES7210: Enable ES7210_INPUT_MIC1
+I (7554) ES7210: Enable ES7210_INPUT_MIC2
+I (7554) ES7210: Enable ES7210_INPUT_MIC3
+I (7554) ES7210: Enable TDM mode
+I (7564) CoreS3AudioCodec: CoreS3AudioCodec initialized
+I (7564) AudioCodec: Audio codec started
+I (7804) WebRTC-TP: pre-generate DTLS cert -> 0
+I (7804) DTLS: Init SRTP OK
+I (7804) DTLS: DTLS cipher pref: auto (mbedtls default order)
+W (7804) WebRTC-SRTP: SRTP offer narrowed to SHA1_80 (component offered 4 profile(s); only the 80-bit policy is implemented)
+I (7814) WebRTC-TP: esp_peer_open -> 0
+I (7814) WebRTC-TP: peer main loop started
+I (8124) WebRTC-TP: [state] NEW_CONNECTION (2)
+I (8124) WebRTC-TP: esp_peer_new_connection -> 0
+W (8124) WebRTC-Run: PROGRESS run=lowcost03 state=Preparing reason=none stage=0 session_tag=00000000 elapsed_ms=-1 config=0 transport_joined=0
+W (8134) WebRTC-Run: MEDIA run=lowcost03 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (8144) WebRTC-Run: TIMELINE run=lowcost03 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=0 max_queue_age_us=0
+I (8144) WebRTC-TP: [state] CANDIDATE_GATHERING (3)
+W (8154) WebRTC-Run: TIMING run=lowcost03 send_calls=0 send_avg_us=0 send_max_us=0 loop_max_us=0 mic_empty=0
+I (8164) AGENT: Start agent as Controlling
+W (8174) WebRTC-Run: PLAYBACK run=lowcost03 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+I (8194) AGENT: Send STUN binding request
+W (8194) WebRTC-Run: HARDWARE run=lowcost03 read_ok=0 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=50303 stack=27356
+I (8224) AGENT: 0 Get candidate success user: psw:
+I (8224) WebRTC-TP: [msg] local SDP, 1113 bytes, candidates=YES
+I (8224) WebRTC-TP: POST realtime WebRTC SDP endpoint
+I (8234) WebRTC-TP: offer is 1113 bytes
+W (8234) WebRTC-TP: ----- OFFER media lines -----
+W (8244) WebRTC-TP:   m=audio 9 UDP/TLS/RTP/SAVPF 111
+
+W (8244) WebRTC-TP:   a=mid:0
+
+W (8244) WebRTC-TP:   a=rtcp-mux
+
+W (8254) WebRTC-TP:   a=rtpmap:111 opus/48000/2
+
+W (8254) WebRTC-TP:   a=ssrc:6 cname:EspSSpbA0
+
+W (8264) WebRTC-TP:   a=ssrc:6 msid:esp_stream a0
+
+W (8264) WebRTC-TP:   a=sendrecv
+
+W (8264) WebRTC-TP:   m=application 50712 UDP/DTLS/SCTP webrtc-datachannel
+
+W (8274) WebRTC-TP:   a=mid:1
+
+W (8274) WebRTC-TP: --------------------------
+I (8344) wifi:<ba-add>idx:1 (ifx:0, <BSSID>), tid:5, ssn:1, winSize:64
+I (8404) esp-x509-crt-bundle: Certificate validated
+I (8734) WebRTC-TP: SDP exchange: err=ESP_OK http=200
+I (8734) WebRTC-TP: response body is 1254 bytes
+W (8734) WebRTC-TP: ----- ANSWER media lines -----
+W (8734) WebRTC-TP:   m=audio 3478 UDP/TLS/RTP/SAVPF 111
+
+W (8744) WebRTC-TP:   a=mid:0
+
+W (8744) WebRTC-TP:   a=rtcp-mux
+
+W (8744) WebRTC-TP:   a=sendrecv
+
+W (8744) WebRTC-TP:   a=rtpmap:111 opus/48000/2
+
+W (8754) WebRTC-TP:   a=fmtp:111 minptime=20
+
+W (8754) WebRTC-TP:   a=ssrc:1000 msid:alibaba-bailian audio-1
+
+W (8764) WebRTC-TP:   m=application 3478 UDP/DTLS/SCTP webrtc-datachannel
+
+W (8774) WebRTC-TP:   a=mid:1
+
+W (8774) WebRTC-TP: --------------------------
+I (8774) PEER_DEF: Get peer role 1
+I (8784) PEER_DEF: Get peer role 1
+I (8784) PEER_DEF: Get peer role 1
+I (8784) PEER_DEF: Extract SDP: stream_count=2, audio_mid=255 (dir=3), video_mid=255 (dir=3), data_mid=255, assrc=1000, vssrc=0, vrtx_ssrc=0, vfmt=0, vrtx_fmt=0
+I (8874) AGENT: 0 Add remote type:1 39.97.230.241:3478
+I (8874) WebRTC-TP: [state] PAIRING (4)
+I (8874) WebRTC-TP: fed answer to peer -> 0
+I (8894) AGENT: 0 0 Send binding request (cand:0) local0:192.168.1.x:58574 remote0:39.97.230.241:3478 id:5851f42d40b18ccf4bb5f646
+I (8934) AGENT: Add local prflx 172.22.213.35:52310
+I (8934) AGENT: 0 1 LocalBinding resp 5851f42d40b18ccf4bb5f646 local1
+I (8934) AGENT: 0 Select pair39.97.230.241:3478
+I (8934) AGENT: 0 1 Send binding request (cand:1) local0:172.22.213.35:52310 remote0:39.97.230.241:3478 id:4703312930705b0420fd5db4
+I (8944) AGENT: 0 1 LocalBinding resp 5851f42d40b18ccf4bb5f646 local1
+I (8954) AGENT: 0 Candidate responded
+I (8954) AGENT: 0 Connection OK 39.97.230.241:3478
+I (8964) WebRTC-TP: [state] PAIRED (5)
+I (8964) PEER_DEF: Start DTLS role as 0
+I (8964) DTLS: DTLS cipher pref: auto (mbedtls default order)
+W (8974) WebRTC-SRTP: SRTP offer narrowed to SHA1_80 (component offered 4 profile(s); only the 80-bit policy is implemented)
+I (8984) WebRTC-TP: [state] CONNECTING (6)
+E (9904) DTLS: CLient handshake fail ret -0x6900
+E (11194) DTLS: CLient handshake fail ret -0x6900
+E (12164) DTLS: CLient handshake fail ret -0x6900
+I (12444) DTLS: SRTP connected OK
+W (13134) WebRTC-Run: PROGRESS run=lowcost03 state=Preparing reason=none stage=4 session_tag=00000000 elapsed_ms=-1 config=0 transport_joined=0
+W (13134) WebRTC-Run: MEDIA run=lowcost03 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (13144) WebRTC-Run: TIMELINE run=lowcost03 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=0 max_queue_age_us=0
+W (13164) WebRTC-Run: TIMING run=lowcost03 send_calls=0 send_avg_us=0 send_max_us=0 loop_max_us=93736 mic_empty=0
+W (13174) WebRTC-Run: PLAYBACK run=lowcost03 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+W (13194) WebRTC-Run: HARDWARE run=lowcost03 read_ok=0 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=55315 stack=27356
+E (13524) DTLS: CLient handshake fail ret -0x6900
+E (14434) DTLS: CLient handshake fail ret -0x6900
+E (15364) DTLS: CLient handshake fail ret -0x6900
+E (16374) DTLS: CLient handshake fail ret -0x6900
+E (17284) DTLS: CLient handshake fail ret -0x6900
+W (18144) WebRTC-Run: PROGRESS run=lowcost03 state=Preparing reason=none stage=4 session_tag=00000000 elapsed_ms=-1 config=0 transport_joined=0
+W (18144) WebRTC-Run: MEDIA run=lowcost03 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (18154) WebRTC-Run: TIMELINE run=lowcost03 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=0 max_queue_age_us=0
+W (18174) WebRTC-Run: TIMING run=lowcost03 send_calls=0 send_avg_us=0 send_max_us=0 loop_max_us=93736 mic_empty=0
+W (18184) WebRTC-Run: PLAYBACK run=lowcost03 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+W (18204) WebRTC-Run: HARDWARE run=lowcost03 read_ok=0 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=55315 stack=27356
+E (18254) DTLS: CLient handshake fail ret -0x6900
+E (19264) DTLS: CLient handshake fail ret -0x6900
+E (20264) DTLS: CLient handshake fail ret -0x6900
+E (21174) DTLS: CLient handshake fail ret -0x6900
+E (22094) DTLS: CLient handshake fail ret -0x6900
+E (23034) DTLS: CLient handshake fail ret -0x6900
+W (23154) WebRTC-Run: PROGRESS run=lowcost03 state=Preparing reason=none stage=4 session_tag=00000000 elapsed_ms=-1 config=0 transport_joined=0
+W (23154) WebRTC-Run: MEDIA run=lowcost03 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (23164) WebRTC-Run: TIMELINE run=lowcost03 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=0 max_queue_age_us=0
+W (23184) WebRTC-Run: TIMING run=lowcost03 send_calls=0 send_avg_us=0 send_max_us=0 loop_max_us=93736 mic_empty=0
+W (23194) WebRTC-Run: PLAYBACK run=lowcost03 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+W (23214) WebRTC-Run: HARDWARE run=lowcost03 read_ok=0 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=55315 stack=27356
+E (23934) DTLS: CLient handshake fail ret -0x6900
+E (24834) DTLS: CLient handshake fail ret -0x6900
+E (25834) DTLS: CLient handshake fail ret -0x6900
+E (26744) DTLS: CLient handshake fail ret -0x6900
+E (27694) DTLS: CLient handshake fail ret -0x6900
+W (28164) WebRTC-Run: PROGRESS run=lowcost03 state=Preparing reason=none stage=4 session_tag=00000000 elapsed_ms=-1 config=0 transport_joined=0
+W (28164) WebRTC-Run: MEDIA run=lowcost03 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (28174) WebRTC-Run: TIMELINE run=lowcost03 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=0 max_queue_age_us=0
+W (28194) WebRTC-Run: TIMING run=lowcost03 send_calls=0 send_avg_us=0 send_max_us=0 loop_max_us=93736 mic_empty=0
+W (28204) WebRTC-Run: PLAYBACK run=lowcost03 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+W (28224) WebRTC-Run: HARDWARE run=lowcost03 read_ok=0 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=55315 stack=27356
+E (28684) DTLS: CLient handshake fail ret -0x6900
+E (29604) DTLS: CLient handshake fail ret -0x6900
+E (30524) DTLS: CLient handshake fail ret -0x6900
+E (31474) DTLS: CLient handshake fail ret -0x6900
+E (32374) DTLS: CLient handshake fail ret -0x6900
+W (33164) WebRTC-Run: PROGRESS run=lowcost03 state=Preparing reason=none stage=4 session_tag=00000000 elapsed_ms=-1 config=0 transport_joined=0
+W (33164) WebRTC-Run: MEDIA run=lowcost03 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (33174) WebRTC-Run: TIMELINE run=lowcost03 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=0 max_queue_age_us=0
+W (33194) WebRTC-Run: TIMING run=lowcost03 send_calls=0 send_avg_us=0 send_max_us=0 loop_max_us=93736 mic_empty=0
+W (33204) WebRTC-Run: PLAYBACK run=lowcost03 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+W (33224) WebRTC-Run: HARDWARE run=lowcost03 read_ok=0 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=55351 stack=27356
+W (33244) AfeAudioProcessor: AFE feed: chunks=0 avg_us=0 max_us=0 failures=0 dropped_samples=0 max_backlog_ms=0 queue_cap_samples=6400
+E (33274) DTLS: CLient handshake fail ret -0x6900
+I (33294) WebRTC-TP: peer main loop exited
+I (33294) WebRTC-TP: both tasks confirmed exit; releasing transport resources
+I (33294) AGENT: agent disconnected done
+W (33294) WebRTC-Run: FINAL run=lowcost03 state=Failed reason=prepare_timeout stage=4 session_tag=00000000 elapsed_ms=-1 config=0 transport_joined=1
+W (33304) WebRTC-Run: MEDIA run=lowcost03 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (33314) WebRTC-Run: TIMELINE run=lowcost03 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=0 max_queue_age_us=0
+W (33324) WebRTC-Run: TIMING run=lowcost03 send_calls=0 send_avg_us=0 send_max_us=0 loop_max_us=93736 mic_empty=0
+W (33334) WebRTC-Run: PLAYBACK run=lowcost03 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=32470828 physical_end_unknown=1
+W (33364) WebRTC-Run: DISCARD_AT_STOP run=lowcost03 mic=0 down=0 events=0
+W (33364) WebRTC-Run: EVIDENCE run=lowcost03 items=0 missing=0 invalid=0 duplicates=0 overflow=0 keyword_mask=0 near_observed=0 speech=0 responses=0 asr_failed=0 self_play=0 T1_T4=NOT_ACCEPTED AEC=UNDETERMINED
+W (33384) WebRTC-Run: CAPTURE run=lowcost03 afe_us=0:0 max_afe_gap_us=0 afe_samples=0 capture_callbacks=0 adc_timestamps_available=0
+W (33394) WebRTC-Run: PCM run=lowcost03 decoded48=0 converted24=0 accepted24=0 submitted24=0 max_abs=0 endpoints=0 endpoints_are_not_distortion_proof=1
+W (33414) WebRTC-Run: OPUS_SAMPLES run=lowcost03 n120=0 n240=0 n480=0 n960=0 n1920=0 n2880=0 n5760=0 other=0
+W (33424) WebRTC-Run: SESSION_OBS run=lowcost03 create_response=-1 interrupt_response=-1 unknown=-1 observational_only=1
+W (33434) WebRTC-Run: TURN_SUMMARY run=lowcost03 stored=0 capacity=64 overflow=0 diagnostic_dropped=0 diagnostic_stop_discard=0 queue_order=independent_not_receive_order tags=FNV32_diagnostic_only api_snapshot_atomic=0 physical_end_unknown=1
+W (33454) WebRTC-Run: HARDWARE run=lowcost03 read_ok=0 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=70051 stack=27356
+W (33474) WebRTC-Run: LIFECYCLE run=lowcost03 capture_quiescent=1 transport_joined=1 reusable=1 physical_end_unknown=1
+W (33824) WebRTC-Run: STATUS run=lowcost03 state=Idle restart_requires_reboot=0

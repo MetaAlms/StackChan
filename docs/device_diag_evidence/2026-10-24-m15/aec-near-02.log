@@ -1,0 +1,240 @@
+W (12197) WebRTC-Run: STATUS run=none state=Idle restart_requires_reboot=0
+I (12507) WifiManager: Initializing...
+I (12507) pp: pp rom version: e7ae62f
+I (12507) net80211: net80211 rom version: e7ae62f
+W (12507) WebRTC-Run: PREPARING run=perf02; wait for RUNNING before speech
+I (12517) wifi:wifi driver task: 3fce7600, prio:23, stack:6144, core=0
+I (12517) wifi:wifi firmware version: 0947e8b
+I (12517) wifi:wifi certification version: v7.0
+I (12527) wifi:config NVS flash: disabled
+I (12527) wifi:config nano formatting: enabled
+I (12537) wifi:Init data frame dynamic rx buffer num: 6
+I (12537) wifi:Init dynamic rx mgmt buffer num: 5
+I (12537) wifi:Init management short buffer num: 32
+I (12547) wifi:Init dynamic tx buffer num: 32
+I (12547) wifi:Init static tx FG buffer num: 2
+I (12557) wifi:Init static rx buffer size: 1600
+I (12557) wifi:Init static rx buffer num: 3
+I (12567) wifi:Init dynamic rx buffer num: 6
+I (12567) wifi_init: rx ba win: 3
+I (12567) wifi_init: accept mbox: 6
+I (12577) wifi_init: tcpip mbox: 16
+I (12577) wifi_init: udp mbox: 6
+I (12577) wifi_init: tcp mbox: 6
+I (12577) wifi_init: tcp tx win: 5760
+I (12587) wifi_init: tcp rx win: 5760
+I (12587) wifi_init: tcp mss: 1440
+I (12597) WifiManager: Initialized
+I (12597) WifiBoard: Starting WiFi connection attempt
+I (12597) WifiManager: Starting station
+I (12607) phy_init: phy_version 711,97bcf0a2,Aug 25 2025,19:04:10
+I (12647) wifi:mode : sta (<STA-MAC>)
+I (12647) wifi:enable tsf
+I (12647) WifiBoard: WiFi scanning
+I (15057) WifiStation: Found AP: <SSID>, BSSID: <BSSID>, RSSI: -77, Channel: 3, Authmode: 4
+I (15057) WifiBoard: WiFi connecting to <SSID>
+W (15057) wifi:Password length matches WPA2 standards, authmode threshold changes from OPEN to WPA2
+I (15387) wifi:new:<3,0>, old:<1,0>, ap:<255,255>, sta:<3,0>, prof:1, snd_ch_cfg:0x0
+I (15387) wifi:state: init -> auth (0xb0)
+I (15387) wifi:state: auth -> assoc (0x0)
+I (15387) wifi:state: assoc -> run (0x10)
+I (15497) wifi:connected with <SSID>, aid = 3, channel 3, BW20, bssid = <BSSID>
+I (15497) wifi:security: WPA2-PSK, phy: bgn, rssi: -69, cipher(pairwise:0x3, group:0x1), pmf:0
+I (15507) wifi:pm start, type: 1
+
+I (15507) wifi:dp: 1, bi: 102400, li: 10, scale listen interval from 1024000 us to 1024000 us
+I (15517) wifi:set rx beacon pti, rx_bcn_pti: 14, bcn_timeout: 25000, mt_pti: 14, mt_time: 10000
+I (15587) wifi:<ba-add>idx:0 (ifx:0, <BSSID>), tid:0, ssn:1, winSize:64
+I (15597) wifi:AP's beacon interval = 102400 us, DTIM period = 1
+I (16707) esp_netif_handlers: sta ip: 192.168.1.x, mask: 255.255.255.0, gw: 192.168.1.1
+I (16707) WifiStation: Got IP: 192.168.1.x
+I (16707) WifiBoard: Connected to WiFi: <SSID>
+I (16717) CoreS3AudioCodec: Audio IOs: mclk: 0, bclk: 34, ws: 33, dout: 13, din: 14
+I (16717) CoreS3AudioCodec: Duplex channels created
+I (16727) ES7210: Work in Slave mode
+I (16737) ES7210: Enable ES7210_INPUT_MIC1
+I (16737) ES7210: Enable ES7210_INPUT_MIC2
+I (16737) ES7210: Enable ES7210_INPUT_MIC3
+I (16737) ES7210: Enable TDM mode
+I (16747) CoreS3AudioCodec: CoreS3AudioCodec initialized
+I (16747) AudioCodec: Audio codec started
+I (16987) WebRTC-TP: pre-generate DTLS cert -> 0
+I (16987) DTLS: Init SRTP OK
+I (16997) DTLS: DTLS cipher pref: auto (mbedtls default order)
+W (16997) WebRTC-SRTP: SRTP offer narrowed to SHA1_80 (component offered 4 profile(s); only the 80-bit policy is implemented)
+I (16997) WebRTC-TP: esp_peer_open -> 0
+I (17007) WebRTC-TP: peer main loop started
+I (17307) WebRTC-TP: [state] NEW_CONNECTION (2)
+I (17307) WebRTC-TP: esp_peer_new_connection -> 0
+W (17307) WebRTC-Run: PROGRESS run=perf02 state=Preparing reason=none stage=0 session_tag=00000000 elapsed_ms=-1 config=0 transport_joined=0
+W (17317) WebRTC-Run: MEDIA run=perf02 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+I (17327) WebRTC-TP: [state] CANDIDATE_GATHERING (3)
+I (17337) AGENT: Start agent as Controlling
+W (17327) WebRTC-Run: TIMELINE run=perf02 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=0 max_queue_age_us=0
+W (17347) WebRTC-Run: PLAYBACK run=perf02 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+I (17357) AGENT: Send STUN binding request
+W (17367) WebRTC-Run: HARDWARE run=perf02 read_ok=0 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=50339 stack=27372
+I (17397) AGENT: 0 Get candidate success user: psw:
+I (17397) WebRTC-TP: [msg] local SDP, 1113 bytes, candidates=YES
+I (17397) WebRTC-TP: POST realtime WebRTC SDP endpoint
+I (17407) WebRTC-TP: offer is 1113 bytes
+W (17407) WebRTC-TP: ----- OFFER media lines -----
+W (17417) WebRTC-TP:   m=audio 9 UDP/TLS/RTP/SAVPF 111
+
+W (17417) WebRTC-TP:   a=mid:0
+
+W (17427) WebRTC-TP:   a=rtcp-mux
+
+W (17427) WebRTC-TP:   a=rtpmap:111 opus/48000/2
+
+W (17427) WebRTC-TP:   a=ssrc:6 cname:EspSSpbA0
+
+W (17437) WebRTC-TP:   a=ssrc:6 msid:esp_stream a0
+
+W (17437) WebRTC-TP:   a=sendrecv
+
+W (17447) WebRTC-TP:   m=application 50712 UDP/DTLS/SCTP webrtc-datachannel
+
+W (17447) WebRTC-TP:   a=mid:1
+
+W (17447) WebRTC-TP: --------------------------
+I (17497) wifi:<ba-add>idx:1 (ifx:0, <BSSID>), tid:5, ssn:1, winSize:64
+I (17547) esp-x509-crt-bundle: Certificate validated
+I (17837) WebRTC-TP: SDP exchange: err=ESP_OK http=200
+I (17837) WebRTC-TP: response body is 1249 bytes
+W (17837) WebRTC-TP: ----- ANSWER media lines -----
+W (17847) WebRTC-TP:   m=audio 3478 UDP/TLS/RTP/SAVPF 111
+
+W (17847) WebRTC-TP:   a=mid:0
+
+W (17847) WebRTC-TP:   a=rtcp-mux
+
+W (17857) WebRTC-TP:   a=sendrecv
+
+W (17857) WebRTC-TP:   a=rtpmap:111 opus/48000/2
+
+W (17857) WebRTC-TP:   a=fmtp:111 minptime=20
+
+W (17867) WebRTC-TP:   a=ssrc:1000 msid:alibaba-bailian audio-1
+
+W (17867) WebRTC-TP:   m=application 3478 UDP/DTLS/SCTP webrtc-datachannel
+
+W (17877) WebRTC-TP:   a=mid:1
+
+W (17877) WebRTC-TP: --------------------------
+I (17887) PEER_DEF: Get peer role 1
+I (17887) PEER_DEF: Get peer role 1
+I (17887) PEER_DEF: Get peer role 1
+I (17897) PEER_DEF: Extract SDP: stream_count=2, audio_mid=255 (dir=3), video_mid=255 (dir=3), data_mid=255, assrc=1000, vssrc=0, vrtx_ssrc=0, vfmt=0, vrtx_fmt=0
+I (17917) AGENT: 0 Add remote type:1 8.141.115.69:3478
+I (17917) WebRTC-TP: [state] PAIRING (4)
+I (17917) WebRTC-TP: fed answer to peer -> 0
+I (17937) AGENT: 0 0 Send binding request (cand:0) local0:192.168.1.x:65473 remote0:8.141.115.69:3478 id:5851f42d40b18ccf4bb5f646
+I (17977) AGENT: Add local prflx 172.22.224.233:42989
+I (17977) AGENT: 0 1 LocalBinding resp 5851f42d40b18ccf4bb5f646 local1
+I (17977) AGENT: 0 Select pair8.141.115.69:3478
+I (17987) AGENT: 0 1 Send binding request (cand:1) local0:172.22.224.233:42989 remote0:8.141.115.69:3478 id:4703312930705b0420fd5db4
+I (18017) AGENT: 0 1 Send binding request (cand:1) local0:172.22.224.233:42989 remote0:8.141.115.69:3478 id:1a8b7f78502959d82b894868
+I (18017) AGENT: 0 1 LocalBinding resp 4703312930705b0420fd5db4 local1
+I (18017) AGENT: 0 Candidate responded
+I (18027) AGENT: 0 Connection OK 8.141.115.69:3478
+I (18027) WebRTC-TP: [state] PAIRED (5)
+I (18027) PEER_DEF: Start DTLS role as 0
+I (18037) DTLS: DTLS cipher pref: auto (mbedtls default order)
+W (18037) WebRTC-SRTP: SRTP offer narrowed to SHA1_80 (component offered 4 profile(s); only the 80-bit policy is implemented)
+I (18057) WebRTC-TP: [state] CONNECTING (6)
+I (18557) DTLS: SRTP connected OK
+I (18697) DTLS: Client handshake success
+I (18697) DTLS: Negotiated DTLS ciphersuite: TLS-ECDHE-ECDSA-WITH-AES-256-GCM-SHA384
+I (18697) PEER_DEF: DTLS handshake success
+I (18707) PEER_DEF: Sctp role as 1
+I (18707) WebRTC-TP: [state] CONNECTED (7)
+I (18737) SCTP: 1 Receive chunk 1 SCTP_INIT
+W (18737) SCTP: Client need send init, skip init request
+I (18737) SCTP: 1 state 1
+I (18737) SCTP: Send INIT chunk
+I (18867) SCTP: Send INIT chunk
+I (18887) SCTP: 1 Receive chunk 2 SCTP_INIT_ACK
+I (18887) SCTP: 1 state 2
+I (18887) SCTP: Send ECHO chunk
+I (18887) SCTP: 1 Receive chunk 2 SCTP_INIT_ACK
+I (18887) SCTP: Send ECHO chunk
+I (18887) SCTP: 1 state 3
+I (18887) SCTP: Send ECHO chunk
+I (18917) SCTP: 1 Receive chunk 11 SCTP_COOKIE_ACK
+I (18917) SCTP: 1 state 5
+I (18917) WebRTC-TP: [state] DATA_CHANNEL_CONNECTED (9)
+I (18917) SCTP: Send DCEP oai-events event:3 type:0 si:2
+I (18917) WebRTC-TP: create data channel 'oai-events' -> 0
+I (18927) SCTP: Get DCEP txt event:3 type:1 si:1 param:10
+I (18927) WebRTC-TP: [channel open] label='txt' stream_id=1
+I (18937) WebRTC-TP: [state] DATA_CHANNEL_OPENED (10)
+I (18947) SCTP: 1 Receive chunk 11 SCTP_COOKIE_ACK
+I (18947) SCTP: 1 Receive chunk 11 SCTP_COOKIE_ACK
+E (19127) MODEL_LOADER: Can not find model in partition table
+I (19167) AFE: AFE Version: (1MIC_V251128)
+I (19167) AFE: Input PCM Config: total 2 channels(1 microphone, 1 playback), sample rate:16000
+I (19177) AFE: AFE Pipeline: [input] -> |AEC(VOIP_HIGH_PERF)| -> [output]
+I (19177) AfeAudioProcessor: Audio communication task started, feed size: 256 fetch size: 512
+I (19187) I2S_IF: Paired data: 0x3fcf1220, current mode: record, paired in_enable: 0, paired out_enable: 0
+I (19197) I2S_IF: TDM: RX, data_bit: 16, slot_bit: 16, ws_width: 16, total_slot: 2, slot_mask: 0x3
+I (19207) I2S_IF: TDM: RX, sample_rate_hz: 24000, mclk_multiple: 256, clk_src: 6
+I (19217) I2S_IF: STD: TX, data_bit: 16, slot_bit: 16, ws_width: 16, slot_mode: STEREO, slot_mask: 0x3
+I (19217) I2S_IF: STD: TX, sample_rate_hz: 24000, mclk_multiple: 256, clk_src: 6
+I (19227) ES7210: Bits 16
+I (19237) ES7210: Enable ES7210_INPUT_MIC1
+I (19237) ES7210: Enable ES7210_INPUT_MIC2
+I (19247) ES7210: Enable ES7210_INPUT_MIC3
+I (19247) ES7210: Enable TDM mode
+I (19247) ES7210: Unmuted
+I (19247) Adev_Codec: Open codec device OK
+I (19257) AudioCodec: Set input enable to true
+W (19437) WebRTC-Run: RUNNING run=perf02 mode=near session_tag=996c50a6 t0_us=18654734 duration_s=30 real_mic=1 speaker=0 first_warm_afe_us=18647424
+W (22327) WebRTC-Run: LIVE run=perf02 sent=136 decoded=0 mic_full=0 failures=0
+W (27337) WebRTC-Run: LIVE run=perf02 sent=378 decoded=0 mic_full=0 failures=0
+E (29947) task_wdt: Task watchdog got triggered. The following tasks/users did not reset the watchdog in time:
+E (29947) task_wdt:  - IDLE0 (CPU 0)
+E (29947) task_wdt: Tasks currently running:
+E (29947) task_wdt: CPU 0: audio_input
+E (29947) task_wdt: CPU 1: IDLE1
+E (29947) task_wdt: Print CPU 0 (current core) backtrace
+
+
+Backtrace: 0x4219B317:0x3FCAFD30 0x40383785:0x3FCAFD60 0x420C9031:0x3FCCAE40 0x420C7905:0x3FCCAF10 0x420C6C8C:0x3FCCAF40 0x420BC717:0x3FCCB180 0x420BBA01:0x3FCCB1A0 0x42076606:0x3FCCB1E0 0x4200DF21:0x3FCCB210 0x4200DF71:0x3FCCB250
+
+W (32347) WebRTC-Run: LIVE run=perf02 sent=620 decoded=0 mic_full=0 failures=0
+W (37357) WebRTC-Run: LIVE run=perf02 sent=863 decoded=0 mic_full=0 failures=0
+E (39947) task_wdt: Task watchdog got triggered. The following tasks/users did not reset the watchdog in time:
+E (39947) task_wdt:  - IDLE0 (CPU 0)
+E (39947) task_wdt: Tasks currently running:
+E (39947) task_wdt: CPU 0: audio_input
+E (39947) task_wdt: CPU 1: IDLE1
+E (39947) task_wdt: Print CPU 0 (current core) backtrace
+
+
+Backtrace: 0x4219B317:0x3FCAFD30 0x40383785:0x3FCAFD60 0x420CA411:0x3FCCAED0 0x420C78B8:0x3FCCAF10 0x420C6C8C:0x3FCCAF40 0x420BC717:0x3FCCB180 0x420BBA01:0x3FCCB1A0 0x42076606:0x3FCCB1E0 0x4200DF21:0x3FCCB210 0x4200DF71:0x3FCCB250
+
+W (42367) WebRTC-Run: LIVE run=perf02 sent=1107 decoded=0 mic_full=0 failures=0
+W (47387) WebRTC-Run: LIVE run=perf02 sent=1354 decoded=0 mic_full=0 failures=0
+W (49537) AFE: Ringbuffer of AFE is empty, Please use feed() to write data
+I (49587) WebRTC-TP: peer main loop exited
+I (49587) WebRTC-TP: both tasks confirmed exit; releasing transport resources
+I (49587) AGENT: agent disconnected done
+I (49587) SCTP: 1 state 6
+I (49587) WebRTC-TP: [state] DATA_CHANNEL_CLOSED (11)
+I (49597) WebRTC-TP: [state] DATA_CHANNEL_CLOSED (11)
+I (49597) WebRTC-TP: [state] DATA_CHANNEL_DISCONNECTED (12)
+W (49607) WebRTC-Run: FINAL run=perf02 state=Done reason=run_timeout stage=6 session_tag=996c50a6 elapsed_ms=30000 config=1 transport_joined=1
+W (49617) WebRTC-Run: MEDIA run=perf02 sent=1453 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (49627) WebRTC-Run: TIMELINE run=perf02 tx_pts_ms=0:29040 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=52474 max_queue_age_us=111515
+W (49637) WebRTC-Run: PLAYBACK run=perf02 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=48755111 physical_end_unknown=1
+W (49657) WebRTC-Run: DISCARD_AT_STOP run=perf02 mic=1 down=0 events=0
+W (49667) WebRTC-Run: EVIDENCE run=perf02 items=0 missing=0 invalid=0 duplicates=0 overflow=0 keyword_mask=0 near_observed=0 speech=0 responses=0 asr_failed=0 T1_T4=NOT_ACCEPTED AEC=UNDETERMINED
+W (49687) WebRTC-Run: CAPTURE run=perf02 afe_us=18712936:48595000 max_afe_gap_us=113480 afe_samples=465600 capture_callbacks=0 adc_timestamps_available=0
+W (49697) WebRTC-Run: PCM run=perf02 decoded48=0 converted24=0 accepted24=0 submitted24=0 max_abs=0 endpoints=0 endpoints_are_not_distortion_proof=1
+W (49707) WebRTC-Run: OPUS_SAMPLES run=perf02 n120=0 n240=0 n480=0 n960=0 n1920=0 n2880=0 n5760=0 other=0
+W (49717) WebRTC-Run: SESSION_OBS run=perf02 create_response=1 interrupt_response=1 unknown=-1 observational_only=1
+W (49727) WebRTC-Run: TURN_SUMMARY run=perf02 stored=0 capacity=64 overflow=0 diagnostic_dropped=0 diagnostic_stop_discard=0 queue_order=independent_not_receive_order tags=FNV32_diagnostic_only api_snapshot_atomic=0 physical_end_unknown=1
+W (49747) WebRTC-Run: HARDWARE run=perf02 read_ok=2939 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=2880 afe_reset_failed=0 dram=44483 stack=9452
+W (49767) WebRTC-Run: LIFECYCLE run=perf02 capture_quiescent=1 transport_joined=1 reusable=1 physical_end_unknown=1
+I (65187) AudioCodec: Set input enable to false

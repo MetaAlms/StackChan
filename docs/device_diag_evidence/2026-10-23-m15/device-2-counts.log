@@ -1,0 +1,27 @@
+# Sanitized counters only; excludes SDP, credentials and utterance text.
+W (7230) M1.5: prerequisite sent=0 decoded=0 failures=0 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (7230) M1.5: hardware read_ok=0 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=0 dram=26327 stack=27404
+W (9170) M1.5: session config verified=1
+W (12240) M1.5: prerequisite sent=0 decoded=0 failures=1 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (12240) M1.5: hardware read_ok=289 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=289 dram=29727 stack=27404
+W (17250) M1.5: prerequisite sent=0 decoded=0 failures=1 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (17250) M1.5: hardware read_ok=782 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=782 dram=29527 stack=27404
+W (22260) M1.5: prerequisite sent=0 decoded=0 failures=1 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (22260) M1.5: hardware read_ok=1247 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=1247 dram=29555 stack=27404
+W (27270) M1.5: prerequisite sent=0 decoded=0 failures=1 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (27270) M1.5: hardware read_ok=1712 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=1712 dram=29563 stack=27404
+W (32280) M1.5: prerequisite sent=0 decoded=0 failures=1 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (32280) M1.5: hardware read_ok=2177 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=2177 dram=29563 stack=27404
+W (37290) M1.5: prerequisite sent=0 decoded=0 failures=1 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (37290) M1.5: hardware read_ok=2642 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=2642 dram=29527 stack=27404
+W (42300) M1.5: prerequisite sent=0 decoded=0 failures=1 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (42300) M1.5: hardware read_ok=3107 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=3107 dram=29527 stack=27404
+W (47300) M1.5: prerequisite sent=0 decoded=0 failures=1 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (47300) M1.5: hardware read_ok=3571 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=3571 dram=29519 stack=27404
+W (52300) M1.5: prerequisite sent=0 decoded=0 failures=1 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (52300) M1.5: hardware read_ok=4035 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=4035 dram=29527 stack=27404
+W (57300) M1.5: prerequisite sent=0 decoded=0 failures=1 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (57300) M1.5: hardware read_ok=4499 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=4499 dram=29527 stack=27404
+W (62300) M1.5: prerequisite sent=0 decoded=0 failures=1 mic_drop=0 rx_drop=0 playback_drop=0 event_drop=0
+W (62300) M1.5: hardware read_ok=4963 read_failed=0 write_ok=0 write_failed=0 capture_cvt_failed=4963 dram=29563 stack=27404
+W (67270) M1.5: bounded probe ended; T1-T4 NOT RUN; no AEC/interruption verdict

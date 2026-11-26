@@ -1,0 +1,296 @@
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x15 (USB_UART_CHIP_RESET),boot:0x28 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x403827aa
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x1744
+load:0x403c8700,len:0xf40
+load:0x403cb700,len:0x3610
+entry 0x403c89c4
+I (24) boot: ESP-IDF v5.5.4 2nd stage bootloader
+I (24) boot: compile time Oct  6 2026 21:30:34
+I (25) boot: Multicore bootloader
+I (25) boot: chip revision: v0.2
+I (28) boot: efuse block revision: v1.3
+I (31) qio_mode: Enabling default flash chip QIO
+I (36) boot.esp32s3: Boot SPI Speed : 80MHz
+I (39) boot.esp32s3: SPI Mode       : QIO
+I (43) boot.esp32s3: SPI Flash Size : 16MB
+I (47) boot: Enabling RNG early entropy source...
+I (51) boot: Partition Table:
+I (54) boot: ## Label            Usage          Type ST Offset   Length
+I (60) boot:  0 nvs              WiFi data        01 02 00009000 00004000
+I (67) boot:  1 otadata          OTA data         01 00 0000d000 00002000
+I (73) boot:  2 phy_init         RF data          01 01 0000f000 00001000
+I (80) boot:  3 ota_0            OTA app          00 10 00020000 004f0000
+I (86) boot:  4 ota_1            OTA app          00 11 00510000 004f0000
+I (93) boot:  5 assets           Unknown data     01 82 00a00000 00400000
+I (99) boot:  6 coredump         Unknown data     01 03 00e00000 00010000
+I (106) boot: End of partition table
+I (109) esp_image: segment 0: paddr=00020020 vaddr=3c1b0020 size=14c7e0h (1361888) map
+I (306) esp_image: segment 1: paddr=0016c808 vaddr=3fca0200 size=03810h ( 14352) load
+I (309) esp_image: segment 2: paddr=00170020 vaddr=42000020 size=1a5cfch (1727740) map
+I (550) esp_image: segment 3: paddr=00315d24 vaddr=3fca3a10 size=034d0h ( 13520) load
+I (553) esp_image: segment 4: paddr=003191fc vaddr=40378000 size=18144h ( 98628) load
+I (571) esp_image: segment 5: paddr=00331348 vaddr=50000000 size=00020h (    32) load
+I (580) boot: Loaded app from partition at offset 0x20000
+I (581) boot: Disabling RNG early entropy source...
+I (591) esp_psram: Found 8MB PSRAM device
+I (591) esp_psram: Speed: 80MHz
+I (591) cpu_start: Multicore app
+I (600) cpu_start: GPIO 44 and 43 are used as console UART I/O pins
+I (601) cpu_start: Pro cpu start user code
+I (601) cpu_start: cpu freq: 240000000 Hz
+I (603) app_init: Application information:
+I (607) app_init: Project name:     stack-chan
+I (611) app_init: App version:      1.5.1
+I (615) app_init: Compile time:     Oct 13 2026 11:26:27
+I (620) app_init: ELF file SHA256:  8d85e0d71...
+I (624) app_init: ESP-IDF:          v5.5.4
+I (628) efuse_init: Min chip rev:     v0.0
+I (632) efuse_init: Max chip rev:     v0.99 
+I (636) efuse_init: Chip rev:         v0.2
+I (639) heap_init: Initializing. RAM available for dynamic allocation:
+I (646) heap_init: At 3FCB82A8 len 00031468 (197 KiB): RAM
+I (651) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (656) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (661) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (667) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (674) spi_flash: detected chip: generic
+I (677) spi_flash: flash io: qio
+I (681) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (686) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (701) main_task: Started on CPU0
+I (711) esp_psram: Reserving pool of 64K of internal memory for DMA/internal allocations
+I (711) main_task: Calling app_main()
+[1792600135629] [[32minfo[0m] [HAL] creating hal instance
+[1792600135634] [[32minfo[0m] [HAL] init
+[1792600135653] [[32minfo[0m] [HAL] xiaozhi board init
+I (741) Board: UUID=13d885f2-f0c0-4c7f-b5f9-ad9dd41a8f60 SKU=m5stack-stack-chan
+I (741) M5Stack-StackChan-Board: Init AXP2101
+I (741) M5Stack-StackChan-Board: Set charge current success
+I (751) M5Stack-StackChan-Board: Init power save timer: sleep=300 s, shutdown=600 s, allow_shutdown_when_charging=0
+I (761) M5Stack-StackChan-Board: Init AW9523
+     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
+00: 00 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+10: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+20: -- 21 -- 23 -- -- -- -- -- -- -- -- -- -- -- -- 
+30: -- -- -- -- 34 -- 36 -- 38 -- -- -- -- -- -- -- 
+40: 40 41 -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+50: 50 51 -- -- -- -- -- -- 58 -- -- -- -- -- -- -- 
+60: -- -- -- -- -- -- -- -- 68 69 -- -- -- -- -- 6f 
+70: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+I (841) M5Stack-StackChan-Board: Init FT6336
+I (841) M5Stack-StackChan-Board: Init IlI9342
+I (851) ili9341: LCD panel create success, version: 1.2.0
+I (871) M5Stack-StackChan-Board: Reset IlI9342
+I (1001) M5Stack-StackChan-Board: CIPHER:0x64 / FIRMID:0x03 / VENDID:0x01, panel:ILI9342C
+I (1001) Display: Power management not supported
+I (1061) StackChanAvatarDisplay: Turning display on
+I (1061) StackChanAvatarDisplay: Initialize LVGL library
+I (1061) StackChanAvatarDisplay: Use 2MB of PSRAM for image cache
+I (1061) StackChanAvatarDisplay: Initialize LVGL port
+I (1071) StackChanAvatarDisplay: Adding LCD display
+I (1071) LVGL: Starting LVGL task
+I (1081) StackChanAvatarDisplay: Create boot logo label
+I (1121) M5Stack-StackChan-Board: Init Camera
+I (1121) gc0308: Detected Camera sensor PID=0x9b
+I (1201) StackChanCamera: Camera init success
+I (1211) Backlight: Set brightness to 75
+[1792600136121] [[32minfo[0m] [HAL-MCP] init
+[1792600136121] [[32minfo[0m] [HAL-MCP] add robot.get_head_angles tool
+I (1211) MCP: Add tool: self.robot.get_head_angles
+[1792600136131] [[32minfo[0m] [HAL-MCP] add robot.set_head_angles tool
+I (1221) MCP: Add tool: self.robot.set_head_angles
+[1792600136142] [[32minfo[0m] [HAL-MCP] add robot.set_led_color tool
+I (1231) MCP: Add tool: self.robot.set_led_color
+[1792600136152] [[32minfo[0m] [HAL-MCP] add robot.create_reminder tool
+I (1241) MCP: Add tool: self.robot.create_reminder
+[1792600136163] [[32minfo[0m] [HAL-MCP] add robot.get_reminders tool
+I (1251) MCP: Add tool: self.robot.get_reminders
+[1792600136174] [[32minfo[0m] [HAL-MCP] add robot.stop_reminder tool
+I (1271) MCP: Add tool: self.robot.stop_reminder
+[1792600136184] [[32minfo[0m] [HAL-HeadTouch] init
+I (1271) Si12T: Si12T initialized, version: 0.0.2
+I (1291) Si12T: Si12T setup done
+[1792600136205] [1792600136205] [[[32minfo[0m[32minfo[0m] ] [HAL-IOE] init
+[HAL-HeadTouch] start update task
+I (1491) PY32IOExpander: Version: 0x41
+[1792600136856] [[32minfo[0m] [HAL-IOE] init done
+[1792600136856] [[32minfo[0m] [HAL-RTC] init
+[1792600136857] [[32minfo[0m] [HAL-RTC] PCF8563 init ok
+[1792600136859] [[32minfo[0m] [HAL-RTC] load timezone from nvs: GMT0
+[1792600136000] [[32minfo[0m] [HAL-RTC] rtc synced to system (UTC): 2026-10-21 16:28:56
+[1792600136007] [[32minfo[0m] [HAL-IMU] init
+[1792600136309] [[32minfo[0m] [HAL-IMU] BMI270 init ok
+[1792600136309] [[32minfo[0m] [HAL-Servo] init
+I (2261) uart: ESP_INTR_FLAG_IRAM flag not set while CONFIG_UART_ISR_IN_IRAM is enabled, flag updated
+[1792600136317] [[32minfo[0m] [ScsServo] id: 1 get zero pos: 501 from settings
+[1792600136326] [[32minfo[0m] [ScsServo] id: 2 get zero pos: 635 from settings
+[1792600136334] [[32minfo[0m] [HAL] lvgl init
+[1792600136335] [[32minfo[0m] [HAL] create lvgl touchpad indev
+W (2291) M1: starting the network...
+I (2301) WifiManager: Initializing...
+I (2301) pp: pp rom version: e7ae62f
+I (2301) net80211: net80211 rom version: e7ae62f
+I (2321) wifi:wifi driver task: 3fcd8ebc, prio:23, stack:6144, core=0
+I (2321) wifi:wifi firmware version: 0947e8b
+I (2321) wifi:wifi certification version: v7.0
+I (2321) wifi:config NVS flash: disabled
+I (2321) wifi:config nano formatting: enabled
+I (2331) wifi:Init data frame dynamic rx buffer num: 6
+I (2331) wifi:Init dynamic rx mgmt buffer num: 5
+I (2341) wifi:Init management short buffer num: 32
+I (2341) wifi:Init dynamic tx buffer num: 32
+I (2351) wifi:Init static tx FG buffer num: 2
+I (2351) wifi:Init static rx buffer size: 1600
+I (2351) wifi:Init static rx buffer num: 3
+I (2361) wifi:Init dynamic rx buffer num: 6
+I (2361) wifi_init: rx ba win: 3
+I (2361) wifi_init: accept mbox: 6
+I (2371) wifi_init: tcpip mbox: 16
+I (2371) wifi_init: udp mbox: 6
+I (2371) wifi_init: tcp mbox: 6
+I (2381) wifi_init: tcp tx win: 5760
+I (2381) wifi_init: tcp rx win: 5760
+I (2381) wifi_init: tcp mss: 1440
+I (2391) WifiManager: Initialized
+I (2391) WifiBoard: Starting WiFi connection attempt
+I (2391) WifiManager: Starting station
+I (2401) phy_init: phy_version 711,97bcf0a2,Aug 25 2025,19:04:10
+I (2441) wifi:mode : sta (<STA-MAC>)
+I (2441) wifi:enable tsf
+W (2441) M1: waiting for the network before starting the media probe...
+I (2441) WifiBoard: WiFi scanning
+I (4851) WifiStation: Found AP: <SSID>, BSSID: <BSSID>, RSSI: -68, Channel: 3, Authmode: 4
+I (4851) WifiBoard: WiFi connecting to <SSID>
+W (4851) wifi:Password length matches WPA2 standards, authmode threshold changes from OPEN to WPA2
+I (5171) wifi:new:<3,0>, old:<1,0>, ap:<255,255>, sta:<3,0>, prof:1, snd_ch_cfg:0x0
+I (5171) wifi:state: init -> auth (0xb0)
+I (5181) wifi:state: auth -> assoc (0x0)
+I (5181) wifi:state: assoc -> run (0x10)
+I (5291) wifi:connected with <SSID>, aid = 3, channel 3, BW20, bssid = <BSSID>
+I (5291) wifi:security: WPA2-PSK, phy: bgn, rssi: -62, cipher(pairwise:0x3, group:0x1), pmf:0
+I (5291) wifi:pm start, type: 1
+
+I (5301) wifi:dp: 1, bi: 102400, li: 10, scale listen interval from 1024000 us to 1024000 us
+I (5301) wifi:set rx beacon pti, rx_bcn_pti: 14, bcn_timeout: 25000, mt_pti: 14, mt_time: 10000
+I (5311) wifi:AP's beacon interval = 102400 us, DTIM period = 1
+I (5421) wifi:<ba-add>idx:0 (ifx:0, <BSSID>), tid:0, ssn:0, winSize:64
+I (6521) esp_netif_handlers: sta ip: 192.168.1.x, mask: 255.255.255.0, gw: 192.168.1.1
+I (6521) WifiStation: Got IP: 192.168.1.x
+I (6521) WifiBoard: Connected to WiFi: <SSID>
+W (6521) M1: network is up
+W (6521) M1: M1 uplink probe: fixture -> 16->48k -> Opus 48k mono 20 ms -> RTP
+W (6531) M1: payload budget 1352 B (library whole-packet buffer 1428 B, minus header/extension)
+I (6541) M1: [fx] zh_1 "今天我们测试语音连接": 124412 B (62206 samples, 3887 ms) kw=测试
+I (6551) M1: [fx] zh_2 "桌上有一本蓝色的书": 116754 B (58377 samples, 3648 ms) kw=蓝色
+I (6561) M1: [fx] zh_3 "请回答一加一等于几": 118838 B (59419 samples, 3713 ms) kw=一加一
+I (6571) M1: [enc] 48000 Hz 1 ch 20 ms | in_frame=1920 B (960 samples) out_cap=325 B bitrate=90000
+W (6571) M1: [heap:before-buffers] int free=160115 largest=63488 | int+8bit free=160115 largest=63488 | dma free=152327 largest=63488 | psram free=8028792 largest=7995392
+W (6591) M1: [heap:after-buffers] int free=159711 largest=63488 | int+8bit free=159711 largest=63488 | dma free=151923 largest=63488 | psram free=8022896 largest=7995392
+I (6851) WebRTC-TP: pre-generate DTLS cert -> 0
+I (6851) DTLS: Init SRTP OK
+I (6861) DTLS: DTLS cipher pref: auto (mbedtls default order)
+I (6861) WebRTC-TP: esp_peer_open -> 0
+I (6861) WebRTC-TP: peer main loop started
+I (7161) WebRTC-TP: [state] NEW_CONNECTION (2)
+I (7161) WebRTC-TP: esp_peer_new_connection -> 0
+I (7181) WebRTC-TP: [state] CANDIDATE_GATHERING (3)
+I (7181) AGENT: Start agent as Controlling
+I (7201) AGENT: Send STUN binding request
+I (7211) AGENT: 0 Get candidate success user: psw:
+I (7221) WebRTC-TP: [msg] local SDP, 1088 bytes, candidates=YES
+I (7221) WebRTC-TP: POST realtime WebRTC SDP endpoint
+I (7221) WebRTC-TP: offer is 1088 bytes
+W (7221) WebRTC-TP: ----- OFFER media lines -----
+W (7231) WebRTC-TP:   m=audio 9 UDP/TLS/RTP/SAVPF 111
+W (7231) WebRTC-TP:   a=mid:0
+W (7231) WebRTC-TP:   a=rtcp-mux
+W (7241) WebRTC-TP:   a=rtpmap:111 opus/48000/2
+W (7241) WebRTC-TP:   a=ssrc:6 cname:EspSSpbA0
+W (7251) WebRTC-TP:   a=ssrc:6 msid:esp_stream a0
+W (7251) WebRTC-TP:   a=sendrecv
+W (7251) WebRTC-TP:   m=application 50712 UDP/DTLS/SCTP webrtc-datachannel
+W (7261) WebRTC-TP:   a=mid:1
+W (7261) WebRTC-TP: --------------------------
+I (7331) wifi:<ba-add>idx:1 (ifx:0, <BSSID>), tid:5, ssn:1, winSize:64
+I (7381) esp-x509-crt-bundle: Certificate validated
+I (7691) WebRTC-TP: SDP exchange: err=ESP_OK http=200
+I (7691) WebRTC-TP: response body is 1254 bytes
+W (7691) WebRTC-TP: ----- ANSWER media lines -----
+W (7691) WebRTC-TP:   m=audio 3478 UDP/TLS/RTP/SAVPF 111
+W (7691) WebRTC-TP:   a=mid:0
+W (7701) WebRTC-TP:   a=rtcp-mux
+W (7701) WebRTC-TP:   a=sendrecv
+W (7701) WebRTC-TP:   a=rtpmap:111 opus/48000/2
+W (7711) WebRTC-TP:   a=fmtp:111 minptime=20
+W (7711) WebRTC-TP:   a=ssrc:1000 msid:alibaba-bailian audio-1
+W (7721) WebRTC-TP:   m=application 3478 UDP/DTLS/SCTP webrtc-datachannel
+W (7721) WebRTC-TP:   a=mid:1
+W (7731) WebRTC-TP: --------------------------
+I (7731) PEER_DEF: Get peer role 1
+I (7731) PEER_DEF: Get peer role 1
+I (7741) PEER_DEF: Get peer role 1
+I (7741) PEER_DEF: Extract SDP: stream_count=2, audio_mid=255 (dir=3), video_mid=255 (dir=3), data_mid=255, assrc=1000, vssrc=0, vrtx_ssrc=0, vfmt=0, vrtx_fmt=0
+I (7751) AGENT: 0 Add remote type:1 39.97.230.241:3478
+I (7761) WebRTC-TP: [state] PAIRING (4)
+I (7761) AGENT: 0 0 Send binding request (cand:0) local0:192.168.1.x:51101 remote0:39.97.230.241:3478 id:5851f42d40b18ccf4bb5f646
+I (7761) WebRTC-TP: fed answer to peer -> 0
+I (7811) AGENT: 0 0 LocalBinding resp 5851f42d40b18ccf4bb5f646 local1
+I (7811) AGENT: 0 Select pair39.97.230.241:3478
+I (7811) AGENT: 0 0 Send binding request (cand:1) local0:192.168.1.x:51101 remote0:39.97.230.241:3478 id:4703312930705b0420fd5db4
+I (7821) AGENT: 0 0 LocalBinding resp 5851f42d40b18ccf4bb5f646 local1
+I (7831) AGENT: 0 Candidate responded
+I (7831) AGENT: 0 Connection OK 39.97.230.241:3478
+I (7831) WebRTC-TP: [state] PAIRED (5)
+I (7841) PEER_DEF: Start DTLS role as 0
+I (7841) DTLS: DTLS cipher pref: auto (mbedtls default order)
+I (7851) WebRTC-TP: [state] CONNECTING (6)
+E (9101) PEER_DEF: agent_recv timeout
+E (9101) DTLS: CLient handshake fail ret -0x7880
+E (10421) PEER_DEF: agent_recv timeout
+E (10421) DTLS: CLient handshake fail ret -0x7880
+E (12171) PEER_DEF: agent_recv timeout
+E (12171) DTLS: CLient handshake fail ret -0x7880
+E (13401) PEER_DEF: agent_recv timeout
+E (13401) DTLS: CLient handshake fail ret -0x7880
+E (14631) PEER_DEF: agent_recv timeout
+E (14631) DTLS: CLient handshake fail ret -0x7880
+E (16161) PEER_DEF: agent_recv timeout
+E (16161) DTLS: CLient handshake fail ret -0x7880
+E (17391) PEER_DEF: agent_recv timeout
+E (17391) DTLS: CLient handshake fail ret -0x7880
+E (18631) PEER_DEF: agent_recv timeout
+E (18631) DTLS: CLient handshake fail ret -0x7880
+E (19861) PEER_DEF: agent_recv timeout
+E (19861) DTLS: CLient handshake fail ret -0x7880
+E (21091) PEER_DEF: agent_recv timeout
+E (21091) DTLS: CLient handshake fail ret -0x7880
+E (22331) PEER_DEF: agent_recv timeout
+E (22331) DTLS: CLient handshake fail ret -0x7880
+E (24151) PEER_DEF: agent_recv timeout
+E (24151) DTLS: CLient handshake fail ret -0x7880
+E (25381) PEER_DEF: agent_recv timeout
+E (25381) DTLS: CLient handshake fail ret -0x7880
+E (26611) PEER_DEF: agent_recv timeout
+E (26611) DTLS: CLient handshake fail ret -0x7880
+E (27841) PEER_DEF: agent_recv timeout
+E (27841) DTLS: CLient handshake fail ret -0x7880
+E (29081) PEER_DEF: agent_recv timeout
+E (29081) DTLS: CLient handshake fail ret -0x7880
+E (30311) PEER_DEF: agent_recv timeout
+E (30311) DTLS: CLient handshake fail ret -0x7880
+E (31541) PEER_DEF: agent_recv timeout
+E (31541) DTLS: CLient handshake fail ret -0x7880
+E (32161) M1: VERDICT: FAIL - transport layer. stage=server answer received(4) peer_state=6 session_created=0 update_sent=0
+E (32161) M1:   the session handshake never completed, so no configuration could be verified
+E (32161) M1: The fixture was NOT sent.
+W (32171) DTLS-PROBE: [gate-failed] gen=1 | setups=2 (datagram=1 stream=1 unknown=0 overflow=0) | identity last=datagram unknown_ctx=0 stale=0 unknown_transport=0 ctx_bound=3 ctx_overflow=0 | hs calls=19 dtls=18 ok=0 fail=18 stream_excluded=1 last_ret=-30848 last=1210ms total=23324ms over=0 role=0 | profile reads=0 skipped=18 -> (none) profile=-1 | DTLS TX records=19 in_dgrams=19 unparsable=8 truncated=0 short_write=0 failed=0 epoch_changes=0 first_type=22 last_type=22 epoch=0 seq=0:0 len=243 | DTLS RX records=41 unparsable=15 truncated=0 epoch_changes=0 first_type=22 last_type=22 epoch=0 seq=0:29 len=12 | socket assoc=unknown (dtls_fd=-1 rtp_fd=-1) | sendto=27 recvfrom=47 | calls conf_transport=21 config_defaults=3 setup=3 config_free=1 ssl_free=2 transport_updates=0 errno(entry=0 real=0) | poll n=0 last=0us max=0us
+E (32241) DTLS-PROBE:   DTLS records flowed both ways (19 TX / 41 RX) but the handshake never returned success
+E (32771) PEER_DEF: agent_recv timeout
+E (32771) DTLS: CLient handshake fail ret -0x7880
+I (32791) WebRTC-TP: peer main loop exited
+I (32791) WebRTC-TP: both tasks confirmed exit; releasing transport resources
+I (32791) AGENT: agent disconnected done

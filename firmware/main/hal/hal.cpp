@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 #include "hal.h"
+#include "hal/aliyun/aliyun_omni_protocol.h"
 #include <memory>
 #include <mooncake_log.h>
 #include <nvs_flash.h>
@@ -31,6 +32,13 @@ void Hal::init()
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK(ret);
+
+    // Seed the Aliyun credential namespace as soon as NVS exists. This used to
+    // live in app_main after GetHAL().init(), but board bring-up can abort
+    // before returning (see the AXP2101 retry below), which would skip it.
+    // IsConfigured() is consulted during Application::InitializeProtocol(),
+    // which runs much later, so setting this here is both safer and early enough.
+    AliyunOmniSeedSettingsFromKconfig();
 
     xiaozhi_board_init();
     xiaozhi_mcp_init();

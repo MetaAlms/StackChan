@@ -78,3 +78,18 @@ CONFIG_LV_USE_SNAPSHOT=y
 CONFIG_LV_USE_IMGFONT=y
 CONFIG_LV_BUILD_EXAMPLES=n
 CONFIG_LV_BUILD_DEMOS=n
+
+# ---------------------------------------------------------------------------
+# WebRTC / Aliyun transport requirements.
+#
+# These are BUILD requirements of espressif/esp_peer, not deployment choices:
+# its DTLS-SRTP layer does not compile without them. They used to live only in
+# the gitignored sdkconfig.defaults.local, so a clean checkout could not build
+# the WebRTC path at all. Secrets stay out of this file.
+# ---------------------------------------------------------------------------
+CONFIG_MBEDTLS_SSL_PROTO_DTLS=y
+CONFIG_MBEDTLS_SSL_DTLS_SRTP=y
+
+# Probe entry points are opt-in; the normal WebSocket firmware is the default.
+CONFIG_STACKCHAN_WEBRTC_M0=n
+CONFIG_STACKCHAN_WEBRTC_M1=n

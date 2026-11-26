@@ -1,0 +1,31 @@
+I (196519) CoreS3AudioCodec: Audio IOs: mclk: 0, bclk: 34, ws: 33, dout: 13, din: 14
+I (196519) CoreS3AudioCodec: Duplex channels created
+I (196529) ES7210: Work in Slave mode
+I (196539) ES7210: Enable ES7210_INPUT_MIC1
+I (196539) ES7210: Enable ES7210_INPUT_MIC2
+I (196539) ES7210: Enable ES7210_INPUT_MIC3
+I (196549) ES7210: Enable TDM mode
+I (196549) CoreS3AudioCodec: CoreS3AudioCodec initialized
+I (196549) I2S_IF: Paired data: 0x3fce0390, current mode: playback, paired in_enable: 0, paired out_enable: 0
+I (196559) I2S_IF: STD: TX, data_bit: 16, slot_bit: 16, ws_width: 16, slot_mode: MONO, slot_mask: 0x1
+I (196569) I2S_IF: STD: TX, sample_rate_hz: 24000, mclk_multiple: 256, clk_src: 6
+I (196579) Adev_Codec: Open codec device OK
+I (196579) AudioCodec: Set output enable to true
+I (196579) I2S_IF: Current mode(record) and peer mode have same sample_rate 24000, channel 2, bits_per_sample 16
+I (196589) I2S_IF: TDM: RX, data_bit: 16, slot_bit: 16, ws_width: 16, total_slot: 2, slot_mask: 0x3
+I (196599) I2S_IF: TDM: RX, sample_rate_hz: 24000, mclk_multiple: 256, clk_src: 6
+I (196609) ES7210: Bits 16
+I (196619) ES7210: Enable ES7210_INPUT_MIC1
+I (196619) ES7210: Enable ES7210_INPUT_MIC2
+I (196619) ES7210: Enable ES7210_INPUT_MIC3
+I (196629) ES7210: Enable TDM mode
+I (196629) ES7210: Unmuted
+I (196629) Adev_Codec: Open codec device OK
+I (196629) AudioCodec: Set input enable to true
+I (202809) AudioCodec: Set input enable to false
+I (202809) AudioCodec: Set output enable to false
+W (202809) WebRTC-Run: AUDIT seconds=6 slots=300 write_fail=0 read_fail=0 aborted=0 volume=unchanged tone_amp=1024
+W (202819) WebRTC-Run: AUDIT tone1 frames=43200 ch0_db10=-177 ch0_peak=6900 ch1_db10=-181 ch1_peak=6488
+W (202829) WebRTC-Run: AUDIT silence frames=43200 ch0_db10=-475 ch0_peak=1225 ch1_db10=-523 ch1_peak=588
+W (202839) WebRTC-Run: AUDIT tone2 frames=43200 ch0_db10=-175 ch0_peak=6943 ch1_db10=-180 ch1_peak=6377
+W (202849) WebRTC-Run: AUDIT echo_delta_db10 ch0=298 ch1=342 aec=undetermined local_only=1

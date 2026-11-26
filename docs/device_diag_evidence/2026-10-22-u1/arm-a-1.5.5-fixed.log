@@ -1,0 +1,401 @@
+I (306) esp_image: segment 1: paddr=0016c894 vaddr=3fca0200 size=03784h ( 14212) load
+I (309) esp_image: segment 2: paddr=00170020 vaddr=42000020 size=1a5d4ch (1727820) map
+I (550) esp_image: segment 3: paddr=00315d74 vaddr=3fca3984 size=0355ch ( 13660) load
+I (553) esp_image: segment 4: paddr=003192d8 vaddr=40378000 size=18144h ( 98628) load
+I (571) esp_image: segment 5: paddr=00331424 vaddr=50000000 size=00020h (    32) load
+I (580) boot: Loaded app from partition at offset 0x20000
+I (581) boot: Disabling RNG early entropy source...
+I (591) esp_psram: Found 8MB PSRAM device
+I (591) esp_psram: Speed: 80MHz
+I (591) cpu_start: Multicore app
+I (601) cpu_start: GPIO 44 and 43 are used as console UART I/O pins
+I (601) cpu_start: Pro cpu start user code
+I (601) cpu_start: cpu freq: 240000000 Hz
+I (603) app_init: Application information:
+I (607) app_init: Project name:     stack-chan
+I (611) app_init: App version:      1.5.1
+I (615) app_init: Compile time:     Oct 22 2026 21:51:41
+I (620) app_init: ELF file SHA256:  08ac6bb29...
+I (624) app_init: ESP-IDF:          v5.5.4
+I (628) efuse_init: Min chip rev:     v0.0
+I (632) efuse_init: Max chip rev:     v0.99 
+I (636) efuse_init: Chip rev:         v0.2
+I (639) heap_init: Initializing. RAM available for dynamic allocation:
+I (646) heap_init: At 3FCB82A8 len 00031468 (197 KiB): RAM
+I (651) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (656) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (661) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (667) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (674) spi_flash: detected chip: generic
+I (677) spi_flash: flash io: qio
+I (681) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (686) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (701) main_task: Started on CPU0
+I (711) esp_psram: Reserving pool of 64K of internal memory for DMA/internal allocations
+I (711) main_task: Calling app_main()
+[1792677124874] [[32minfo[0m] [HAL] creating hal instance
+[1792677124880] [[32minfo[0m] [HAL] init
+[1792677124897] [[32minfo[0m] [HAL] xiaozhi board init
+I (741) Board: UUID=13d885f2-f0c0-4c7f-b5f9-ad9dd41a8f60 SKU=m5stack-stack-chan
+I (741) M5Stack-StackChan-Board: Init AXP2101
+I (741) M5Stack-StackChan-Board: Set charge current success
+I (751) M5Stack-StackChan-Board: Init power save timer: sleep=300 s, shutdown=600 s, allow_shutdown_when_charging=0
+I (761) M5Stack-StackChan-Board: Init AW9523
+     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
+
+00: 00 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+
+10: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+
+20: -- 21 -- 23 -- -- -- -- -- -- -- -- -- -- -- -- 
+
+30: -- -- -- -- 34 -- 36 -- 38 -- -- -- -- -- -- -- 
+
+40: 40 41 -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+
+50: 50 51 -- -- -- -- -- -- 58 -- -- -- -- -- -- -- 
+
+60: -- -- -- -- -- -- -- -- 68 69 -- -- -- -- -- 6f 
+
+70: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+
+I (841) M5Stack-StackChan-Board: Init FT6336
+I (841) M5Stack-StackChan-Board: Init IlI9342
+I (851) ili9341: LCD panel create success, version: 1.2.0
+I (871) M5Stack-StackChan-Board: Reset IlI9342
+I (1001) M5Stack-StackChan-Board: CIPHER:0x64 / FIRMID:0x03 / VENDID:0x01, panel:ILI9342C
+I (1001) Display: Power management not supported
+I (1061) StackChanAvatarDisplay: Turning display on
+I (1061) StackChanAvatarDisplay: Initialize LVGL library
+I (1061) StackChanAvatarDisplay: Use 2MB of PSRAM for image cache
+I (1061) StackChanAvatarDisplay: Initialize LVGL port
+I (1071) StackChanAvatarDisplay: Adding LCD display
+I (1071) LVGL: Starting LVGL task
+I (1081) StackChanAvatarDisplay: Create boot logo label
+I (1121) M5Stack-StackChan-Board: Init Camera
+I (1121) gc0308: Detected Camera sensor PID=0x9b
+I (1201) StackChanCamera: Camera init success
+I (1211) Backlight: Set brightness to 75
+[1792677125366] [[32minfo[0m] [HAL-MCP] init
+[1792677125366] [[32minfo[0m] [HAL-MCP] add robot.get_head_angles tool
+I (1211) MCP: Add tool: self.robot.get_head_angles
+[1792677125376] [[32minfo[0m] [HAL-MCP] add robot.set_head_angles tool
+I (1221) MCP: Add tool: self.robot.set_head_angles
+[1792677125387] [[32minfo[0m] [HAL-MCP] add robot.set_led_color tool
+I (1231) MCP: Add tool: self.robot.set_led_color
+[1792677125397] [[32minfo[0m] [HAL-MCP] add robot.create_reminder tool
+I (1241) MCP: Add tool: self.robot.create_reminder
+[1792677125408] [[32minfo[0m] [HAL-MCP] add robot.get_reminders tool
+I (1251) MCP: Add tool: self.robot.get_reminders
+[1792677125419] [[32minfo[0m] [HAL-MCP] add robot.stop_reminder tool
+I (1271) MCP: Add tool: self.robot.stop_reminder
+[1792677125430] [[32minfo[0m] [HAL-HeadTouch] init
+I (1271) Si12T: Si12T initialized, version: 0.0.2
+I (1291) Si12T: Si12T setup done
+[1792677125450] [1792677125450] [[[32minfo[0m[32minfo[0m] ] [HAL-IOE] init
+[HAL-HeadTouch] start update task
+I (1491) PY32IOExpander: Version: 0x41
+[1792677126101] [[32minfo[0m] [HAL-IOE] init done
+[1792677126101] [[32minfo[0m] [HAL-RTC] init
+[1792677126102] [[32minfo[0m] [HAL-RTC] PCF8563 init ok
+[1792677126104] [[32minfo[0m] [HAL-RTC] load timezone from nvs: GMT0
+[1792677198000] [[32minfo[0m] [HAL-RTC] rtc synced to system (UTC): 2026-10-22 13:53:18
+[1792677198007] [[32minfo[0m] [HAL-IMU] init
+[1792677198309] [[32minfo[0m] [HAL-IMU] BMI270 init ok
+[1792677198309] [[32minfo[0m] [HAL-Servo] init
+I (2261) uart: ESP_INTR_FLAG_IRAM flag not set while CONFIG_UART_ISR_IN_IRAM is enabled, flag updated
+[1792677198318] [[32minfo[0m] [ScsServo] id: 1 get zero pos: 501 from settings
+[1792677198326] [[32minfo[0m] [ScsServo] id: 2 get zero pos: 635 from settings
+[1792677198334] [[32minfo[0m] [HAL] lvgl init
+[1792677198335] [[32minfo[0m] [HAL] create lvgl touchpad indev
+W (2291) M1: starting the network...
+I (2301) WifiManager: Initializing...
+I (2301) pp: pp rom version: e7ae62f
+I (2301) net80211: net80211 rom version: e7ae62f
+I (2321) wifi:wifi driver task: 3fcd8ebc, prio:23, stack:6144, core=0
+I (2321) wifi:wifi firmware version: 0947e8b
+I (2321) wifi:wifi certification version: v7.0
+I (2321) wifi:config NVS flash: disabled
+I (2321) wifi:config nano formatting: enabled
+I (2331) wifi:Init data frame dynamic rx buffer num: 6
+I (2331) wifi:Init dynamic rx mgmt buffer num: 5
+I (2341) wifi:Init management short buffer num: 32
+I (2341) wifi:Init dynamic tx buffer num: 32
+I (2351) wifi:Init static tx FG buffer num: 2
+I (2351) wifi:Init static rx buffer size: 1600
+I (2351) wifi:Init static rx buffer num: 3
+I (2361) wifi:Init dynamic rx buffer num: 6
+I (2361) wifi_init: rx ba win: 3
+I (2361) wifi_init: accept mbox: 6
+I (2371) wifi_init: tcpip mbox: 16
+I (2371) wifi_init: udp mbox: 6
+I (2371) wifi_init: tcp mbox: 6
+I (2381) wifi_init: tcp tx win: 5760
+I (2381) wifi_init: tcp rx win: 5760
+I (2381) wifi_init: tcp mss: 1440
+I (2391) WifiManager: Initialized
+I (2391) WifiBoard: Starting WiFi connection attempt
+I (2391) WifiManager: Starting station
+I (2401) phy_init: phy_version 711,97bcf0a2,Aug 25 2025,19:04:10
+I (2441) phy_init: Saving new calibration data due to checksum failure or outdated calibration data, mode(0)
+I (2451) wifi:mode : sta (<STA-MAC>)
+I (2461) wifi:enable tsf
+W (2461) M1: waiting for the network before starting the media probe...
+I (2461) WifiBoard: WiFi scanning
+I (4871) WifiStation: Found AP: <SSID>, BSSID: <BSSID>, RSSI: -67, Channel: 3, Authmode: 4
+I (4871) WifiBoard: WiFi connecting to <SSID>
+W (4871) wifi:Password length matches WPA2 standards, authmode threshold changes from OPEN to WPA2
+I (5191) wifi:new:<3,0>, old:<1,0>, ap:<255,255>, sta:<3,0>, prof:1, snd_ch_cfg:0x0
+I (5191) wifi:state: init -> auth (0xb0)
+I (5201) wifi:state: auth -> assoc (0x0)
+I (5201) wifi:state: assoc -> run (0x10)
+I (5301) wifi:[ADDBA]RX DELBA, reason:39, delete tid:0, initiator:1(originator)
+I (5301) wifi:[ADDBA]RX DELBA, reason:39, delete tid:0, initiator:0(recipient)
+I (5311) wifi:connected with <SSID>, aid = 3, channel 3, BW20, bssid = <BSSID>
+I (5311) wifi:security: WPA2-PSK, phy: bgn, rssi: -68, cipher(pairwise:0x3, group:0x1), pmf:0
+I (5321) wifi:pm start, type: 1
+
+I (5321) wifi:dp: 1, bi: 102400, li: 10, scale listen interval from 1024000 us to 1024000 us
+I (5331) wifi:set rx beacon pti, rx_bcn_pti: 14, bcn_timeout: 25000, mt_pti: 14, mt_time: 10000
+I (5341) wifi:<ba-add>idx:0 (ifx:0, <BSSID>), tid:0, ssn:3, winSize:64
+I (5361) wifi:AP's beacon interval = 102400 us, DTIM period = 1
+I (6621) esp_netif_handlers: sta ip: 192.168.1.x, mask: 255.255.255.0, gw: 192.168.1.1
+I (6621) WifiStation: Got IP: 192.168.1.x
+I (6621) WifiBoard: Connected to WiFi: <SSID>
+W (7051) M1: network is up
+W (7051) M1: M1 uplink probe: fixture -> 16->48k -> Opus 48k mono 20 ms -> RTP
+W (7051) M1: payload budget 1352 B (library whole-packet buffer 1428 B, minus header/extension)
+I (7051) M1: [fx] zh_1 "今天我们测试语音连接": 124412 B (62206 samples, 3887 ms) kw=测试
+I (7061) M1: [fx] zh_2 "桌上有一本蓝色的书": 116754 B (58377 samples, 3648 ms) kw=蓝色
+I (7071) M1: [fx] zh_3 "请回答一加一等于几": 118838 B (59419 samples, 3713 ms) kw=一加一
+I (7081) M1: [enc] 48000 Hz 1 ch 20 ms | in_frame=1920 B (960 samples) out_cap=325 B bitrate=90000
+W (7091) M1: [heap:before-buffers] int free=160099 largest=63488 | int+8bit free=160099 largest=63488 | dma free=152311 largest=63488 | psram free=8028792 largest=7995392
+W (7101) M1: [heap:after-buffers] int free=159567 largest=63488 | int+8bit free=159567 largest=63488 | dma free=151779 largest=63488 | psram free=8022896 largest=7995392
+I (7371) WebRTC-TP: pre-generate DTLS cert -> 0
+I (7371) DTLS: Init SRTP OK
+I (7371) DTLS: DTLS cipher pref: auto (mbedtls default order)
+W (7371) DTLS-PROBE: SRTP offer narrowed to SHA1_80 (component offered 4 profile(s); only the 80-bit policy is implemented)
+I (7381) WebRTC-TP: esp_peer_open -> 0
+I (7381) WebRTC-TP: peer main loop started
+I (7691) WebRTC-TP: [state] NEW_CONNECTION (2)
+I (7691) WebRTC-TP: esp_peer_new_connection -> 0
+I (7711) WebRTC-TP: [state] CANDIDATE_GATHERING (3)
+I (7711) AGENT: Start agent as Controlling
+I (7751) AGENT: Send STUN binding request
+I (7801) AGENT: 0 Get candidate success user: psw:
+I (7801) WebRTC-TP: [msg] local SDP, 1088 bytes, candidates=YES
+I (7801) WebRTC-TP: POST realtime WebRTC SDP endpoint
+I (7801) WebRTC-TP: offer is 1088 bytes
+W (7811) WebRTC-TP: ----- OFFER media lines -----
+W (7811) WebRTC-TP:   m=audio 9 UDP/TLS/RTP/SAVPF 111
+
+W (7821) WebRTC-TP:   a=mid:0
+
+W (7821) WebRTC-TP:   a=rtcp-mux
+
+W (7821) WebRTC-TP:   a=rtpmap:111 opus/48000/2
+
+W (7831) WebRTC-TP:   a=ssrc:6 cname:EspSSpbA0
+
+W (7831) WebRTC-TP:   a=ssrc:6 msid:esp_stream a0
+
+W (7831) WebRTC-TP:   a=sendrecv
+
+W (7841) WebRTC-TP:   m=application 50712 UDP/DTLS/SCTP webrtc-datachannel
+
+W (7841) WebRTC-TP:   a=mid:1
+
+W (7851) WebRTC-TP: --------------------------
+I (7941) wifi:<ba-add>idx:1 (ifx:0, <BSSID>), tid:5, ssn:1, winSize:64
+I (8001) esp-x509-crt-bundle: Certificate validated
+I (8311) WebRTC-TP: SDP exchange: err=ESP_OK http=200
+I (8311) WebRTC-TP: response body is 1249 bytes
+W (8311) WebRTC-TP: ----- ANSWER media lines -----
+W (8311) WebRTC-TP:   m=audio 3478 UDP/TLS/RTP/SAVPF 111
+
+W (8321) WebRTC-TP:   a=mid:0
+
+W (8321) WebRTC-TP:   a=rtcp-mux
+
+W (8321) WebRTC-TP:   a=sendrecv
+
+W (8331) WebRTC-TP:   a=rtpmap:111 opus/48000/2
+
+W (8331) WebRTC-TP:   a=fmtp:111 minptime=20
+
+W (8341) WebRTC-TP:   a=ssrc:1000 msid:alibaba-bailian audio-1
+
+W (8341) WebRTC-TP:   m=application 3478 UDP/DTLS/SCTP webrtc-datachannel
+
+W (8351) WebRTC-TP:   a=mid:1
+
+W (8351) WebRTC-TP: --------------------------
+I (8361) PEER_DEF: Get peer role 1
+I (8361) PEER_DEF: Get peer role 1
+I (8361) PEER_DEF: Get peer role 1
+I (8361) PEER_DEF: Extract SDP: stream_count=2, audio_mid=255 (dir=3), video_mid=255 (dir=3), data_mid=255, assrc=1000, vssrc=0, vrtx_ssrc=0, vfmt=0, vrtx_fmt=0
+I (8451) AGENT: 0 Add remote type:1 8.141.115.69:3478
+I (8451) WebRTC-TP: [state] PAIRING (4)
+I (8451) WebRTC-TP: fed answer to peer -> 0
+I (8471) AGENT: 0 0 Send binding request (cand:0) local0:192.168.1.x:58249 remote0:8.141.115.69:3478 id:5851f42d40b18ccf4bb5f646
+I (8501) AGENT: 0 0 LocalBinding resp 5851f42d40b18ccf4bb5f646 local1
+I (8501) AGENT: 0 Select pair8.141.115.69:3478
+I (8501) AGENT: 0 0 Send binding request (cand:1) local0:192.168.1.x:58249 remote0:8.141.115.69:3478 id:4703312930705b0420fd5db4
+I (8511) AGENT: 0 0 LocalBinding resp 5851f42d40b18ccf4bb5f646 local1
+I (8511) AGENT: 0 Candidate responded
+I (8521) AGENT: 0 Connection OK 8.141.115.69:3478
+I (8521) WebRTC-TP: [state] PAIRED (5)
+I (8521) PEER_DEF: Start DTLS role as 0
+I (8531) DTLS: DTLS cipher pref: auto (mbedtls default order)
+W (8531) DTLS-PROBE: SRTP offer narrowed to SHA1_80 (component offered 4 profile(s); only the 80-bit policy is implemented)
+I (8541) WebRTC-TP: [state] CONNECTING (6)
+I (9031) DTLS: SRTP connected OK
+I (9171) DTLS: Client handshake success
+I (9171) DTLS: Negotiated DTLS ciphersuite: TLS-ECDHE-ECDSA-WITH-AES-256-GCM-SHA384
+I (9171) PEER_DEF: DTLS handshake success
+I (9181) PEER_DEF: Sctp role as 1
+I (9181) WebRTC-TP: [state] CONNECTED (7)
+I (9201) SCTP: 1 state 1
+I (9201) SCTP: Send INIT chunk
+I (9311) SCTP: 1 Receive chunk 2 SCTP_INIT_ACK
+I (9311) SCTP: 1 state 2
+I (9311) SCTP: Send ECHO chunk
+I (9311) SCTP: 1 state 3
+I (9311) SCTP: Send ECHO chunk
+I (9341) SCTP: 1 Receive chunk 11 SCTP_COOKIE_ACK
+I (9341) SCTP: 1 state 5
+I (9341) WebRTC-TP: [state] DATA_CHANNEL_CONNECTED (9)
+I (9341) SCTP: Send DCEP oai-events event:3 type:0 si:2
+I (9341) WebRTC-TP: create data channel 'oai-events' -> 0
+I (9351) SCTP: Get DCEP txt event:3 type:1 si:1 param:10
+I (9351) WebRTC-TP: [channel open] label='txt' stream_id=1
+I (9361) WebRTC-TP: [state] DATA_CHANNEL_OPENED (10)
+I (9371) SCTP: 1 Receive chunk 11 SCTP_COOKIE_ACK
+W (9371) M1: [cfg] session.created on stream 1
+I (9371) M1: [cfg] session.update sent on stream 1
+W (9481) M1: [cfg] session.updated verified: turn_detection=server_vad thr=0.50 silence=800 transcription=qwen3-asr-flash-realtime
+W (9601) M1: [cfg] gate passed: turn_detection=server_vad thr=0.50 silence=800 transcription=qwen3-asr-flash-realtime
+W (9601) DTLS-PROBE: [connected] gen=1 | setups=2 (datagram=1 stream=1 unknown=0 overflow=0) | identity last=datagram unknown_ctx=0 stale=0 unknown_transport=0 ctx_bound=3 ctx_overflow=0 | hs calls=2 dtls=1 ok=1 fail=0 stream_excluded=1 last_ret=0 last=608ms total=608ms over=1 role=0 | profile reads=1 skipped=0 -> TLS-ECDHE-ECDSA-WITH-AES-256-GCM-SHA384 profile=1 | DTLS TX records=25 in_dgrams=25 unparsable=3 truncated=0 short_write=0 failed=0 epoch_changes=5 first_type=22 last_type=23 epoch=1 seq=0:11 len=52 | DTLS RX records=36 unparsable=8 truncated=0 epoch_changes=3 first_type=22 last_type=23 epoch=1 seq=0:10 len=552 | socket assoc=unknown (dtls_fd=-1 rtp_fd=-1) | sendto=16 recvfrom=33 | calls conf_transport=3 config_defaults=3 setup=3 config_free=1 ssl_free=2 transport_updates=0 errno(entry=0 real=0) | poll n=0 last=0us max=0us
+W (9671) M1: [short] U1 comparison mode: 2000 ms silence -> zh_1 -> 800 ms tail, ASR wait bounded at 20000 ms, frame 20 ms
+W (9681) M1: [short] step=leading-silence media t=0 ms
+W (9681) M1: [heap:first-frame-before] int free=109099 largest=63488 | int+8bit free=109099 largest=63488 | dma free=101311 largest=63488 | psram free=7945700 largest=7864320
+W (9701) ESP_OPUS_DEC: Frame duration is not set, out pcm buffer size is counted as the length of 60ms.
+W (9711) M1: [heap:first-frame-after] int free=108891 largest=63488 | int+8bit free=108891 largest=63488 | dma free=101103 largest=63488 | psram free=7915352 largest=7864320
+W (11661) M1: [short] interval "leading-silence"  (no fixture audio)
+W (11661) M1:   SRTP      : calls=100 ok=100 fail=0 unparsable=0
+W (11661) M1:   UDP       : attempts=100 full_writes=100 short=0 failed=0
+W (11661) M1:   RTP       : seq ->99 ts ->95040 (no packet before this interval: it contains the window's first packets) pt=111 ssrc=0x00000006
+W (11681) M1:   uncovered : protected_unwritten=0 udp_unmatched=8 length_mismatch=0 wrote_after_protect_fail=0 retired_pending=0 overflow_pending=0
+W (11691) M1:   NOTE      : this interval carries no fixture audio; its successful writes are NOT clip write activity
+W (11701) M1: [short] step=play-clip media t=2000 ms
+W (11701) M1: [play] zh_1 "今天我们测试语音连接" at media t=2000 ms
+W (14461) M1: [vad] speech_started (#1)
+I (14461) M1: [data] type=conversation.item.created
+I (14461) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (14461) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (14471) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (14481) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (14481) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (14491) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (14491) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (14501) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (14511) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (14521) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (15271) M1: [vad] speech_stopped (#1)
+I (15271) M1: [data] type=input_audio_buffer.committed
+I (15431) M1: [data] type=conversation.item.input_audio_transcription.delta
+I (15441) M1: [data] type=conversation.item.input_audio_transcription.delta
+W (15461) M1: [asr] completed #1 item=item_ZFYAUeXKHL9sSslp4vQB9 transcript="今天我们测试语音连接。"
+W (15581) M1: [short] interval "zh_1 clip audio"  <-- fixture audio
+W (15581) M1:   SRTP      : calls=196 ok=196 fail=0 unparsable=0
+W (15581) M1:   UDP       : attempts=196 full_writes=196 short=0 failed=0
+W (15581) M1:   RTP       : seq 99->295 ts 95040->283200 (start = last packet before the interval, exclusive) pt=111 ssrc=0x00000006 ssrc_changes=0 pt_changes=0
+W (15601) M1:   uncovered : protected_unwritten=0 udp_unmatched=21 length_mismatch=0 wrote_after_protect_fail=0 retired_pending=0 overflow_pending=0
+W (15611) M1: [short] step=tail-silence media t=5920 ms
+I (15621) M1: [data] type=response.created
+I (15621) M1: [data] type=response.output_item.added
+I (15631) M1: [data] type=conversation.item.created
+I (15631) M1: [data] type=response.content_part.added
+I (15641) M1: [data] type=response.audio_transcript.delta
+I (15731) M1: [data] type=response.audio_transcript.delta
+I (15741) M1: [data] type=response.audio_transcript.delta
+I (15741) M1: [data] type=response.audio_transcript.delta
+W (16391) M1: [short] interval "zh_1 tail silence"  (no fixture audio)
+W (16391) M1:   SRTP      : calls=40 ok=40 fail=0 unparsable=0
+W (16391) M1:   UDP       : attempts=40 full_writes=40 short=0 failed=0
+W (16391) M1:   RTP       : seq 295->335 ts 283200->321600 (start = last packet before the interval, exclusive) pt=111 ssrc=0x00000006 ssrc_changes=0 pt_changes=0
+W (16411) M1:   uncovered : protected_unwritten=0 udp_unmatched=12 length_mismatch=0 wrote_after_protect_fail=0 retired_pending=0 overflow_pending=0
+W (16421) M1:   NOTE      : this interval carries no fixture audio; its successful writes are NOT clip write activity
+W (16431) M1: [short] step=asr-wait media t=6720 ms
+W (16431) M1: [clip] zh_1 media=2000..6720 ms wait=0 ms vad=1/1 completed=1 failed=0 kw=3/3 hit=[测试,语音,连接] transcript="今天我们测试语音连接。"
+W (16451) M1: [short] step=settle media t=6720 ms
+W (16451) M1: [short] outcome=media-completed clips_entered=1; the observation window is settled after this task is joined
+W (16461) M1: ---------- SHORT DIAG (U1-S) ----------
+W (16471) M1:   outcome           : media-completed
+W (16471) M1:   clips entered     : 1 of 3 available (short mode plays zh_1 only)
+W (16481) M1:   leading silence   : protect_ok=100 full_udp_writes=100
+W (16491) M1:   zh_1 clip interval: protect_ok=196 full_udp_writes=196
+W (16491) M1:   clip write activity: present - the clip interval reached the SRTP and UDP boundaries
+W (16501) M1:   what this does NOT show: that non-silent audio reached the server. The fixture starts with 500 ms of lead silence, so early clip-interval writes can precede any speech. Audio evidence is the VAD/turn events and the transcript above, plus the input/encode energy report.
+W (16531) M1:   resource loop     : NOT run (short mode is bounded and loop-free)
+W (16531) M1:   M1 coverage       : NOT covered by this mode; M1-1..M1-3 need the full three-clip run
+W (16541) M1: ---------------------------------------
+W (16551) M1: [stack] sender high-water mark: 9544 bytes free of 32768 allocated
+W (16561) M1: [heap:sender-exit] int free=103371 largest=63488 | int+8bit free=103371 largest=63488 | dma free=95583 largest=63488 | psram free=7913620 largest=7864320
+W (16571) M1: ---------- SETTLED SEND WINDOW (after join) ----------
+W (16581) M1:   gen=2 | srtp_protect calls=336 ok=336 fail=0 unparsable=0 | udp attempts=336 packets_written=336 write_incomplete=0 write_failed=0 unmatched=42 last_rc=0 last_errno=0 | retired=336 retired_pending=0 overflow_pending=0 protected_unwritten=0 length_mismatch=0 wrote_after_protect_fail=0 | first: pt=111 seq=0 ts=0 ssrc=0x00000006 rtp_len=15 hdr_len=12 srtp_cap=1428 srtp_len=25 | last: seq=335 ts=321600 | ssrc_changes=0 pt_changes=0
+W (16611) M1: ------------------------------------------------------
+W (16621) M1: ==================== SHORT DIAG VERDICT (U1-S) ====================
+W (16631) M1:   outcome         : media-completed
+W (16631) M1:   leading silence : protect_ok=100 full_udp_writes=100
+W (16641) M1:   zh_1 clip interval: protect_ok=196 full_udp_writes=196
+W (16641) M1:   clip write activity: present (SRTP + full UDP write in the clip interval)
+W (16651) M1:   not shown       : that non-silent audio reached the server; see the VAD/turn and transcript lines above
+W (16661) M1:   uncovered (clip): protected_unwritten=0 udp_unmatched=21 length_mismatch=0 wrote_after_protect_fail=0
+W (16671) M1:   resource loop   : NOT run
+W (16681) M1:   scope limit     : this is the bounded U1-S comparison only and does NOT replace M1-1..M1-3
+W (16691) M1: ===================================================================
+W (16691) M1: ==================== M1 SUMMARY ====================
+W (16701) M1:   frame duration     : 20 ms
+W (16701) M1:   sender stack high-water: 9544 bytes free of 32768 allocated
+W (16711) M1:   config echo        : turn_detection=server_vad thr=0.50 silence=800 transcription=qwen3-asr-flash-realtime
+W (16721) M1:   clips played       : 0
+W (16721) M1:   opus packets       : 336
+W (16731) M1:   total payload      : 26106 B
+W (16731) M1:   max payload        : 325 B (budget 1352 B)
+W (16741) M1:   media clock range  : 0 .. 6700 ms
+W (16741) M1:   media/wall elapsed : 6720 / 3864 ms  (media derived from 336 frames)
+W (16751) M1:   pacing late        : 3
+W (16751) M1:   oversize dropped   : 0
+W (16761) M1:   oom stops          : 0
+W (16761) M1:   send/encode/resample failures: 0 / 0 / 0
+W (16761) M1:   media sequence     : SHORT (2 s silence + zh_1); the resource loop was NOT run and is not reachable in this mode
+W (16781) M1:   ---- four-layer evidence ----
+W (16781) M1:   [cfg] created=1 updated=1 verified=1
+W (16781) M1:   [vad] started=1 stopped=1
+W (16791) M1:   [asr] completed=1 failed=0 server_errors=0
+W (16791) M1:   [clip] zh_1 kw=3/3 completed=1 failed=0 wait=0 ms transcript="今天我们测试语音连接。"
+W (16801) M1: ====================================================
+W (16811) M1: [lat] uniform 1-in-4 sampling; resample n=84 p50=342 p95=376 p99=497 us | encode n=84 p50=2760 p95=7352 p99=7723 us
+W (16821) M1: -------------- UPLINK DIAGNOSTICS --------------
+W (16831) M1:   resampler 48k RMS  : peak=0.1922 avg=0.0405 over 336 frames
+W (16831) M1:   local Opus decode  : peak=0.1904 avg=0.0404 over 336 ok, 0 failed
+W (16841) M1:   packet size        : min=3 max=325 B
+W (16841) M1:   interpretation     : resampler RMS ~0 means silence was produced; decode failures mean the payload is not valid Opus
+W (16861) M1: ------------------------------------------------
+W (16861) M1: ---------- SEND PATH OBSERVATION (full run) ----------
+W (16871) M1:   gen=2 | srtp_protect calls=336 ok=336 fail=0 unparsable=0 | udp attempts=336 packets_written=336 write_incomplete=0 write_failed=0 unmatched=44 last_rc=0 last_errno=0 | retired=336 retired_pending=0 overflow_pending=0 protected_unwritten=0 length_mismatch=0 wrote_after_protect_fail=0 | first: pt=111 seq=0 ts=0 ssrc=0x00000006 rtp_len=15 hdr_len=12 srtp_cap=1428 srtp_len=25 | last: seq=335 ts=321600 | ssrc_changes=0 pt_changes=0
+W (16911) M1:   336 packets fully written in 336 UDP attempts
+W (16911) M1: -------------------------------------------
+W (16921) M1: FINAL VERDICT not computed: the short comparison mode does not run the three-clip acceptance or the resource loop (see the U1-S verdict above)
+I (17141) WebRTC-TP: peer main loop exited
+I (17141) WebRTC-TP: both tasks confirmed exit; releasing transport resources
+I (17141) AGENT: agent disconnected done
+I (17141) SCTP: 1 state 6
+I (17141) WebRTC-TP: [state] DATA_CHANNEL_CLOSED (11)
+W (17151) M1: [state] link down (11); stopping media
+I (17151) WebRTC-TP: [state] DATA_CHANNEL_CLOSED (11)
+W (17161) M1: [state] link down (11); stopping media
+I (17161) WebRTC-TP: [state] DATA_CHANNEL_DISCONNECTED (12)
+W (17161) M1: [state] link down (12); stopping media
+W (17171) M1: M1 probe finished; idling

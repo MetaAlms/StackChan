@@ -1,0 +1,102 @@
+{
+  "libopus": "libopus 1.5.2",
+  "src_rate": 16000,
+  "dst_rate": 48000,
+  "channels": 1,
+  "frame_ms": 20,
+  "frame_samples": 960,
+  "frame_bytes": 1920,
+  "bitrate": 90000,
+  "resampler": "ffmpeg aresample=48000",
+  "clips": [
+    {
+      "id": "zh_1",
+      "text": "今天我们测试语音连接",
+      "keywords": [
+        "测试",
+        "语音",
+        "连接"
+      ],
+      "src_sha256": "31fc3eef092c2b9bb3ed9c18b7877f0cd3db8563dee9981dd4f07408c1bb8526",
+      "src_samples": 62206,
+      "pcm48_sha256": "ea8f7d86efc753b7d97615cb2381a52b58b00cea5a469fb2791454f4cd6ee89c",
+      "pcm48_samples": 187200,
+      "tail_pad_samples": 582,
+      "packets": 195,
+      "media_ms": 3900,
+      "framed_bytes": 26566,
+      "pkt_min": 3,
+      "pkt_max": 388,
+      "framed_sha256": "2f5194230b05580079fe41b3c841d901c2f5b82c1366d0e93a548ccaed4c179a",
+      "ctl": {
+        "bitrate": 0,
+        "vbr": 0,
+        "dtx": 0,
+        "complexity": 0,
+        "bitrate_readback": 90000
+      },
+      "decoded_samples_per_packet": 960
+    },
+    {
+      "id": "zh_2",
+      "text": "桌上有一本蓝色的书",
+      "keywords": [
+        "蓝色",
+        "书"
+      ],
+      "src_sha256": "b3e7fbe7841aa28236e884ac3dab4d3ead8977d31c0b43dc029c75d31d4b361f",
+      "src_samples": 58377,
+      "pcm48_sha256": "fc2e6fbdee4d17acb50c0eefe3411c443af9282dbec2a67951edec984f39ba37",
+      "pcm48_samples": 175680,
+      "tail_pad_samples": 549,
+      "packets": 183,
+      "media_ms": 3660,
+      "framed_bytes": 23250,
+      "pkt_min": 3,
+      "pkt_max": 382,
+      "framed_sha256": "886d0053325751a66a0bfc827bdb2284caf6eda33a80a5a2e96970292b3c4e23",
+      "ctl": {
+        "bitrate": 0,
+        "vbr": 0,
+        "dtx": 0,
+        "complexity": 0,
+        "bitrate_readback": 90000
+      },
+      "decoded_samples_per_packet": 960
+    },
+    {
+      "id": "zh_3",
+      "text": "请回答一加一等于几",
+      "keywords": [
+        "一加一",
+        "等于"
+      ],
+      "src_sha256": "49fbc9227af6665f07dcdb52d6388a945415208e1e17587d3136f08328f9840e",
+      "src_samples": 59419,
+      "pcm48_sha256": "28d246081706a5995f7100490b4f8145a78f9d05bb5b3337673d5cb946cb1c08",
+      "pcm48_samples": 178560,
+      "tail_pad_samples": 303,
+      "packets": 186,
+      "media_ms": 3720,
+      "framed_bytes": 25165,
+      "pkt_min": 3,
+      "pkt_max": 389,
+      "framed_sha256": "05c7e3ed02685aa4feb7c7a6a5c24ebee3f79d40e87b646c42bf954ec0d1ad7c",
+      "ctl": {
+        "bitrate": 0,
+        "vbr": 0,
+        "dtx": 0,
+        "complexity": 0,
+        "bitrate_readback": 90000
+      },
+      "decoded_samples_per_packet": 960
+    }
+  ],
+  "silence": {
+    "frames": 60,
+    "ms": 1200,
+    "mode": "dither",
+    "decoded_samples": 960,
+    "peak_abs": 49
+  }
+}

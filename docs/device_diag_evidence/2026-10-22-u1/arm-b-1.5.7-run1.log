@@ -1,0 +1,232 @@
+I (5190) wifi:new:<3,0>, old:<1,0>, ap:<255,255>, sta:<3,0>, prof:1, snd_ch_cfg:0x0
+I (5190) wifi:state: init -> auth (0xb0)
+I (5210) wifi:state: auth -> assoc (0x0)
+I (5210) wifi:state: assoc -> run (0x10)
+I (5310) wifi:[ADDBA]RX DELBA, reason:39, delete tid:0, initiator:1(originator)
+I (5310) wifi:[ADDBA]RX DELBA, reason:39, delete tid:0, initiator:0(recipient)
+I (5310) wifi:[ADDBA]RX DELBA, reason:39, delete tid:5, initiator:1(originator)
+I (5320) wifi:connected with <SSID>, aid = 3, channel 3, BW20, bssid = <BSSID>
+I (5330) wifi:security: WPA2-PSK, phy: bgn, rssi: -74, cipher(pairwise:0x3, group:0x1), pmf:0
+I (5340) wifi:pm start, type: 1
+
+I (5340) wifi:dp: 1, bi: 102400, li: 10, scale listen interval from 1024000 us to 1024000 us
+I (5350) wifi:set rx beacon pti, rx_bcn_pti: 14, bcn_timeout: 25000, mt_pti: 14, mt_time: 10000
+I (5430) wifi:AP's beacon interval = 102400 us, DTIM period = 1
+I (6640) esp_netif_handlers: sta ip: 192.168.1.x, mask: 255.255.255.0, gw: 192.168.1.1
+I (6640) WifiStation: Got IP: 192.168.1.x
+I (6640) WifiBoard: Connected to WiFi: <SSID>
+W (7050) M1: network is up
+W (7050) M1: M1 uplink probe: fixture -> 16->48k -> Opus 48k mono 20 ms -> RTP
+W (7050) M1: payload budget 1352 B (library whole-packet buffer 1428 B, minus header/extension)
+I (7050) M1: [fx] zh_1 "今天我们测试语音连接": 124412 B (62206 samples, 3887 ms) kw=测试
+I (7060) M1: [fx] zh_2 "桌上有一本蓝色的书": 116754 B (58377 samples, 3648 ms) kw=蓝色
+I (7070) M1: [fx] zh_3 "请回答一加一等于几": 118838 B (59419 samples, 3713 ms) kw=一加一
+I (7080) M1: [enc] 48000 Hz 1 ch 20 ms | in_frame=1920 B (960 samples) out_cap=325 B bitrate=90000
+W (7090) M1: [heap:before-buffers] int free=160187 largest=63488 | int+8bit free=160187 largest=63488 | dma free=152399 largest=63488 | psram free=8028792 largest=7995392
+W (7100) M1: [heap:after-buffers] int free=159783 largest=63488 | int+8bit free=159783 largest=63488 | dma free=151995 largest=63488 | psram free=8022896 largest=7995392
+I (7340) wifi:<ba-add>idx:0 (ifx:0, <BSSID>), tid:0, ssn:5, winSize:64
+I (7370) WebRTC-TP: pre-generate DTLS cert -> 0
+I (7370) DTLS: Init SRTP OK
+I (7370) DTLS: DTLS cipher pref: auto (mbedtls default order)
+I (7370) WebRTC-TP: esp_peer_open -> 0
+I (7370) WebRTC-TP: peer main loop started
+I (7680) WebRTC-TP: [state] NEW_CONNECTION (2)
+I (7680) WebRTC-TP: esp_peer_new_connection -> 0
+I (7700) WebRTC-TP: [state] CANDIDATE_GATHERING (3)
+I (7700) AGENT: Start agent as Controlling
+I (7710) AGENT: Send STUN binding request
+I (7730) AGENT: 0 Get candidate success user: psw:
+I (7730) WebRTC-TP: [msg] local SDP, 1113 bytes, candidates=YES
+I (7730) WebRTC-TP: POST realtime WebRTC SDP endpoint
+I (7730) WebRTC-TP: offer is 1113 bytes
+W (7730) WebRTC-TP: ----- OFFER media lines -----
+W (7740) WebRTC-TP:   m=audio 9 UDP/TLS/RTP/SAVPF 111
+
+W (7740) WebRTC-TP:   a=mid:0
+
+W (7750) WebRTC-TP:   a=rtcp-mux
+
+W (7750) WebRTC-TP:   a=rtpmap:111 opus/48000/2
+
+W (7750) WebRTC-TP:   a=ssrc:6 cname:EspSSpbA0
+
+W (7760) WebRTC-TP:   a=ssrc:6 msid:esp_stream a0
+
+W (7760) WebRTC-TP:   a=sendrecv
+
+W (7770) WebRTC-TP:   m=application 50712 UDP/DTLS/SCTP webrtc-datachannel
+
+W (7770) WebRTC-TP:   a=mid:1
+
+W (7770) WebRTC-TP: --------------------------
+I (7970) esp-x509-crt-bundle: Certificate validated
+I (8250) WebRTC-TP: SDP exchange: err=ESP_OK http=200
+I (8250) WebRTC-TP: response body is 1254 bytes
+W (8250) WebRTC-TP: ----- ANSWER media lines -----
+W (8260) WebRTC-TP:   m=audio 3478 UDP/TLS/RTP/SAVPF 111
+
+W (8260) WebRTC-TP:   a=mid:0
+
+W (8260) WebRTC-TP:   a=rtcp-mux
+
+W (8270) WebRTC-TP:   a=sendrecv
+
+W (8270) WebRTC-TP:   a=rtpmap:111 opus/48000/2
+
+W (8270) WebRTC-TP:   a=fmtp:111 minptime=20
+
+W (8280) WebRTC-TP:   a=ssrc:1000 msid:alibaba-bailian audio-1
+
+W (8280) WebRTC-TP:   m=application 3478 UDP/DTLS/SCTP webrtc-datachannel
+
+W (8290) WebRTC-TP:   a=mid:1
+
+W (8290) WebRTC-TP: --------------------------
+I (8300) PEER_DEF: Get peer role 1
+I (8300) PEER_DEF: Get peer role 1
+I (8300) PEER_DEF: Get peer role 1
+I (8310) PEER_DEF: Extract SDP: stream_count=2, audio_mid=255 (dir=3), video_mid=255 (dir=3), data_mid=255, assrc=1000, vssrc=0, vrtx_ssrc=0, vfmt=0, vrtx_fmt=0
+I (8380) AGENT: 0 Add remote type:1 39.97.230.241:3478
+I (8380) WebRTC-TP: [state] PAIRING (4)
+I (8380) WebRTC-TP: fed answer to peer -> 0
+I (8400) AGENT: 0 0 Send binding request (cand:0) local0:192.168.1.x:54413 remote0:39.97.230.241:3478 id:5851f42d40b18ccf4bb5f646
+I (8430) AGENT: Add local prflx 172.22.213.35:58090
+I (8430) AGENT: 0 1 LocalBinding resp 5851f42d40b18ccf4bb5f646 local1
+I (8430) AGENT: 0 Select pair39.97.230.241:3478
+I (8430) AGENT: 0 1 Send binding request (cand:1) local0:172.22.213.35:58090 remote0:39.97.230.241:3478 id:4703312930705b0420fd5db4
+I (8430) wifi:<ba-add>idx:1 (ifx:0, <BSSID>), tid:5, ssn:3, winSize:64
+I (8450) AGENT: 0 1 LocalBinding resp 5851f42d40b18ccf4bb5f646 local1
+I (8460) AGENT: 0 Candidate responded
+I (8460) AGENT: 0 Connection OK 39.97.230.241:3478
+I (8460) WebRTC-TP: [state] PAIRED (5)
+I (8470) PEER_DEF: Start DTLS role as 0
+I (8470) DTLS: DTLS cipher pref: auto (mbedtls default order)
+I (8480) WebRTC-TP: [state] CONNECTING (6)
+I (8960) DTLS: SRTP connected OK
+I (9100) DTLS: Client handshake success
+I (9100) DTLS: Negotiated DTLS ciphersuite: TLS-ECDHE-ECDSA-WITH-AES-256-GCM-SHA384
+I (9100) PEER_DEF: DTLS handshake success
+I (9100) PEER_DEF: Sctp role as 1
+I (9110) WebRTC-TP: [state] CONNECTED (7)
+I (9130) SCTP: 1 Receive chunk 1 SCTP_INIT
+W (9130) SCTP: Client need send init, skip init request
+I (9130) SCTP: 1 state 1
+I (9130) SCTP: Send INIT chunk
+I (9250) SCTP: 1 Receive chunk 2 SCTP_INIT_ACK
+I (9250) SCTP: 1 state 2
+I (9250) SCTP: Send ECHO chunk
+I (9250) SCTP: 1 state 3
+I (9250) SCTP: Send ECHO chunk
+I (9270) SCTP: 1 Receive chunk 11 SCTP_COOKIE_ACK
+I (9270) SCTP: 1 state 5
+I (9270) WebRTC-TP: [state] DATA_CHANNEL_CONNECTED (9)
+I (9270) SCTP: Send DCEP oai-events event:3 type:0 si:2
+I (9270) WebRTC-TP: create data channel 'oai-events' -> 0
+I (9280) SCTP: Get DCEP txt event:3 type:1 si:1 param:10
+I (9280) WebRTC-TP: [channel open] label='txt' stream_id=1
+I (9290) WebRTC-TP: [state] DATA_CHANNEL_OPENED (10)
+I (9300) SCTP: 1 Receive chunk 11 SCTP_COOKIE_ACK
+W (9300) M1: [cfg] session.created on stream 1
+I (9300) M1: [cfg] session.update sent on stream 1
+W (9430) M1: [cfg] session.updated verified: turn_detection=server_vad thr=0.50 silence=800 transcription=qwen3-asr-flash-realtime
+W (9510) M1: [cfg] gate passed: turn_detection=server_vad thr=0.50 silence=800 transcription=qwen3-asr-flash-realtime
+W (9510) DTLS-PROBE: [connected] gen=1 | setups=2 (datagram=1 stream=1 unknown=0 overflow=0) | identity last=datagram unknown_ctx=0 stale=0 unknown_transport=0 ctx_bound=3 ctx_overflow=0 | hs calls=2 dtls=1 ok=1 fail=0 stream_excluded=1 last_ret=0 last=604ms total=604ms over=1 role=0 | profile reads=1 skipped=0 -> TLS-ECDHE-ECDSA-WITH-AES-256-GCM-SHA384 profile=2 | DTLS TX records=25 in_dgrams=25 unparsable=3 truncated=0 short_write=0 failed=0 epoch_changes=5 first_type=22 last_type=23 epoch=1 seq=0:11 len=52 | DTLS RX records=36 unparsable=8 truncated=0 epoch_changes=5 first_type=22 last_type=23 epoch=1 seq=0:10 len=552 | socket assoc=unknown (dtls_fd=-1 rtp_fd=-1) | sendto=16 recvfrom=33 | calls conf_transport=3 config_defaults=3 setup=3 config_free=1 ssl_free=2 transport_updates=0 errno(entry=0 real=0) | poll n=0 last=0us max=0us
+W (9580) M1: [short] U1 comparison mode: 2000 ms silence -> zh_1 -> 800 ms tail, ASR wait bounded at 20000 ms, frame 20 ms
+W (9590) M1: [short] step=leading-silence media t=0 ms
+W (9590) M1: [heap:first-frame-before] int free=109371 largest=63488 | int+8bit free=109371 largest=63488 | dma free=101583 largest=63488 | psram free=7945700 largest=7864320
+W (9610) ESP_OPUS_DEC: Frame duration is not set, out pcm buffer size is counted as the length of 60ms.
+W (9620) M1: [heap:first-frame-after] int free=108731 largest=63488 | int+8bit free=108731 largest=63488 | dma free=100903 largest=63488 | psram free=7915352 largest=7864320
+W (11580) M1: [short] interval "leading-silence"  (no fixture audio)
+W (11580) M1:   SRTP      : calls=100 ok=100 fail=0 unparsable=0
+W (11580) M1:   UDP       : attempts=100 full_writes=100 short=0 failed=0
+W (11590) M1:   RTP       : seq ->99 ts ->95040 (no packet before this interval: it contains the window's first packets) pt=111 ssrc=0x00000006
+W (11600) M1:   uncovered : protected_unwritten=0 udp_unmatched=8 length_mismatch=0 wrote_after_protect_fail=0 retired_pending=0 overflow_pending=0
+W (11610) M1:   NOTE      : this interval carries no fixture audio; its successful writes are NOT clip write activity
+W (11620) M1: [short] step=play-clip media t=2000 ms
+W (11630) M1: [play] zh_1 "今天我们测试语音连接" at media t=2000 ms
+W (15500) M1: [short] interval "zh_1 clip audio"  <-- fixture audio
+W (15500) M1:   SRTP      : calls=196 ok=196 fail=0 unparsable=0
+W (15500) M1:   UDP       : attempts=196 full_writes=196 short=0 failed=0
+W (15510) M1:   RTP       : seq 99->295 ts 95040->283200 (start = last packet before the interval, exclusive) pt=111 ssrc=0x00000006 ssrc_changes=0 pt_changes=0
+W (15520) M1:   uncovered : protected_unwritten=0 udp_unmatched=13 length_mismatch=0 wrote_after_protect_fail=0 retired_pending=0 overflow_pending=0
+W (15530) M1: [short] step=tail-silence media t=5920 ms
+W (16300) M1: [short] interval "zh_1 tail silence"  (no fixture audio)
+W (16300) M1:   SRTP      : calls=40 ok=40 fail=0 unparsable=0
+W (16300) M1:   UDP       : attempts=40 full_writes=40 short=0 failed=0
+W (16310) M1:   RTP       : seq 295->335 ts 283200->321600 (start = last packet before the interval, exclusive) pt=111 ssrc=0x00000006 ssrc_changes=0 pt_changes=0
+W (16320) M1:   uncovered : protected_unwritten=0 udp_unmatched=0 length_mismatch=0 wrote_after_protect_fail=0 retired_pending=0 overflow_pending=0
+W (16330) M1:   NOTE      : this interval carries no fixture audio; its successful writes are NOT clip write activity
+W (16340) M1: [short] step=asr-wait media t=6720 ms
+W (36360) M1: [asr] no result for zh_1 within 20000 ms; ending the short mode at this stage
+W (36360) M1: [clip] zh_1 media=2000..26780 ms wait=20009 ms vad=0/0 completed=0 failed=0 kw=0/3 hit=[] transcript=""
+W (36370) M1: [short] step=settle media t=26780 ms
+W (36370) M1: [short] outcome=asr-timeout clips_entered=1; the observation window is settled after this task is joined
+W (36380) M1: ---------- SHORT DIAG (U1-S) ----------
+W (36390) M1:   outcome           : asr-timeout
+W (36390) M1:   clips entered     : 1 of 3 available (short mode plays zh_1 only)
+W (36400) M1:   leading silence   : protect_ok=100 full_udp_writes=100
+W (36400) M1:   zh_1 clip interval: protect_ok=196 full_udp_writes=196
+W (36410) M1:   clip write activity: present - the clip interval reached the SRTP and UDP boundaries
+W (36420) M1:   what this does NOT show: that non-silent audio reached the server. The fixture starts with 500 ms of lead silence, so early clip-interval writes can precede any speech. Audio evidence is the VAD/turn events and the transcript above, plus the input/encode energy report.
+W (36440) M1:   resource loop     : NOT run (short mode is bounded and loop-free)
+W (36450) M1:   M1 coverage       : NOT covered by this mode; M1-1..M1-3 need the full three-clip run
+W (36460) M1: ---------------------------------------
+W (36470) M1: [stack] sender high-water mark: 9788 bytes free of 32768 allocated
+W (36470) M1: [heap:sender-exit] int free=108819 largest=63488 | int+8bit free=108819 largest=63488 | dma free=101031 largest=63488 | psram free=7915352 largest=7864320
+W (36490) M1: ---------- SETTLED SEND WINDOW (after join) ----------
+W (36490) M1:   gen=2 | srtp_protect calls=1339 ok=1339 fail=0 unparsable=0 | udp attempts=1339 packets_written=1339 write_incomplete=0 write_failed=0 unmatched=26 last_rc=0 last_errno=0 | retired=1339 retired_pending=0 overflow_pending=0 protected_unwritten=0 length_mismatch=0 wrote_after_protect_fail=0 | first: pt=111 seq=0 ts=0 ssrc=0x00000006 rtp_len=15 hdr_len=12 srtp_cap=1428 srtp_len=25 | last: seq=1338 ts=1284480 | ssrc_changes=0 pt_changes=0
+W (36530) M1: ------------------------------------------------------
+W (36540) M1: ==================== SHORT DIAG VERDICT (U1-S) ====================
+W (36550) M1:   outcome         : asr-timeout
+W (36550) M1:   leading silence : protect_ok=100 full_udp_writes=100
+W (36560) M1:   zh_1 clip interval: protect_ok=196 full_udp_writes=196
+W (36560) M1:   clip write activity: present (SRTP + full UDP write in the clip interval)
+W (36570) M1:   not shown       : that non-silent audio reached the server; see the VAD/turn and transcript lines above
+W (36580) M1:   uncovered (clip): protected_unwritten=0 udp_unmatched=13 length_mismatch=0 wrote_after_protect_fail=0
+W (36590) M1:   resource loop   : NOT run
+W (36590) M1:   scope limit     : this is the bounded U1-S comparison only and does NOT replace M1-1..M1-3
+W (36600) M1: ===================================================================
+W (36610) M1: ==================== M1 SUMMARY ====================
+W (36620) M1:   frame duration     : 20 ms
+W (36620) M1:   sender stack high-water: 9788 bytes free of 32768 allocated
+W (36630) M1:   config echo        : turn_detection=server_vad thr=0.50 silence=800 transcription=qwen3-asr-flash-realtime
+W (36640) M1:   clips played       : 0
+W (36640) M1:   opus packets       : 1339
+W (36650) M1:   total payload      : 29115 B
+W (36650) M1:   max payload        : 325 B (budget 1352 B)
+W (36650) M1:   media clock range  : 0 .. 26760 ms
+W (36660) M1:   media/wall elapsed : 26780 / 3865 ms  (media derived from 1339 frames)
+W (36670) M1:   pacing late        : 8
+W (36670) M1:   oversize dropped   : 0
+W (36670) M1:   oom stops          : 0
+W (36680) M1:   send/encode/resample failures: 0 / 0 / 0
+W (36680) M1:   media sequence     : SHORT (2 s silence + zh_1); the resource loop was NOT run and is not reachable in this mode
+W (36690) M1:   ---- four-layer evidence ----
+W (36700) M1:   [cfg] created=1 updated=1 verified=1
+W (36700) M1:   [vad] started=0 stopped=0
+W (36710) M1:   [asr] completed=0 failed=0 server_errors=0
+W (36710) M1:   [clip] zh_1 kw=0/3 completed=0 failed=0 wait=20009 ms transcript=""
+W (36720) M1: ====================================================
+W (36730) M1: [lat] uniform 1-in-4 sampling; resample n=335 p50=321 p95=348 p99=465 us | encode n=335 p50=2709 p95=6718 p99=6963 us
+W (36740) M1: -------------- UPLINK DIAGNOSTICS --------------
+W (36740) M1:   resampler 48k RMS  : peak=0.1922 avg=0.0102 over 1339 frames
+W (36750) M1:   local Opus decode  : peak=0.1904 avg=0.0101 over 1339 ok, 0 failed
+W (36760) M1:   packet size        : min=3 max=325 B
+W (36760) M1:   interpretation     : resampler RMS ~0 means silence was produced; decode failures mean the payload is not valid Opus
+W (36770) M1: ------------------------------------------------
+W (36780) M1: ---------- SEND PATH OBSERVATION (full run) ----------
+W (36780) M1:   gen=2 | srtp_protect calls=1339 ok=1339 fail=0 unparsable=0 | udp attempts=1339 packets_written=1339 write_incomplete=0 write_failed=0 unmatched=26 last_rc=0 last_errno=0 | retired=1339 retired_pending=0 overflow_pending=0 protected_unwritten=0 length_mismatch=0 wrote_after_protect_fail=0 | first: pt=111 seq=0 ts=0 ssrc=0x00000006 rtp_len=15 hdr_len=12 srtp_cap=1428 srtp_len=25 | last: seq=1338 ts=1284480 | ssrc_changes=0 pt_changes=0
+W (36820) M1:   1339 packets fully written in 1339 UDP attempts
+W (36830) M1: -------------------------------------------
+W (36830) M1: FINAL VERDICT not computed: the short comparison mode does not run the three-clip acceptance or the resource loop (see the U1-S verdict above)
+I (37110) WebRTC-TP: peer main loop exited
+I (37110) WebRTC-TP: both tasks confirmed exit; releasing transport resources
+I (37110) AGENT: agent disconnected done
+I (37110) SCTP: 1 state 6
+I (37110) WebRTC-TP: [state] DATA_CHANNEL_CLOSED (11)
+W (37120) M1: [state] link down (11); stopping media
+I (37120) WebRTC-TP: [state] DATA_CHANNEL_CLOSED (11)
+W (37130) M1: [state] link down (11); stopping media
+I (37130) WebRTC-TP: [state] DATA_CHANNEL_DISCONNECTED (12)
+W (37140) M1: [state] link down (12); stopping media
+W (37140) M1: M1 probe finished; idling

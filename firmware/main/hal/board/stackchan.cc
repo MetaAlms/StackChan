@@ -94,17 +94,31 @@ public:
     // Power Init
     Pmic(i2c_master_bus_handle_t i2c_bus, uint8_t addr) : Axp2101(i2c_bus, addr)
     {
-        uint8_t data = ReadReg(0x90);
-        data |= 0b10110100;
-        WriteReg(0x90, data);
-        // WriteReg(0x99, (0b11110 - 5));
+        // Official M5Unified CoreS3/StackChan power init. ALDO1 feeds the
+        // AW88298 I/O rail and ALDO2 feeds ES7210; omitting them leaves the
+        // codec I2C marginal (the amp intermittently NACKs at 0x36).
+        WriteReg(0x90, 0xBF);        // LDOS ON/OFF
+        WriteReg(0x92, 18 - 5);      // ALDO1 = 1.8 V, AW88298
+        WriteReg(0x93, 33 - 5);      // ALDO2 = 3.3 V, ES7210
+        WriteReg(0x94, 33 - 5);      // ALDO3 = 3.3 V, camera
+        WriteReg(0x95, 33 - 5);      // ALDO4 = 3.3 V, TF
+        WriteReg(0x10, 0x30);        // PMU common config
+        WriteReg(0x27, 0x00);        // power key timing
+        WriteReg(0x69, 0x11);        // CHGLED
+        WriteReg(0x30, 0x0F);        // ADC enabled
         WriteReg(0x97, (0b11110 - 2));
-        WriteReg(0x69, 0b00110101);
-        WriteReg(0x30, 0b111111);
-        WriteReg(0x90, 0xBF);
-        WriteReg(0x94, 33 - 5);
-        WriteReg(0x95, 33 - 5);
-        WriteReg(0x27, 0x00);
+
+        // Read back the rails that power the two audio codecs. If these do not
+        // match the official values, debug PMIC/bus before touching audio.
+        uint8_t aldo1 = 0, aldo2 = 0, ldo_ctrl = 0;
+        if (TryReadRegs(0x92, &aldo1, 1) == ESP_OK &&
+            TryReadRegs(0x93, &aldo2, 1) == ESP_OK &&
+            TryReadRegs(0x90, &ldo_ctrl, 1) == ESP_OK) {
+            ESP_LOGI(TAG, "PMIC rails: ALDO1=0x%02X ALDO2=0x%02X LDO=0x%02X expect_ALDO1=0x0D expect_ALDO2=0x1C",
+                     aldo1, aldo2, ldo_ctrl);
+        } else {
+            ESP_LOGW(TAG, "PMIC rail readback failed");
+        }
 
         auto ret = setChargerConstantCurr(XPOWERS_AXP2101_CHG_CUR_700MA);
         if (!ret) {
@@ -159,15 +173,35 @@ public:
         return true;
     }
 
-    bool IsExternalPowerConnected()
+    struct PowerStatus {
+        bool valid;
+        bool external;
+        bool discharging;
+        bool charging;
+    };
+
+    PowerStatus ReadPowerStatus()
     {
-        const uint8_t power_status      = ReadReg(0x01);
+        uint8_t power_status = 0;
+        if (TryReadRegs(0x01, &power_status, 1) != ESP_OK) {
+            return {false, false, false, false};
+        }
         const uint8_t current_direction = (power_status & 0b01100000) >> 5;
         const bool is_charging_done     = (power_status & 0b00000111) == 0b00000100;
-
         // Treat any non-discharging state as externally powered so a plugged-in cable
         // still counts even after the battery is full.
-        return current_direction != 2 || is_charging_done;
+        return {true, current_direction != 2 || is_charging_done,
+                current_direction == 2, current_direction == 1};
+    }
+
+    bool TryBatteryLevel(int& level)
+    {
+        uint8_t value = 0;
+        if (TryReadRegs(0xA4, &value, 1) != ESP_OK) {
+            return false;
+        }
+        level = value;
+        return true;
     }
 };
 
@@ -353,7 +387,8 @@ private:
         }
         last_power_state_check_ms_ = now_ms;
 
-        UpdatePowerSaveEnabled(pmic_->IsExternalPowerConnected(), pmic_->IsDischarging());
+        const auto ps = pmic_->ReadPowerStatus();
+        UpdatePowerSaveEnabled(ps.valid && ps.external, ps.valid && ps.discharging);
     }
 
     void InitializePowerSaveTimer()
@@ -380,7 +415,8 @@ private:
             GetBacklight()->RestoreBrightness();
         });
         power_save_timer_->OnShutdownRequest([this]() { pmic_->PowerOff(); });
-        UpdatePowerSaveEnabled(pmic_->IsExternalPowerConnected(), pmic_->IsDischarging());
+        const auto ps = pmic_->ReadPowerStatus();
+        UpdatePowerSaveEnabled(ps.valid && ps.external, ps.valid && ps.discharging);
     }
 
     void InitializeI2c()
@@ -593,6 +629,8 @@ public:
         InitializeAxp2101();
         InitializePowerSaveTimer();
         InitializeAw9523();
+        // AW9523 P0.2 is the AW88298 speaker enable (active high), not a
+        // reset. Keep it enabled; the codec driver configures the amp.
         I2cDetect();
         InitializeFt6336();
         InitializeSpi();
@@ -624,15 +662,19 @@ public:
     virtual bool GetBatteryLevel(int& level, bool& charging, bool& discharging) override
     {
         static bool last_discharging = false;
-        charging                     = pmic_->IsCharging();
-        discharging                  = pmic_->IsDischarging();
+        const auto ps = pmic_->ReadPowerStatus();
+        if (!ps.valid) {
+            ESP_LOGW(TAG, "PMIC power status read failed; keeping previous state");
+            return false;
+        }
+        charging    = ps.charging;
+        discharging = ps.discharging;
         if (discharging != last_discharging) {
             power_save_timer_->SetEnabled(discharging);
             last_discharging = discharging;
         }
 
-        level = pmic_->GetBatteryLevel();
-        return true;
+        return pmic_->TryBatteryLevel(level);
     }
 
     virtual void SetPowerSaveLevel(PowerSaveLevel level) override
@@ -738,7 +780,7 @@ void hal_bridge::board_set_speaker_volume(uint8_t volume, bool permanent)
 
 uint8_t hal_bridge::board_get_speaker_volume()
 {
-    int volume = 70;
+    int volume = 85;
     Settings settings("audio", false);
     volume = settings.GetInt("output_volume", volume);
     if (volume <= 0) {

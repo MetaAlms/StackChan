@@ -1,0 +1,166 @@
+W (65993) WebRTC-Run: STATUS run=aec05 state=Idle restart_requires_reboot=0
+I (68313) AudioCodec: Set input enable to false
+I (68363) WebRTC-TP: pre-generate DTLS cert -> 0
+I (68363) DTLS: DTLS cipher pref: auto (mbedtls default order)
+W (68363) WebRTC-SRTP: SRTP offer narrowed to SHA1_80 (component offered 4 profile(s); only the 80-bit policy is implemented)
+I (68373) WebRTC-TP: esp_peer_open -> 0
+I (68373) WebRTC-TP: peer main loop started
+W (68373) WebRTC-Run: PREPARING run=aec06; wait for RUNNING before speech
+I (68673) WebRTC-TP: [state] NEW_CONNECTION (2)
+I (68673) WebRTC-TP: esp_peer_new_connection -> 0
+W (68673) WebRTC-Run: PROGRESS run=aec06 state=Preparing reason=none stage=0 session_tag=00000000 elapsed_ms=-1 config=0 transport_joined=0
+I (68673) WebRTC-TP: [state] CANDIDATE_GATHERING (3)
+W (68683) WebRTC-Run: MEDIA run=aec06 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+I (68683) AGENT: Start agent as Controlling
+W (68693) WebRTC-Run: TIMELINE run=aec06 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=0 max_queue_age_us=0
+I (68703) AGENT: Send STUN binding request
+W (68713) WebRTC-Run: PLAYBACK run=aec06 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+W (68733) WebRTC-Run: HARDWARE run=aec06 read_ok=0 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=24275 stack=9452
+I (68753) AGENT: 0 Get candidate success user: psw:
+I (68763) WebRTC-TP: [msg] local SDP, 1113 bytes, candidates=YES
+I (68763) WebRTC-TP: POST realtime WebRTC SDP endpoint
+I (68763) WebRTC-TP: offer is 1113 bytes
+W (68773) WebRTC-TP: ----- OFFER media lines -----
+W (68773) WebRTC-TP:   m=audio 9 UDP/TLS/RTP/SAVPF 111
+
+W (68783) WebRTC-TP:   a=mid:0
+
+W (68783) WebRTC-TP:   a=rtcp-mux
+
+W (68783) WebRTC-TP:   a=rtpmap:111 opus/48000/2
+
+W (68793) WebRTC-TP:   a=ssrc:6 cname:EspSSpbA0
+
+W (68793) WebRTC-TP:   a=ssrc:6 msid:esp_stream a0
+
+W (68803) WebRTC-TP:   a=sendrecv
+
+W (68803) WebRTC-TP:   m=application 50712 UDP/DTLS/SCTP webrtc-datachannel
+
+W (68813) WebRTC-TP:   a=mid:1
+
+W (68813) WebRTC-TP: --------------------------
+I (69683) esp-x509-crt-bundle: Certificate validated
+I (69963) WebRTC-TP: SDP exchange: err=ESP_OK http=200
+I (69963) WebRTC-TP: response body is 1254 bytes
+W (69963) WebRTC-TP: ----- ANSWER media lines -----
+W (69963) WebRTC-TP:   m=audio 3478 UDP/TLS/RTP/SAVPF 111
+
+W (69973) WebRTC-TP:   a=mid:0
+
+W (69973) WebRTC-TP:   a=rtcp-mux
+
+W (69973) WebRTC-TP:   a=sendrecv
+
+W (69973) WebRTC-TP:   a=rtpmap:111 opus/48000/2
+
+W (69983) WebRTC-TP:   a=fmtp:111 minptime=20
+
+W (69983) WebRTC-TP:   a=ssrc:1000 msid:alibaba-bailian audio-1
+
+W (69993) WebRTC-TP:   m=application 3478 UDP/DTLS/SCTP webrtc-datachannel
+
+W (70003) WebRTC-TP:   a=mid:1
+
+W (70003) WebRTC-TP: --------------------------
+I (70013) PEER_DEF: Get peer role 1
+I (70013) PEER_DEF: Get peer role 1
+I (70013) PEER_DEF: Get peer role 1
+I (70013) PEER_DEF: Extract SDP: stream_count=2, audio_mid=255 (dir=3), video_mid=255 (dir=3), data_mid=255, assrc=1000, vssrc=0, vrtx_ssrc=0, vfmt=0, vrtx_fmt=0
+I (70063) AGENT: 0 Add remote type:1 39.97.230.241:3478
+I (70063) WebRTC-TP: [state] PAIRING (4)
+I (70063) WebRTC-TP: fed answer to peer -> 0
+I (70083) AGENT: 0 0 Send binding request (cand:0) local0:192.168.1.x:55446 remote0:39.97.230.241:3478 id:5851f42d40b18ccf4bb5f646
+I (70133) AGENT: Add local prflx 172.22.213.33:51233
+I (70133) AGENT: 0 1 LocalBinding resp 5851f42d40b18ccf4bb5f646 local1
+I (70133) AGENT: 0 Select pair39.97.230.241:3478
+I (70133) AGENT: 0 1 Send binding request (cand:1) local0:172.22.213.33:51233 remote0:39.97.230.241:3478 id:4703312930705b0420fd5db4
+I (70153) AGENT: 0 1 LocalBinding resp 5851f42d40b18ccf4bb5f646 local1
+I (70153) AGENT: 0 Candidate responded
+I (70153) AGENT: 0 Connection OK 39.97.230.241:3478
+I (70163) WebRTC-TP: [state] PAIRED (5)
+I (70163) PEER_DEF: Start DTLS role as 0
+I (70173) DTLS: DTLS cipher pref: auto (mbedtls default order)
+W (70173) WebRTC-SRTP: SRTP offer narrowed to SHA1_80 (component offered 4 profile(s); only the 80-bit policy is implemented)
+I (70183) WebRTC-TP: [state] CONNECTING (6)
+E (71093) DTLS: CLient handshake fail ret -0x6900
+I (71753) DTLS: SRTP connected OK
+I (71893) DTLS: Client handshake success
+I (71893) DTLS: Negotiated DTLS ciphersuite: TLS-ECDHE-ECDSA-WITH-AES-256-GCM-SHA384
+I (71893) PEER_DEF: DTLS handshake success
+I (71893) PEER_DEF: Sctp role as 1
+I (71903) WebRTC-TP: [state] CONNECTED (7)
+I (71923) SCTP: 1 Receive chunk 1 SCTP_INIT
+W (71923) SCTP: Client need send init, skip init request
+I (71923) SCTP: 1 state 1
+I (71923) SCTP: Send INIT chunk
+I (72033) SCTP: 1 Receive chunk 2 SCTP_INIT_ACK
+I (72033) SCTP: 1 state 2
+I (72033) SCTP: Send ECHO chunk
+I (72033) SCTP: 1 state 3
+I (72033) SCTP: Send ECHO chunk
+I (72063) SCTP: 1 Receive chunk 11 SCTP_COOKIE_ACK
+I (72063) SCTP: 1 state 5
+I (72063) WebRTC-TP: [state] DATA_CHANNEL_CONNECTED (9)
+I (72063) SCTP: Send DCEP oai-events event:3 type:0 si:2
+I (72063) WebRTC-TP: create data channel 'oai-events' -> 0
+I (72073) SCTP: Get DCEP txt event:3 type:1 si:1 param:10
+I (72073) WebRTC-TP: [channel open] label='txt' stream_id=1
+I (72083) WebRTC-TP: [state] DATA_CHANNEL_OPENED (10)
+I (72093) SCTP: 1 Receive chunk 11 SCTP_COOKIE_ACK
+E (72293) i2s_common: i2s_channel_disable(1262): the channel has not been enabled yet
+I (72293) I2S_IF: Paired data: 0x3fcf1220, current mode: record, paired in_enable: 0, paired out_enable: 0
+I (72293) I2S_IF: TDM: RX, data_bit: 16, slot_bit: 16, ws_width: 16, total_slot: 2, slot_mask: 0x3
+I (72303) I2S_IF: TDM: RX, sample_rate_hz: 24000, mclk_multiple: 256, clk_src: 6
+I (72313) I2S_IF: STD: TX, data_bit: 16, slot_bit: 16, ws_width: 16, slot_mode: STEREO, slot_mask: 0x3
+I (72323) I2S_IF: STD: TX, sample_rate_hz: 24000, mclk_multiple: 256, clk_src: 6
+I (72323) ES7210: Bits 16
+I (72333) ES7210: Enable ES7210_INPUT_MIC1
+I (72343) ES7210: Enable ES7210_INPUT_MIC2
+I (72343) ES7210: Enable ES7210_INPUT_MIC3
+I (72343) ES7210: Enable TDM mode
+I (72353) ES7210: Unmuted
+I (72353) Adev_Codec: Open codec device OK
+I (72353) AudioCodec: Set input enable to true
+W (72543) WebRTC-Run: RUNNING run=aec06 mode=duplex session_tag=fafc57c3 t0_us=71763585 duration_s=90 real_mic=1 speaker=1 first_warm_afe_us=71750143
+W (73763) WebRTC-Run: LIVE run=aec06 sent=16 decoded=0 mic_full=38 failures=0
+W (78803) WebRTC-Run: LIVE run=aec06 sent=79 decoded=0 mic_full=227 failures=0
+W (83843) WebRTC-Run: LIVE run=aec06 sent=142 decoded=0 mic_full=416 failures=0
+W (88883) WebRTC-Run: LIVE run=aec06 sent=206 decoded=0 mic_full=604 failures=0
+W (93923) WebRTC-Run: LIVE run=aec06 sent=269 decoded=0 mic_full=793 failures=0
+W (98963) WebRTC-Run: LIVE run=aec06 sent=332 decoded=0 mic_full=982 failures=0
+W (104003) WebRTC-Run: LIVE run=aec06 sent=396 decoded=0 mic_full=1170 failures=0
+W (109043) WebRTC-Run: LIVE run=aec06 sent=459 decoded=0 mic_full=1359 failures=0
+W (114083) WebRTC-Run: LIVE run=aec06 sent=522 decoded=0 mic_full=1548 failures=0
+W (119123) WebRTC-Run: LIVE run=aec06 sent=585 decoded=0 mic_full=1737 failures=0
+W (124163) WebRTC-Run: LIVE run=aec06 sent=648 decoded=0 mic_full=1926 failures=0
+W (129203) WebRTC-Run: LIVE run=aec06 sent=711 decoded=0 mic_full=2115 failures=0
+W (134243) WebRTC-Run: LIVE run=aec06 sent=774 decoded=0 mic_full=2304 failures=0
+W (139283) WebRTC-Run: LIVE run=aec06 sent=837 decoded=0 mic_full=2493 failures=0
+W (143193) AGENT: 0 Peer keepalive check fail count 2
+W (144323) WebRTC-Run: LIVE run=aec06 sent=900 decoded=0 mic_full=2682 failures=0
+W (149363) WebRTC-Run: LIVE run=aec06 sent=963 decoded=0 mic_full=2871 failures=0
+W (154403) WebRTC-Run: LIVE run=aec06 sent=1026 decoded=0 mic_full=3060 failures=0
+W (159443) WebRTC-Run: LIVE run=aec06 sent=1089 decoded=0 mic_full=3249 failures=0
+W (162663) AFE: Ringbuffer of AFE is empty, Please use feed() to write data
+I (162793) WebRTC-TP: peer main loop exited
+I (162793) WebRTC-TP: both tasks confirmed exit; releasing transport resources
+I (162793) AGENT: agent disconnected done
+I (162793) SCTP: 1 state 6
+I (162793) WebRTC-TP: [state] DATA_CHANNEL_CLOSED (11)
+I (162803) WebRTC-TP: [state] DATA_CHANNEL_CLOSED (11)
+I (162803) WebRTC-TP: [state] DATA_CHANNEL_DISCONNECTED (12)
+W (162813) WebRTC-Run: FINAL run=aec06 state=Done reason=run_timeout stage=6 session_tag=fafc57c3 elapsed_ms=90020 config=1 transport_joined=1
+W (162823) WebRTC-Run: MEDIA run=aec06 sent=1128 decoded=0 failures=0 mic_full=3365 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (162833) WebRTC-Run: TIMELINE run=aec06 tx_pts_ms=0:89400 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=97125 max_queue_age_us=481748
+W (162843) WebRTC-Run: PLAYBACK run=aec06 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=161885115 physical_end_unknown=1
+W (162873) WebRTC-Run: DISCARD_AT_STOP run=aec06 mic=6 down=0 events=0
+W (162873) WebRTC-Run: EVIDENCE run=aec06 items=0 missing=0 invalid=0 duplicates=0 overflow=0 keyword_mask=0 near_observed=0 speech=0 responses=0 asr_failed=0 T1_T4=NOT_ACCEPTED AEC=UNDETERMINED
+W (162893) WebRTC-Run: CAPTURE run=aec06 afe_us=71811937:161764626 max_afe_gap_us=70502 afe_samples=1440000 capture_callbacks=0 adc_timestamps_available=0
+W (162903) WebRTC-Run: PCM run=aec06 decoded48=0 converted24=0 accepted24=0 submitted24=0 max_abs=0 endpoints=0 endpoints_are_not_distortion_proof=1
+W (162923) WebRTC-Run: OPUS_SAMPLES run=aec06 n120=0 n240=0 n480=0 n960=0 n1920=0 n2880=0 n5760=0 other=0
+W (162923) WebRTC-Run: SESSION_OBS run=aec06 create_response=1 interrupt_response=1 unknown=-1 observational_only=1
+W (162943) WebRTC-Run: TURN_SUMMARY run=aec06 stored=0 capacity=64 overflow=0 diagnostic_dropped=0 diagnostic_stop_discard=0 queue_order=independent_not_receive_order tags=FNV32_diagnostic_only api_snapshot_atomic=0 physical_end_unknown=1
+W (162963) WebRTC-Run: HARDWARE run=aec06 read_ok=9024 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=2880 afe_reset_failed=0 dram=44303 stack=9452
+W (162973) WebRTC-Run: LIFECYCLE run=aec06 capture_quiescent=1 transport_joined=1 reusable=1 physical_end_unknown=1
+I (178293) AudioCodec: Set input enable to false

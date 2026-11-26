@@ -1,0 +1,50 @@
+# Candidate 4d5fa0b80c82765ed869c202a8d7087532fc1364; duplex_20261024_05
+# Explicit fresh pre-START popup click; no automatic retry. SDP/credentials/raw IDs/transcripts omitted.
+# Preparation timed out at stage4 before RUNNING; no speech instruction given; no media run.
+HOST 2026-10-23T16:10:55.397252+00:00 COMMAND START duplex_20261024_05 duplex 30
+W (291873) WebRTC-Run: PREPARING run=duplex_20261024_05; wait for RUNNING before speech
+W (296733) WebRTC-Run: PROGRESS run=duplex_20261024_05 state=Preparing reason=none stage=0 session_tag=00000000 elapsed_ms=-1 config=0 transport_joined=0
+W (296743) WebRTC-Run: MEDIA run=duplex_20261024_05 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (296763) WebRTC-Run: TIMELINE run=duplex_20261024_05 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=0 max_queue_age_us=0
+W (296773) WebRTC-Run: PLAYBACK run=duplex_20261024_05 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+W (296803) WebRTC-Run: HARDWARE run=duplex_20261024_05 read_ok=0 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=50243 stack=27360
+W (301743) WebRTC-Run: PROGRESS run=duplex_20261024_05 state=Preparing reason=none stage=4 session_tag=00000000 elapsed_ms=-1 config=0 transport_joined=0
+W (301743) WebRTC-Run: MEDIA run=duplex_20261024_05 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (301763) WebRTC-Run: TIMELINE run=duplex_20261024_05 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=0 max_queue_age_us=0
+W (301773) WebRTC-Run: PLAYBACK run=duplex_20261024_05 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+W (301793) WebRTC-Run: HARDWARE run=duplex_20261024_05 read_ok=0 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=55275 stack=27360
+W (306743) WebRTC-Run: PROGRESS run=duplex_20261024_05 state=Preparing reason=none stage=4 session_tag=00000000 elapsed_ms=-1 config=0 transport_joined=0
+W (306743) WebRTC-Run: MEDIA run=duplex_20261024_05 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (306763) WebRTC-Run: TIMELINE run=duplex_20261024_05 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=0 max_queue_age_us=0
+W (306773) WebRTC-Run: PLAYBACK run=duplex_20261024_05 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+W (306793) WebRTC-Run: HARDWARE run=duplex_20261024_05 read_ok=0 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=55239 stack=27360
+W (311753) WebRTC-Run: PROGRESS run=duplex_20261024_05 state=Preparing reason=none stage=4 session_tag=00000000 elapsed_ms=-1 config=0 transport_joined=0
+W (311753) WebRTC-Run: MEDIA run=duplex_20261024_05 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (311773) WebRTC-Run: TIMELINE run=duplex_20261024_05 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=0 max_queue_age_us=0
+W (311783) WebRTC-Run: PLAYBACK run=duplex_20261024_05 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+W (311803) WebRTC-Run: HARDWARE run=duplex_20261024_05 read_ok=0 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=55239 stack=27360
+W (316753) WebRTC-Run: PROGRESS run=duplex_20261024_05 state=Preparing reason=none stage=4 session_tag=00000000 elapsed_ms=-1 config=0 transport_joined=0
+W (316753) WebRTC-Run: MEDIA run=duplex_20261024_05 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (316773) WebRTC-Run: TIMELINE run=duplex_20261024_05 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=0 max_queue_age_us=0
+W (316783) WebRTC-Run: PLAYBACK run=duplex_20261024_05 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+W (316803) WebRTC-Run: HARDWARE run=duplex_20261024_05 read_ok=0 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=55239 stack=27360
+W (321753) WebRTC-Run: PROGRESS run=duplex_20261024_05 state=Preparing reason=none stage=4 session_tag=00000000 elapsed_ms=-1 config=0 transport_joined=0
+W (321753) WebRTC-Run: MEDIA run=duplex_20261024_05 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (321773) WebRTC-Run: TIMELINE run=duplex_20261024_05 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=0 max_queue_age_us=0
+W (321783) WebRTC-Run: PLAYBACK run=duplex_20261024_05 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+W (321803) WebRTC-Run: HARDWARE run=duplex_20261024_05 read_ok=0 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=55239 stack=27360
+W (322103) WebRTC-Run: FINAL run=duplex_20261024_05 state=Failed reason=prepare_timeout stage=4 session_tag=00000000 elapsed_ms=-1 config=0 transport_joined=1
+W (322113) WebRTC-Run: MEDIA run=duplex_20261024_05 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (322133) WebRTC-Run: TIMELINE run=duplex_20261024_05 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=0 max_queue_age_us=0
+W (322143) WebRTC-Run: PLAYBACK run=duplex_20261024_05 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=321094699 physical_end_unknown=1
+W (322163) WebRTC-Run: DISCARD_AT_STOP run=duplex_20261024_05 mic=0 down=0 events=0
+W (322173) WebRTC-Run: EVIDENCE run=duplex_20261024_05 items=0 missing=0 invalid=0 duplicates=0 overflow=0 keyword_mask=0 near_observed=0 speech=0 responses=0 asr_failed=0 T1_T4=NOT_ACCEPTED AEC=UNDETERMINED
+W (322193) WebRTC-Run: CAPTURE run=duplex_20261024_05 afe_us=0:0 max_afe_gap_us=0 afe_samples=0 capture_callbacks=0 adc_timestamps_available=0
+W (322203) WebRTC-Run: PCM run=duplex_20261024_05 decoded48=0 converted24=0 accepted24=0 submitted24=0 max_abs=0 endpoints=0 endpoints_are_not_distortion_proof=1
+W (322213) WebRTC-Run: OPUS_SAMPLES run=duplex_20261024_05 n120=0 n240=0 n480=0 n960=0 n1920=0 n2880=0 n5760=0 other=0
+W (322223) WebRTC-Run: SESSION_OBS run=duplex_20261024_05 create_response=-1 interrupt_response=-1 unknown=-1 observational_only=1
+W (322243) WebRTC-Run: TURN_SUMMARY run=duplex_20261024_05 stored=0 capacity=64 overflow=0 diagnostic_dropped=0 diagnostic_stop_discard=0 queue_order=independent_not_receive_order tags=FNV32_diagnostic_only api_snapshot_atomic=0 physical_end_unknown=1
+W (322263) WebRTC-Run: HARDWARE run=duplex_20261024_05 read_ok=0 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=69863 stack=27360
+W (322283) WebRTC-Run: LIFECYCLE run=duplex_20261024_05 capture_quiescent=1 transport_joined=1 reusable=1 physical_end_unknown=1
+HOST 2026-10-23T16:12:00.707637+00:00 COMMAND STATUS
+W (357173) WebRTC-Run: STATUS run=duplex_20261024_05 state=Idle restart_requires_reboot=0

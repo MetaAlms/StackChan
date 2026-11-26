@@ -1,0 +1,57 @@
+{
+  "sample_rate": 16000,
+  "channels": 1,
+  "sample_format": "s16le",
+  "lead_silence_ms": 500,
+  "tail_silence_ms": 1200,
+  "voice": "Tingting",
+  "generator": "tools/webrtc_probe/make_fixture.py",
+  "clips": [
+    {
+      "id": "zh_1",
+      "text": "今天我们测试语音连接",
+      "keywords": [
+        "测试",
+        "语音",
+        "连接"
+      ],
+      "gloss": "today we test the voice connection",
+      "speech_samples": 35006,
+      "total_samples": 62206,
+      "speech_ms": 2187.9,
+      "total_ms": 3887.9,
+      "pcm_bytes": 124412,
+      "sha256_pcm": "31fc3eef092c2b9bb3ed9c18b7877f0cd3db8563dee9981dd4f07408c1bb8526"
+    },
+    {
+      "id": "zh_2",
+      "text": "桌上有一本蓝色的书",
+      "keywords": [
+        "蓝色",
+        "书"
+      ],
+      "gloss": "there is a blue book on the table",
+      "speech_samples": 31177,
+      "total_samples": 58377,
+      "speech_ms": 1948.6,
+      "total_ms": 3648.6,
+      "pcm_bytes": 116754,
+      "sha256_pcm": "b3e7fbe7841aa28236e884ac3dab4d3ead8977d31c0b43dc029c75d31d4b361f"
+    },
+    {
+      "id": "zh_3",
+      "text": "请回答一加一等于几",
+      "keywords": [
+        "一加一",
+        "等于"
+      ],
+      "gloss": "please answer what one plus one equals",
+      "speech_samples": 32219,
+      "total_samples": 59419,
+      "speech_ms": 2013.7,
+      "total_ms": 3713.7,
+      "pcm_bytes": 118838,
+      "sha256_pcm": "49fbc9227af6665f07dcdb52d6388a945415208e1e17587d3136f08328f9840e"
+    }
+  ]
+}

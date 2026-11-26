@@ -1,0 +1,138 @@
+diff --git a/main/application.cc b/main/application.cc
+index 3b6f07e..5042405 100644
+--- a/main/application.cc
++++ b/main/application.cc
+@@ -5,6 +5,8 @@
+ #include "audio_codec.h"
+ #include "mqtt_protocol.h"
+ #include "websocket_protocol.h"
++// StackChan: direct-to-Aliyun Realtime protocol. See docs/aliyun-omni-v2v-plan.md
++#include "hal/aliyun/aliyun_omni_protocol.h"
+ #include "assets/lang_config.h"
+ #include "mcp_server.h"
+ #include "assets.h"
+@@ -80,8 +82,33 @@ void Application::Initialize() {
+     callbacks.on_wake_word_detected = [this](const std::string& wake_word) {
+         xEventGroupSetBits(event_group_, MAIN_EVENT_WAKE_WORD_DETECTED);
+     };
++    // Tracks how long the current utterance lasted, so a cough or a door slam
++    // does not commit a turn.
++    static int64_t speech_started_us = 0;
++
+     callbacks.on_vad_change = [this](bool speaking) {
+         xEventGroupSetBits(event_group_, MAIN_EVENT_VAD_CHANGE);
++
++        if (!AliyunOmniProtocol::IsConfigured()) {
++            return;
++        }
++        // The server cannot run VAD on Ogg-framed Opus, so the device ends the
++        // turn itself. Hop to the main task: this callback runs on the audio
++        // task and the commit is a socket write.
++        if (speaking) {
++            speech_started_us = esp_timer_get_time();
++            return;
++        }
++        const int64_t spoken_ms = speech_started_us ? (esp_timer_get_time() - speech_started_us) / 1000 : 0;
++        speech_started_us = 0;
++        if (spoken_ms < 300) {
++            return;
++        }
++        Schedule([this]() {
++            if (auto* aliyun = dynamic_cast<AliyunOmniProtocol*>(protocol_.get())) {
++                aliyun->NotifyLocalSpeechEnded();
++            }
++        });
+     };
+     audio_service_.SetCallbacks(callbacks);
+ 
+@@ -318,6 +345,20 @@ void Application::HandleActivationDoneEvent() {
+         // Play the success sound to indicate the device is ready
+         audio_service_.PlaySound(Lang::Sounds::OGG_SUCCESS);
+     });
++
++    // Opening the audio channel normally needs a screen tap (the avatar panel's
++    // onClick calls ToggleChatState). That is fine for the stock backend, where
++    // the channel is opened lazily per conversation, but it makes the Aliyun
++    // path awkward to verify: reaching the AI.AGENT app leaves the device idle
++    // until someone taps. Start the conversation automatically instead, after a
++    // short pause so the ready sound and UI settle first.
++    if (AliyunOmniProtocol::IsConfigured()) {
++        ESP_LOGI(TAG, "Aliyun mode: starting the conversation automatically");
++        for (int i = 0; i < 3; ++i) {
++            vTaskDelay(pdMS_TO_TICKS(1000));
++        }
++        Schedule([this]() { ToggleChatState(); });
++    }
+ }
+ 
+ void Application::ActivationTask() {
+@@ -396,6 +437,15 @@ void Application::CheckAssetsVersion() {
+ }
+ 
+ void Application::CheckNewVersion() {
++    // When Aliyun is configured the device talks only to Alibaba, so the OTA
++    // activation endpoint must not be contacted at all: it would leak the
++    // device identity to a third party and its websocket config is unused.
++    // The trade-off is losing remote firmware updates; flashing is over USB.
++    if (AliyunOmniProtocol::IsConfigured()) {
++        ESP_LOGI(TAG, "Aliyun mode: skipping OTA version check");
++        return;
++    }
++
+     const int MAX_RETRY = 10;
+     int retry_count = 0;
+     int retry_delay = 10; // Initial retry delay in seconds
+@@ -477,7 +527,12 @@ void Application::InitializeProtocol() {
+ 
+     display->SetStatus(Lang::Strings::LOADING_PROTOCOL);
+ 
+-    if (ota_->HasMqttConfig()) {
++    // Aliyun takes priority when credentials are present. It supplies its own
++    // endpoint and auth, so it does not depend on anything the OTA flow returns.
++    if (AliyunOmniProtocol::IsConfigured()) {
++        ESP_LOGI(TAG, "Using Aliyun Qwen-Omni-Realtime protocol");
++        protocol_ = std::make_unique<AliyunOmniProtocol>();
++    } else if (ota_->HasMqttConfig()) {
+         protocol_ = std::make_unique<MqttProtocol>();
+     } else if (ota_->HasWebsocketConfig()) {
+         protocol_ = std::make_unique<WebsocketProtocol>();
+@@ -497,7 +552,19 @@ void Application::InitializeProtocol() {
+     
+     protocol_->OnIncomingAudio([this](std::unique_ptr<AudioStreamPacket> packet) {
+         if (GetDeviceState() == kDeviceStateSpeaking) {
+-            audio_service_.PushPacketToDecodeQueue(std::move(packet));
++            // wait=true: this runs on the network task (see is_audio_payload in
++            // the Aliyun protocol), so blocking here is what throttles the
++            // server to playback speed instead of dropping audio.
++            audio_service_.PushPacketToDecodeQueue(std::move(packet), true);
++        } else {
++            // Dropping audio here is what caused audible stuttering: the state
++            // only becomes "speaking" once the tts/start event is processed, and
++            // a burst of deltas queued ahead of it was discarded wholesale.
++            static int dropped = 0;
++            if (++dropped % 20 == 1) {
++                ESP_LOGW(TAG, "dropped audio packet while state=%d (total %d)",
++                         (int)GetDeviceState(), dropped);
++            }
+         }
+     });
+     
+diff --git a/main/ota.cc b/main/ota.cc
+index bcc0dc5..f5e82b0 100644
+--- a/main/ota.cc
++++ b/main/ota.cc
+@@ -26,6 +26,14 @@
+ 
+ 
+ Ota::Ota() {
++    // Populate the running firmware version up front. CheckVersion() used to be
++    // the only place that set this, which left it empty whenever the version
++    // check is skipped - e.g. Aliyun-only mode, where the OTA endpoint must not
++    // be contacted at all. HandleActivationDoneEvent() reads it unconditionally.
++    if (auto app_desc = esp_app_get_description(); app_desc != nullptr && app_desc->version[0] != '\0') {
++        current_version_ = app_desc->version;
++    }
++
+ #ifdef ESP_EFUSE_BLOCK_USR_DATA
+     // Read Serial Number from efuse user_data
+     uint8_t serial_number[33] = {0};

@@ -2,6 +2,9 @@
 #define _BOX_AUDIO_CODEC_H
 
 #include "audio_codec.h"
+#if CONFIG_STACKCHAN_WEBRTC_M15
+#include <atomic>
+#endif
 
 #include <esp_codec_dev.h>
 #include <esp_codec_dev_defaults.h>
@@ -23,7 +26,20 @@ private:
     virtual int Read(int16_t* dest, int samples) override;
     virtual int Write(const int16_t* data, int samples) override;
 
+#if CONFIG_STACKCHAN_WEBRTC_M15
+    std::atomic<uint32_t> read_ok_{0}, read_failed_{0}, write_ok_{0}, write_failed_{0};
+#endif
 public:
+#if CONFIG_STACKCHAN_WEBRTC_M15
+    // Audit accessors: Read/Write stay the single hardware path, including the
+    // M15 success/failure counters. The audit does not bypass them.
+    int AuditRead(int16_t* dst, int samples) { return Read(dst, samples); }
+    int AuditWrite(const int16_t* src, int samples) { return Write(src, samples); }
+    uint32_t ReadOk() const { return read_ok_.load(); }
+    uint32_t ReadFailed() const { return read_failed_.load(); }
+    uint32_t WriteOk() const { return write_ok_.load(); }
+    uint32_t WriteFailed() const { return write_failed_.load(); }
+#endif
     CoreS3AudioCodec(void* i2c_master_handle, int input_sample_rate, int output_sample_rate,
         gpio_num_t mclk, gpio_num_t bclk, gpio_num_t ws, gpio_num_t dout, gpio_num_t din,
         uint8_t aw88298_addr, uint8_t es7210_addr, bool input_reference);

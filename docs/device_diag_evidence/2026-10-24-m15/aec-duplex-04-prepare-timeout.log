@@ -1,0 +1,213 @@
+W (19517) WebRTC-Run: STATUS run=none state=Idle restart_requires_reboot=0
+I (19827) WifiManager: Initializing...
+I (19827) pp: pp rom version: e7ae62f
+I (19827) net80211: net80211 rom version: e7ae62f
+W (19827) WebRTC-Run: PREPARING run=perf04; wait for RUNNING before speech
+I (19837) wifi:wifi driver task: 3fce7600, prio:23, stack:6144, core=0
+I (19837) wifi:wifi firmware version: 0947e8b
+I (19837) wifi:wifi certification version: v7.0
+I (19847) wifi:config NVS flash: disabled
+I (19847) wifi:config nano formatting: enabled
+I (19857) wifi:Init data frame dynamic rx buffer num: 6
+I (19857) wifi:Init dynamic rx mgmt buffer num: 5
+I (19857) wifi:Init management short buffer num: 32
+I (19867) wifi:Init dynamic tx buffer num: 32
+I (19867) wifi:Init static tx FG buffer num: 2
+I (19877) wifi:Init static rx buffer size: 1600
+I (19877) wifi:Init static rx buffer num: 3
+I (19887) wifi:Init dynamic rx buffer num: 6
+I (19887) wifi_init: rx ba win: 3
+I (19887) wifi_init: accept mbox: 6
+I (19897) wifi_init: tcpip mbox: 16
+I (19897) wifi_init: udp mbox: 6
+I (19897) wifi_init: tcp mbox: 6
+I (19897) wifi_init: tcp tx win: 5760
+I (19907) wifi_init: tcp rx win: 5760
+I (19907) wifi_init: tcp mss: 1440
+I (19917) WifiManager: Initialized
+I (19917) WifiBoard: Starting WiFi connection attempt
+I (19917) WifiManager: Starting station
+I (19927) phy_init: phy_version 711,97bcf0a2,Aug 25 2025,19:04:10
+I (19967) wifi:mode : sta (<STA-MAC>)
+I (19967) wifi:enable tsf
+I (19967) WifiBoard: WiFi scanning
+I (22377) WifiStation: Found AP: <SSID>, BSSID: <BSSID>, RSSI: -76, Channel: 3, Authmode: 4
+I (22377) WifiBoard: WiFi connecting to <SSID>
+W (22387) wifi:Password length matches WPA2 standards, authmode threshold changes from OPEN to WPA2
+I (22707) wifi:new:<3,0>, old:<1,0>, ap:<255,255>, sta:<3,0>, prof:1, snd_ch_cfg:0x0
+I (22707) wifi:state: init -> auth (0xb0)
+I (22707) wifi:state: auth -> assoc (0x0)
+I (22707) wifi:state: assoc -> run (0x10)
+I (22807) wifi:[ADDBA]RX DELBA, reason:39, delete tid:0, initiator:1(originator)
+I (22807) wifi:[ADDBA]RX DELBA, reason:39, delete tid:0, initiator:0(recipient)
+I (22807) wifi:[ADDBA]RX DELBA, reason:39, delete tid:5, initiator:1(originator)
+I (22817) wifi:connected with <SSID>, aid = 3, channel 3, BW20, bssid = <BSSID>
+I (22827) wifi:security: WPA2-PSK, phy: bgn, rssi: -73, cipher(pairwise:0x3, group:0x1), pmf:0
+I (22837) wifi:pm start, type: 1
+
+I (22837) wifi:dp: 1, bi: 102400, li: 10, scale listen interval from 1024000 us to 1024000 us
+I (22847) wifi:set rx beacon pti, rx_bcn_pti: 14, bcn_timeout: 25000, mt_pti: 14, mt_time: 10000
+I (22877) wifi:AP's beacon interval = 102400 us, DTIM period = 1
+I (24087) esp_netif_handlers: sta ip: 192.168.1.x, mask: 255.255.255.0, gw: 192.168.1.1
+I (24087) WifiStation: Got IP: 192.168.1.x
+I (24087) WifiBoard: Connected to WiFi: <SSID>
+I (24097) CoreS3AudioCodec: Audio IOs: mclk: 0, bclk: 34, ws: 33, dout: 13, din: 14
+I (24097) CoreS3AudioCodec: Duplex channels created
+I (24107) ES7210: Work in Slave mode
+I (24117) ES7210: Enable ES7210_INPUT_MIC1
+I (24117) ES7210: Enable ES7210_INPUT_MIC2
+I (24117) ES7210: Enable ES7210_INPUT_MIC3
+I (24117) ES7210: Enable TDM mode
+I (24127) CoreS3AudioCodec: CoreS3AudioCodec initialized
+I (24127) AudioCodec: Audio codec started
+I (24367) WebRTC-TP: pre-generate DTLS cert -> 0
+I (24367) DTLS: Init SRTP OK
+I (24367) DTLS: DTLS cipher pref: auto (mbedtls default order)
+W (24377) WebRTC-SRTP: SRTP offer narrowed to SHA1_80 (component offered 4 profile(s); only the 80-bit policy is implemented)
+I (24377) WebRTC-TP: esp_peer_open -> 0
+I (24387) WebRTC-TP: peer main loop started
+I (24687) WebRTC-TP: [state] NEW_CONNECTION (2)
+I (24687) WebRTC-TP: esp_peer_new_connection -> 0
+W (24687) WebRTC-Run: PROGRESS run=perf04 state=Preparing reason=none stage=0 session_tag=00000000 elapsed_ms=-1 config=0 transport_joined=0
+W (24697) WebRTC-Run: MEDIA run=perf04 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+I (24707) WebRTC-TP: [state] CANDIDATE_GATHERING (3)
+I (24717) AGENT: Start agent as Controlling
+W (24707) WebRTC-Run: TIMELINE run=perf04 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=0 max_queue_age_us=0
+W (24727) WebRTC-Run: PLAYBACK run=perf04 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+I (24737) AGENT: Send STUN binding request
+W (24747) WebRTC-Run: HARDWARE run=perf04 read_ok=0 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=50419 stack=27372
+I (24777) AGENT: 0 Get candidate success user: psw:
+I (24787) WebRTC-TP: [msg] local SDP, 1113 bytes, candidates=YES
+I (24787) WebRTC-TP: POST realtime WebRTC SDP endpoint
+I (24787) WebRTC-TP: offer is 1113 bytes
+W (24787) WebRTC-TP: ----- OFFER media lines -----
+W (24797) WebRTC-TP:   m=audio 9 UDP/TLS/RTP/SAVPF 111
+
+W (24797) WebRTC-TP:   a=mid:0
+
+W (24807) WebRTC-TP:   a=rtcp-mux
+
+W (24807) WebRTC-TP:   a=rtpmap:111 opus/48000/2
+
+W (24807) WebRTC-TP:   a=ssrc:6 cname:EspSSpbA0
+
+W (24817) WebRTC-TP:   a=ssrc:6 msid:esp_stream a0
+
+W (24817) WebRTC-TP:   a=sendrecv
+
+W (24827) WebRTC-TP:   m=application 50712 UDP/DTLS/SCTP webrtc-datachannel
+
+W (24827) WebRTC-TP:   a=mid:1
+
+W (24827) WebRTC-TP: --------------------------
+I (24837) wifi:<ba-add>idx:0 (ifx:0, <BSSID>), tid:0, ssn:8, winSize:64
+I (24927) esp-x509-crt-bundle: Certificate validated
+I (25217) WebRTC-TP: SDP exchange: err=ESP_OK http=200
+I (25217) WebRTC-TP: response body is 1254 bytes
+W (25217) WebRTC-TP: ----- ANSWER media lines -----
+W (25217) WebRTC-TP:   m=audio 3478 UDP/TLS/RTP/SAVPF 111
+
+W (25227) WebRTC-TP:   a=mid:0
+
+W (25227) WebRTC-TP:   a=rtcp-mux
+
+W (25227) WebRTC-TP:   a=sendrecv
+
+W (25227) WebRTC-TP:   a=rtpmap:111 opus/48000/2
+
+W (25237) WebRTC-TP:   a=fmtp:111 minptime=20
+
+W (25237) WebRTC-TP:   a=ssrc:1000 msid:alibaba-bailian audio-1
+
+W (25247) WebRTC-TP:   m=application 3478 UDP/DTLS/SCTP webrtc-datachannel
+
+W (25257) WebRTC-TP:   a=mid:1
+
+W (25257) WebRTC-TP: --------------------------
+I (25267) PEER_DEF: Get peer role 1
+I (25267) PEER_DEF: Get peer role 1
+I (25267) PEER_DEF: Get peer role 1
+I (25267) PEER_DEF: Extract SDP: stream_count=2, audio_mid=255 (dir=3), video_mid=255 (dir=3), data_mid=255, assrc=1000, vssrc=0, vrtx_ssrc=0, vfmt=0, vrtx_fmt=0
+I (25307) AGENT: 0 Add remote type:1 39.97.230.241:3478
+I (25307) WebRTC-TP: [state] PAIRING (4)
+I (25307) WebRTC-TP: fed answer to peer -> 0
+I (25327) AGENT: 0 0 Send binding request (cand:0) local0:192.168.1.x:59035 remote0:39.97.230.241:3478 id:5851f42d40b18ccf4bb5f646
+I (25537) AGENT: Add local prflx 172.22.213.35:58327
+I (25537) AGENT: 0 1 LocalBinding resp 5851f42d40b18ccf4bb5f646 local1
+I (25537) AGENT: 0 Select pair39.97.230.241:3478
+I (25547) AGENT: 0 1 Send binding request (cand:1) local0:172.22.213.35:58327 remote0:39.97.230.241:3478 id:4703312930705b0420fd5db4
+I (25557) AGENT: 0 1 LocalBinding resp 5851f42d40b18ccf4bb5f646 local1
+I (25557) AGENT: 0 Candidate responded
+I (25567) AGENT: 0 Connection OK 39.97.230.241:3478
+I (25567) WebRTC-TP: [state] PAIRED (5)
+I (25577) PEER_DEF: Start DTLS role as 0
+I (25577) DTLS: DTLS cipher pref: auto (mbedtls default order)
+W (25587) WebRTC-SRTP: SRTP offer narrowed to SHA1_80 (component offered 4 profile(s); only the 80-bit policy is implemented)
+I (25597) WebRTC-TP: [state] CONNECTING (6)
+I (26087) DTLS: SRTP connected OK
+E (27227) DTLS: CLient handshake fail ret -0x6900
+E (28137) DTLS: CLient handshake fail ret -0x6900
+E (29077) DTLS: CLient handshake fail ret -0x6900
+W (29697) WebRTC-Run: PROGRESS run=perf04 state=Preparing reason=none stage=4 session_tag=00000000 elapsed_ms=-1 config=0 transport_joined=0
+W (29697) WebRTC-Run: MEDIA run=perf04 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (29707) WebRTC-Run: TIMELINE run=perf04 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=0 max_queue_age_us=0
+W (29717) WebRTC-Run: PLAYBACK run=perf04 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+W (29747) WebRTC-Run: HARDWARE run=perf04 read_ok=0 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=55403 stack=27372
+E (30027) DTLS: CLient handshake fail ret -0x6900
+E (31027) DTLS: CLient handshake fail ret -0x6900
+E (31927) DTLS: CLient handshake fail ret -0x6900
+E (32947) DTLS: CLient handshake fail ret -0x6900
+E (33917) DTLS: CLient handshake fail ret -0x6900
+W (34707) WebRTC-Run: PROGRESS run=perf04 state=Preparing reason=none stage=4 session_tag=00000000 elapsed_ms=-1 config=0 transport_joined=0
+W (34707) WebRTC-Run: MEDIA run=perf04 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (34717) WebRTC-Run: TIMELINE run=perf04 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=0 max_queue_age_us=0
+W (34727) WebRTC-Run: PLAYBACK run=perf04 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+W (34757) WebRTC-Run: HARDWARE run=perf04 read_ok=0 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=55403 stack=27372
+E (34817) DTLS: CLient handshake fail ret -0x6900
+E (35817) DTLS: CLient handshake fail ret -0x6900
+E (36727) DTLS: CLient handshake fail ret -0x6900
+E (37637) DTLS: CLient handshake fail ret -0x6900
+E (38607) DTLS: CLient handshake fail ret -0x6900
+E (39607) DTLS: CLient handshake fail ret -0x6900
+W (39717) WebRTC-Run: PROGRESS run=perf04 state=Preparing reason=none stage=4 session_tag=00000000 elapsed_ms=-1 config=0 transport_joined=0
+W (39717) WebRTC-Run: MEDIA run=perf04 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (39727) WebRTC-Run: TIMELINE run=perf04 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=0 max_queue_age_us=0
+W (39737) WebRTC-Run: PLAYBACK run=perf04 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+W (39767) WebRTC-Run: HARDWARE run=perf04 read_ok=0 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=55439 stack=27372
+E (40537) DTLS: CLient handshake fail ret -0x6900
+E (41527) DTLS: CLient handshake fail ret -0x6900
+E (42427) DTLS: CLient handshake fail ret -0x6900
+E (43337) DTLS: CLient handshake fail ret -0x6900
+E (44267) DTLS: CLient handshake fail ret -0x6900
+W (44717) WebRTC-Run: PROGRESS run=perf04 state=Preparing reason=none stage=4 session_tag=00000000 elapsed_ms=-1 config=0 transport_joined=0
+W (44717) WebRTC-Run: MEDIA run=perf04 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (44727) WebRTC-Run: TIMELINE run=perf04 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=0 max_queue_age_us=0
+W (44737) WebRTC-Run: PLAYBACK run=perf04 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+W (44767) WebRTC-Run: HARDWARE run=perf04 read_ok=0 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=55439 stack=27372
+E (45267) DTLS: CLient handshake fail ret -0x6900
+E (46277) DTLS: CLient handshake fail ret -0x6900
+E (47197) DTLS: CLient handshake fail ret -0x6900
+E (48117) DTLS: CLient handshake fail ret -0x6900
+E (49067) DTLS: CLient handshake fail ret -0x6900
+W (49727) WebRTC-Run: PROGRESS run=perf04 state=Preparing reason=none stage=4 session_tag=00000000 elapsed_ms=-1 config=0 transport_joined=0
+W (49727) WebRTC-Run: MEDIA run=perf04 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (49737) WebRTC-Run: TIMELINE run=perf04 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=0 max_queue_age_us=0
+W (49747) WebRTC-Run: PLAYBACK run=perf04 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+W (49777) WebRTC-Run: HARDWARE run=perf04 read_ok=0 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=55439 stack=27372
+E (50057) DTLS: CLient handshake fail ret -0x6900
+I (50077) WebRTC-TP: peer main loop exited
+I (50077) WebRTC-TP: both tasks confirmed exit; releasing transport resources
+I (50077) AGENT: agent disconnected done
+W (50077) WebRTC-Run: FINAL run=perf04 state=Failed reason=prepare_timeout stage=4 session_tag=00000000 elapsed_ms=-1 config=0 transport_joined=1
+W (50087) WebRTC-Run: MEDIA run=perf04 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (50097) WebRTC-Run: TIMELINE run=perf04 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=0 max_queue_age_us=0
+W (50107) WebRTC-Run: PLAYBACK run=perf04 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=49044680 physical_end_unknown=1
+W (50137) WebRTC-Run: DISCARD_AT_STOP run=perf04 mic=0 down=0 events=0
+W (50137) WebRTC-Run: EVIDENCE run=perf04 items=0 missing=0 invalid=0 duplicates=0 overflow=0 keyword_mask=0 near_observed=0 speech=0 responses=0 asr_failed=0 T1_T4=NOT_ACCEPTED AEC=UNDETERMINED
+W (50157) WebRTC-Run: CAPTURE run=perf04 afe_us=0:0 max_afe_gap_us=0 afe_samples=0 capture_callbacks=0 adc_timestamps_available=0
+W (50167) WebRTC-Run: PCM run=perf04 decoded48=0 converted24=0 accepted24=0 submitted24=0 max_abs=0 endpoints=0 endpoints_are_not_distortion_proof=1
+W (50177) WebRTC-Run: OPUS_SAMPLES run=perf04 n120=0 n240=0 n480=0 n960=0 n1920=0 n2880=0 n5760=0 other=0
+W (50187) WebRTC-Run: SESSION_OBS run=perf04 create_response=-1 interrupt_response=-1 unknown=-1 observational_only=1
+W (50197) WebRTC-Run: TURN_SUMMARY run=perf04 stored=0 capacity=64 overflow=0 diagnostic_dropped=0 diagnostic_stop_discard=0 queue_order=independent_not_receive_order tags=FNV32_diagnostic_only api_snapshot_atomic=0 physical_end_unknown=1
+W (50217) WebRTC-Run: HARDWARE run=perf04 read_ok=0 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=70159 stack=27372
+W (50237) WebRTC-Run: LIFECYCLE run=perf04 capture_quiescent=1 transport_joined=1 reusable=1 physical_end_unknown=1

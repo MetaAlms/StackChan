@@ -1,0 +1,218 @@
+I (4232) WifiManager: Initializing...
+I (4232) pp: pp rom version: e7ae62f
+I (4232) net80211: net80211 rom version: e7ae62f
+W (4232) WebRTC-Run: PREPARING run=aectask01; wait for RUNNING before any action
+I (4242) wifi:wifi driver task: 3fce7600, prio:23, stack:6144, core=0
+I (4252) wifi:wifi firmware version: 0947e8b
+I (4252) wifi:wifi certification version: v7.0
+I (4252) wifi:config NVS flash: disabled
+I (4262) wifi:config nano formatting: enabled
+I (4262) wifi:Init data frame dynamic rx buffer num: 6
+I (4272) wifi:Init dynamic rx mgmt buffer num: 5
+I (4272) wifi:Init management short buffer num: 32
+I (4272) wifi:Init dynamic tx buffer num: 32
+I (4282) wifi:Init static tx FG buffer num: 2
+I (4282) wifi:Init static rx buffer size: 1600
+I (4292) wifi:Init static rx buffer num: 3
+I (4292) wifi:Init dynamic rx buffer num: 6
+I (4292) wifi_init: rx ba win: 3
+I (4302) wifi_init: accept mbox: 6
+I (4302) wifi_init: tcpip mbox: 16
+I (4302) wifi_init: udp mbox: 6
+I (4312) wifi_init: tcp mbox: 6
+I (4312) wifi_init: tcp tx win: 5760
+I (4312) wifi_init: tcp rx win: 5760
+I (4322) wifi_init: tcp mss: 1440
+I (4322) WifiManager: Initialized
+I (4322) WifiBoard: Starting WiFi connection attempt
+I (4332) WifiManager: Starting station
+I (4332) phy_init: phy_version 711,97bcf0a2,Aug 25 2025,19:04:10
+I (4372) wifi:mode : sta (<BSSID>)
+I (4372) wifi:enable tsf
+I (4372) WifiBoard: WiFi scanning
+I (6782) WifiStation: Found AP: <SSID>, BSSID: <BSSID>, RSSI: -79, Channel: 3, Authmode: 4
+I (6782) WifiBoard: WiFi connecting to <SSID>
+W (6792) wifi:Password length matches WPA2 standards, authmode threshold changes from OPEN to WPA2
+I (7112) wifi:new:<3,0>, old:<1,0>, ap:<255,255>, sta:<3,0>, prof:1, snd_ch_cfg:0x0
+I (7112) wifi:state: init -> auth (0xb0)
+I (7112) wifi:state: auth -> assoc (0x0)
+I (7122) wifi:state: assoc -> run (0x10)
+I (7242) wifi:connected with <SSID>, aid = 3, channel 3, BW20, bssid = <BSSID>
+I (7242) wifi:security: WPA2-PSK, phy: bgn, rssi: -80, cipher(pairwise:0x3, group:0x1), pmf:0
+I (7252) wifi:pm start, type: 1
+
+I (7252) wifi:dp: 1, bi: 102400, li: 10, scale listen interval from 1024000 us to 1024000 us
+I (7262) wifi:set rx beacon pti, rx_bcn_pti: 14, bcn_timeout: 25000, mt_pti: 14, mt_time: 10000
+I (7272) wifi:<ba-add>idx:0 (ifx:0, <BSSID>), tid:0, ssn:3, winSize:64
+I (7302) wifi:AP's beacon interval = 102400 us, DTIM period = 1
+I (8532) esp_netif_handlers: sta ip: 192.168.1.x, mask: 255.255.255.0, gw: 192.168.1.x
+I (8532) WifiStation: Got IP: 192.168.1.x
+I (8532) WifiBoard: Connected to WiFi: <SSID>
+I (8542) CoreS3AudioCodec: Audio IOs: mclk: 0, bclk: 34, ws: 33, dout: 13, din: 14
+I (8542) CoreS3AudioCodec: Duplex channels created
+I (8552) ES7210: Work in Slave mode
+I (8552) ES7210: Enable ES7210_INPUT_MIC1
+I (8562) ES7210: Enable ES7210_INPUT_MIC2
+I (8562) ES7210: Enable ES7210_INPUT_MIC3
+I (8562) ES7210: Enable TDM mode
+I (8572) CoreS3AudioCodec: CoreS3AudioCodec initialized
+I (8572) AudioCodec: Audio codec started
+I (8812) WebRTC-TP: pre-generate DTLS cert -> 0
+I (8812) DTLS: Init SRTP OK
+I (8812) DTLS: DTLS cipher pref: auto (mbedtls default order)
+W (8812) WebRTC-SRTP: SRTP offer narrowed to SHA1_80 (component offered 4 profile(s); only the 80-bit policy is implemented)
+I (8822) WebRTC-TP: esp_peer_open -> 0
+I (8832) WebRTC-TP: peer main loop started
+I (9132) WebRTC-TP: [state] NEW_CONNECTION (2)
+I (9132) WebRTC-TP: esp_peer_new_connection -> 0
+W (9132) WebRTC-Run: PROGRESS run=aectask01 state=Preparing reason=none stage=0 session_tag=00000000 elapsed_ms=-1 config=0 transport_joined=0
+W (9142) WebRTC-Run: MEDIA run=aectask01 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+I (9152) WebRTC-TP: [state] CANDIDATE_GATHERING (3)
+I (9162) AGENT: Start agent as Controlling
+W (9152) WebRTC-Run: TIMELINE run=aectask01 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=0 max_queue_age_us=0
+W (9172) WebRTC-Run: TIMING run=aectask01 send_calls=0 send_avg_us=0 send_max_us=0 loop_max_us=0 mic_empty=0
+W (9182) WebRTC-Run: PLAYBACK run=aectask01 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+I (9182) AGENT: Send STUN binding request
+W (9202) WebRTC-Run: HARDWARE run=aectask01 read_ok=0 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=50291 stack=27356
+I (9222) AGENT: 0 Get candidate success user: psw:
+I (9232) WebRTC-TP: [msg] local SDP, 1113 bytes, candidates=YES
+I (9232) WebRTC-TP: POST realtime WebRTC SDP endpoint
+I (9242) WebRTC-TP: offer is 1113 bytes
+W (9242) WebRTC-TP: ----- OFFER media lines -----
+W (9252) WebRTC-TP:   m=audio 9 UDP/TLS/RTP/SAVPF 111
+
+W (9252) WebRTC-TP:   a=mid:0
+
+W (9252) WebRTC-TP:   a=rtcp-mux
+
+W (9262) WebRTC-TP:   a=rtpmap:111 opus/48000/2
+
+W (9262) WebRTC-TP:   a=ssrc:6 cname:EspSSpbA0
+
+W (9272) WebRTC-TP:   a=ssrc:6 msid:esp_stream a0
+
+W (9272) WebRTC-TP:   a=sendrecv
+
+W (9272) WebRTC-TP:   m=application 50712 UDP/DTLS/SCTP webrtc-datachannel
+
+W (9282) WebRTC-TP:   a=mid:1
+
+W (9282) WebRTC-TP: --------------------------
+I (9362) wifi:<ba-add>idx:1 (ifx:0, <BSSID>), tid:5, ssn:1, winSize:64
+I (9452) esp-x509-crt-bundle: Certificate validated
+I (9752) WebRTC-TP: SDP exchange: err=ESP_OK http=200
+I (9752) WebRTC-TP: response body is 1254 bytes
+W (9752) WebRTC-TP: ----- ANSWER media lines -----
+W (9752) WebRTC-TP:   m=audio 3478 UDP/TLS/RTP/SAVPF 111
+
+W (9762) WebRTC-TP:   a=mid:0
+
+W (9762) WebRTC-TP:   a=rtcp-mux
+
+W (9762) WebRTC-TP:   a=sendrecv
+
+W (9772) WebRTC-TP:   a=rtpmap:111 opus/48000/2
+
+W (9772) WebRTC-TP:   a=fmtp:111 minptime=20
+
+W (9782) WebRTC-TP:   a=ssrc:1000 msid:alibaba-bailian audio-1
+
+W (9782) WebRTC-TP:   m=application 3478 UDP/DTLS/SCTP webrtc-datachannel
+
+W (9792) WebRTC-TP:   a=mid:1
+
+W (9792) WebRTC-TP: --------------------------
+I (9802) PEER_DEF: Get peer role 1
+I (9802) PEER_DEF: Get peer role 1
+I (9802) PEER_DEF: Get peer role 1
+I (9802) PEER_DEF: Extract SDP: stream_count=2, audio_mid=255 (dir=3), video_mid=255 (dir=3), data_mid=255, assrc=1000, vssrc=0, vrtx_ssrc=0, vfmt=0, vrtx_fmt=0
+I (9882) AGENT: 0 Add remote type:1 39.97.230.241:3478
+I (9882) WebRTC-TP: [state] PAIRING (4)
+I (9882) WebRTC-TP: fed answer to peer -> 0
+I (9902) AGENT: 0 0 Send binding request (cand:0) local0:192.168.1.x:53162 remote0:39.97.230.241:3478 id:5851f42d40b18ccf4bb5f646
+I (9932) AGENT: Add local prflx 172.22.213.35:44914
+I (9932) AGENT: 0 1 LocalBinding resp 5851f42d40b18ccf4bb5f646 local1
+I (9932) AGENT: 0 Select pair39.97.230.241:3478
+I (9932) AGENT: 0 1 Send binding request (cand:1) local0:172.22.213.35:44914 remote0:39.97.230.241:3478 id:4703312930705b0420fd5db4
+I (9952) AGENT: 0 1 LocalBinding resp 5851f42d40b18ccf4bb5f646 local1
+I (9952) AGENT: 0 Candidate responded
+I (9952) AGENT: 0 Connection OK 39.97.230.241:3478
+I (9962) WebRTC-TP: [state] PAIRED (5)
+I (9962) PEER_DEF: Start DTLS role as 0
+I (9972) DTLS: DTLS cipher pref: auto (mbedtls default order)
+W (9972) WebRTC-SRTP: SRTP offer narrowed to SHA1_80 (component offered 4 profile(s); only the 80-bit policy is implemented)
+I (9982) WebRTC-TP: [state] CONNECTING (6)
+I (10462) DTLS: SRTP connected OK
+E (11542) DTLS: CLient handshake fail ret -0x6900
+E (12492) DTLS: CLient handshake fail ret -0x6900
+E (13402) DTLS: CLient handshake fail ret -0x6900
+W (14142) WebRTC-Run: PROGRESS run=aectask01 state=Preparing reason=none stage=4 session_tag=00000000 elapsed_ms=-1 config=0 transport_joined=0
+W (14142) WebRTC-Run: MEDIA run=aectask01 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (14152) WebRTC-Run: TIMELINE run=aectask01 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=0 max_queue_age_us=0
+W (14172) WebRTC-Run: TIMING run=aectask01 send_calls=0 send_avg_us=0 send_max_us=0 loop_max_us=93749 mic_empty=0
+W (14182) WebRTC-Run: PLAYBACK run=aectask01 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+W (14202) WebRTC-Run: HARDWARE run=aectask01 read_ok=0 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=55291 stack=27356
+E (14302) DTLS: CLient handshake fail ret -0x6900
+E (15232) DTLS: CLient handshake fail ret -0x6900
+E (16172) DTLS: CLient handshake fail ret -0x6900
+E (17172) DTLS: CLient handshake fail ret -0x6900
+E (18092) DTLS: CLient handshake fail ret -0x6900
+E (19092) DTLS: CLient handshake fail ret -0x6900
+W (19142) WebRTC-Run: PROGRESS run=aectask01 state=Preparing reason=none stage=4 session_tag=00000000 elapsed_ms=-1 config=0 transport_joined=0
+W (19142) WebRTC-Run: MEDIA run=aectask01 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (19152) WebRTC-Run: TIMELINE run=aectask01 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=0 max_queue_age_us=0
+W (19172) WebRTC-Run: TIMING run=aectask01 send_calls=0 send_avg_us=0 send_max_us=0 loop_max_us=93749 mic_empty=0
+W (19182) WebRTC-Run: PLAYBACK run=aectask01 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+W (19202) WebRTC-Run: HARDWARE run=aectask01 read_ok=0 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=55291 stack=27356
+E (20052) DTLS: CLient handshake fail ret -0x6900
+E (21062) DTLS: CLient handshake fail ret -0x6900
+E (22062) DTLS: CLient handshake fail ret -0x6900
+E (22962) DTLS: CLient handshake fail ret -0x6900
+E (23872) DTLS: CLient handshake fail ret -0x6900
+W (24152) WebRTC-Run: PROGRESS run=aectask01 state=Preparing reason=none stage=4 session_tag=00000000 elapsed_ms=-1 config=0 transport_joined=0
+W (24152) WebRTC-Run: MEDIA run=aectask01 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (24162) WebRTC-Run: TIMELINE run=aectask01 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=0 max_queue_age_us=0
+W (24182) WebRTC-Run: TIMING run=aectask01 send_calls=0 send_avg_us=0 send_max_us=0 loop_max_us=93749 mic_empty=0
+W (24192) WebRTC-Run: PLAYBACK run=aectask01 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+W (24212) WebRTC-Run: HARDWARE run=aectask01 read_ok=0 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=55299 stack=27356
+E (24882) DTLS: CLient handshake fail ret -0x6900
+E (25852) DTLS: CLient handshake fail ret -0x6900
+E (26812) DTLS: CLient handshake fail ret -0x6900
+E (27732) DTLS: CLient handshake fail ret -0x6900
+E (28672) DTLS: CLient handshake fail ret -0x6900
+W (29152) WebRTC-Run: PROGRESS run=aectask01 state=Preparing reason=none stage=4 session_tag=00000000 elapsed_ms=-1 config=0 transport_joined=0
+W (29152) WebRTC-Run: MEDIA run=aectask01 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (29162) WebRTC-Run: TIMELINE run=aectask01 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=0 max_queue_age_us=0
+W (29182) WebRTC-Run: TIMING run=aectask01 send_calls=0 send_avg_us=0 send_max_us=0 loop_max_us=93749 mic_empty=0
+W (29192) WebRTC-Run: PLAYBACK run=aectask01 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+W (29212) WebRTC-Run: HARDWARE run=aectask01 read_ok=0 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=55327 stack=27356
+E (29602) DTLS: CLient handshake fail ret -0x6900
+E (30602) DTLS: CLient handshake fail ret -0x6900
+E (31522) DTLS: CLient handshake fail ret -0x6900
+E (32422) DTLS: CLient handshake fail ret -0x6900
+E (33362) DTLS: CLient handshake fail ret -0x6900
+W (34152) WebRTC-Run: PROGRESS run=aectask01 state=Preparing reason=none stage=4 session_tag=00000000 elapsed_ms=-1 config=0 transport_joined=0
+W (34152) WebRTC-Run: MEDIA run=aectask01 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (34162) WebRTC-Run: TIMELINE run=aectask01 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=0 max_queue_age_us=0
+W (34182) WebRTC-Run: TIMING run=aectask01 send_calls=0 send_avg_us=0 send_max_us=0 loop_max_us=93749 mic_empty=0
+W (34192) WebRTC-Run: PLAYBACK run=aectask01 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=0 physical_end_unknown=1
+W (34212) WebRTC-Run: HARDWARE run=aectask01 read_ok=0 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=55327 stack=27356
+W (34242) AfeAudioProcessor: AFE feed: chunks=0 avg_us=0 max_us=0 failures=0 dropped_samples=0 max_backlog_ms=0 queue_cap_samples=6400
+E (34292) DTLS: CLient handshake fail ret -0x6900
+I (34312) WebRTC-TP: peer main loop exited
+I (34312) WebRTC-TP: both tasks confirmed exit; releasing transport resources
+I (34312) AGENT: agent disconnected done
+W (34312) WebRTC-Run: FINAL run=aectask01 state=Failed reason=prepare_timeout stage=4 session_tag=00000000 elapsed_ms=-1 config=0 transport_joined=1
+W (34322) WebRTC-Run: MEDIA run=aectask01 sent=0 decoded=0 failures=0 mic_full=0 mic_invalid=0 rx_full=0 rx_invalid=0 event_full=0 event_invalid=0
+W (34332) WebRTC-Run: TIMELINE run=aectask01 tx_pts_ms=0:0 rx_pts_ms=0:0 rx_us=0:0 max_send_gap_us=0 max_queue_age_us=0
+W (34342) WebRTC-Run: TIMING run=aectask01 send_calls=0 send_avg_us=0 send_max_us=0 loop_max_us=93749 mic_empty=0
+W (34352) WebRTC-Run: PLAYBACK run=aectask01 accepted=0 invalid=0 stopped=0 stale=0 contended=0 full=0 queued_samples=0 inflight_samples=0 submitted_samples=0 submitted_calls=0 submit_us=0:0 stop_requested_us=0 stop_completed_us=33455622 physical_end_unknown=1
+W (34382) WebRTC-Run: DISCARD_AT_STOP run=aectask01 mic=0 down=0 events=0
+W (34382) WebRTC-Run: EVIDENCE run=aectask01 items=0 missing=0 invalid=0 duplicates=0 overflow=0 keyword_mask=0 near_observed=0 speech=0 responses=0 asr_failed=0 self_play=0 T1_T4=NOT_ACCEPTED AEC=UNDETERMINED
+W (34402) WebRTC-Run: CAPTURE run=aectask01 afe_us=0:0 max_afe_gap_us=0 afe_samples=0 capture_callbacks=0 adc_timestamps_available=0
+W (34412) WebRTC-Run: PCM run=aectask01 decoded48=0 converted24=0 accepted24=0 submitted24=0 max_abs=0 endpoints=0 endpoints_are_not_distortion_proof=1
+W (34432) WebRTC-Run: OPUS_SAMPLES run=aectask01 n120=0 n240=0 n480=0 n960=0 n1920=0 n2880=0 n5760=0 other=0
+W (34442) WebRTC-Run: SESSION_OBS run=aectask01 create_response=-1 interrupt_response=-1 unknown=-1 observational_only=1
+W (34452) WebRTC-Run: TURN_SUMMARY run=aectask01 stored=0 capacity=64 overflow=0 diagnostic_dropped=0 diagnostic_stop_discard=0 queue_order=independent_not_receive_order tags=FNV32_diagnostic_only api_snapshot_atomic=0 physical_end_unknown=1
+W (34472) WebRTC-Run: HARDWARE run=aectask01 read_ok=0 write_ok=0 read_failed=0 write_failed=0 capture_cvt_failed=0 drain_failed=0 drained_source_frames=0 afe_reset_failed=0 dram=70031 stack=27356
+W (34492) WebRTC-Run: LIFECYCLE run=aectask01 capture_quiescent=1 transport_joined=1 reusable=1 physical_end_unknown=1
