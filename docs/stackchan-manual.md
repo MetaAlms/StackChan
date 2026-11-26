@@ -4,6 +4,9 @@
 先读这里，再按链接进入细节。只写**已确认事实**和**明确标注的待验证项**；
 证据不足的推测不写成结论。
 
+> **接手先读交接文档**：[handoff-2026-11-26.md](handoff-2026-11-26.md)
+> —— 现状、卡点、下一步与测试纪律都在那一页。
+
 - **板级/电源/音频配置对照（官方值 vs 本仓库）**：[stackchan-config-manual.md](stackchan-config-manual.md)
 - 硬件细节：[stackchan-hardware.md](stackchan-hardware.md)
 - 逐条发现与踩坑：[firmware-findings.md](firmware-findings.md)
